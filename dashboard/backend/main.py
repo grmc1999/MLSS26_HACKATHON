@@ -62,6 +62,81 @@ def get_agents_config():
 
 # --- Experiment Parsing ---
 
+EXPERIMENTS_RUNS = PROJECT_ROOT / "experiments" / "runs.jsonl"
+
+def parse_runs_jsonl() -> list[dict]:
+    """Parse experiment runs from experiments/runs.jsonl."""
+    experiments = []
+    if not EXPERIMENTS_RUNS.exists():
+        return experiments
+    with open(EXPERIMENTS_RUNS) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+                exp = {
+                    "id": data.get("timestamp", "unknown").replace(" ", "_").replace(":", ""),
+                    "path": str(EXPERIMENTS_RUNS),
+                    "timestamp": data.get("timestamp", ""),
+                    "steps": [],
+                    "scores": [],
+                    "final_score": data.get("test_dice"),
+                    "status": "completed",
+                    "source": "run_exp",
+                    "details": {
+                        "model": data.get("model", "unet"),
+                        "base_ch": data.get("base_ch", 32),
+                        "epochs": data.get("epochs", 50),
+                        "lr": data.get("lr", 0.0001),
+                        "batch": data.get("batch", 2),
+                        "params": data.get("params", 0),
+                        "elapsed_s": data.get("elapsed_s", 0),
+                        "best_val_dice": data.get("best_val_dice"),
+                        "best_epoch": data.get("best_epoch"),
+                    },
+                }
+                experiments.append(exp)
+            except json.JSONDecodeError:
+                continue
+    return experiments
+
+def parse_loop_results() -> list[dict]:
+    """Parse loop experiment results from experiments/loop-*/results.tsv."""
+    experiments = []
+    loop_dirs = sorted(PROJECT_ROOT.glob("experiments/loop-*/results.tsv"), reverse=True)
+    for tsv_path in loop_dirs:
+        lines = tsv_path.read_text().strip().split("\n")
+        if len(lines) < 2:
+            continue
+        loop_id = tsv_path.parent.name
+        scores = []
+        final_score = None
+        for line in lines[1:]:
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 4:
+                try:
+                    metric = float(parts[3])
+                    scores.append({"step": int(parts[0]), "score": metric})
+                    final_score = metric
+                except ValueError:
+                    continue
+        experiments.append({
+            "id": loop_id,
+            "path": str(tsv_path.parent),
+            "timestamp": loop_id.replace("loop-", ""),
+            "steps": [{"step": i, "action": {}, "observation": ""} for i in range(len(scores))],
+            "scores": scores,
+            "final_score": final_score,
+            "status": "completed" if scores else "unknown",
+            "source": "auto_loop",
+            "details": {},
+        })
+    return experiments
+
 def parse_experiment(log_dir: Path) -> dict:
     """Parse a single experiment log directory into a structured dict."""
     agent_log = log_dir / "agent_log"
@@ -117,13 +192,15 @@ def parse_experiment(log_dir: Path) -> dict:
 
 
 def get_all_experiments():
-    """Get all experiment runs from the logs directory."""
+    """Get all experiment runs from logs, runs.jsonl, and loop results."""
     experiments = []
-    if not LOGS_DIR.exists():
-        return experiments
-    for log_dir in sorted(LOGS_DIR.iterdir(), reverse=True):
-        if log_dir.is_dir():
-            experiments.append(parse_experiment(log_dir))
+    if LOGS_DIR.exists():
+        for log_dir in sorted(LOGS_DIR.iterdir(), reverse=True):
+            if log_dir.is_dir():
+                experiments.append(parse_experiment(log_dir))
+    experiments.extend(parse_runs_jsonl())
+    experiments.extend(parse_loop_results())
+    experiments.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
     return experiments
 
 
