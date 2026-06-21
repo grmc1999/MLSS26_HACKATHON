@@ -9,7 +9,6 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from encode import rle_encode, list_to_string
-import random
 
 class DoubleConv(nn.Module):
     def __init__(self, in_ch, out_ch):
@@ -102,11 +101,10 @@ def false_color(band11, band14, band15):
     return np.clip(np.stack([r, g, b], axis=2), 0, 1)
 
 class ICRGWDataset(Dataset):
-    def __init__(self, tar_path, ids, padding_size, augment=False):
+    def __init__(self, tar_path, ids, padding_size):
         self.tar_path = tar_path
         self.ids = ids
         self.padding_size = padding_size
-        self.augment = augment
     def __len__(self):
         return len(self.ids)
     def __getitem__(self, idx):
@@ -126,13 +124,6 @@ class ICRGWDataset(Dataset):
             label = label.permute(2, 0, 1)
         except FileNotFoundError:
             label = torch.zeros((1, image.shape[1], image.shape[2]))
-        if self.augment:
-            if random.random() > 0.5:
-                image = torch.flip(image, dims=[2])
-                label = torch.flip(label, dims=[2])
-            if random.random() > 0.5:
-                image = torch.flip(image, dims=[1])
-                label = torch.flip(label, dims=[1])
         return image, label
 
 
@@ -151,7 +142,7 @@ if __name__ == "__main__":
     epochs = 50
     lr = 1e-4
     
-    train_dataset = ICRGWDataset(data_path, ids_train, 2, augment=True)
+    train_dataset = ICRGWDataset(data_path, ids_train, 2)
     valid_dataset = ICRGWDataset(data_path, ids_valid, 2)
     train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=1)
     valid_dataloader = DataLoader(valid_dataset, 1, shuffle=None, num_workers=1)
