@@ -139,7 +139,7 @@ if __name__ == "__main__":
     print(f"TrainSize: {len(ids_train)}, ValidSize: {len(ids_valid)}")
 
     batch_size = 2
-    epochs = 50
+    epochs = 100
     lr = 1e-4
     
     train_dataset = ICRGWDataset(data_path, ids_train, 2)

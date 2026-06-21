@@ -125,7 +125,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contrail detection experiment CLI")
     parser.add_argument("--model", default="unet", choices=["unet"], help="Model architecture")
     parser.add_argument("--base-ch", type=int, default=32, help="Base channels for U-Net")
-    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--batch", type=int, default=2, help="Batch size")
     parser.add_argument("--list", action="store_true", help="List past experiment runs")
