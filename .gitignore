@@ -241,3 +241,5 @@ claude_api_key.txt
 crfm_api_key.txt
 kaggle.json
 .env
+
+*.npy

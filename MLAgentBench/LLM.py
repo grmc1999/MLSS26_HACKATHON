@@ -240,7 +240,8 @@ def log_to_file(log_file, prompt, completion, model, max_tokens_to_sample, num_p
         with open(cost_file, 'r') as reader:
             content = json.load(reader)
 
-    curr_cost = num_prompt_tokens * MODEL2PRICE[model]["input"] + num_sample_tokens * MODEL2PRICE[model]["output"] 
+    price = MODEL2PRICE.get(model, {"input": 0, "output": 0})
+    curr_cost = num_prompt_tokens * price["input"] + num_sample_tokens * price["output"] 
     with open(cost_file, 'w') as writer:
         updated_content = {
                 "total_cost" : content.get("total_cost", 0) + curr_cost,
@@ -516,6 +517,7 @@ def complete_text_openrouter(prompt, stop_sequences=[], model="meta-llama/llama-
     client = openai_module.OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
+        timeout=120,
     )
 
     raw_request = {
@@ -529,6 +531,8 @@ def complete_text_openrouter(prompt, stop_sequences=[], model="meta-llama/llama-
     messages = [{"role": "user", "content": prompt}]
     response = client.chat.completions.create(messages=messages, **raw_request)
     completion = response.choices[0].message.content
+    if completion is None:
+        completion = getattr(response.choices[0].message, "reasoning", None) or ""
 
     if hasattr(response, "usage") and response.usage:
         num_prompt_tokens = response.usage.prompt_tokens
@@ -542,8 +546,8 @@ def complete_text_openrouter(prompt, stop_sequences=[], model="meta-llama/llama-
     return completion
 
 
-MAX_RETRIES=10
-WAIT_TIME=60
+MAX_RETRIES=5
+WAIT_TIME=15
 def complete_text(prompt, log_file, model, **kwargs):
     """ Complete text using the specified model with appropriate API. """
     assert log_file is not None, "log_file is None"
@@ -574,7 +578,7 @@ def complete_text(prompt, log_file, model, **kwargs):
                 completion = complete_text_openai(prompt, stop_sequences=["Observation:"], log_file=log_file, model=model, **kwargs)
             return completion
         except Exception as e:
-            print(f"{model} attempt {retry} failed!")
+            print(f"{model} attempt {retry} failed! Error: {e}")
             error_msg = e
             time.sleep(WAIT_TIME)
 
@@ -582,7 +586,7 @@ def complete_text(prompt, log_file, model, **kwargs):
 
 # specify fast models for summarization etc
 def complete_text_fast(prompt, **kwargs):
-    FAST_MODEL = os.getenv("FAST_MODEL", "openai/gpt-oss-20b:free")
+    FAST_MODEL = os.getenv("FAST_MODEL", "nvidia/nemotron-3-nano-30b-a3b:free")
     return complete_text(prompt = prompt, model = FAST_MODEL, temperature =0.01, **kwargs)
 
 if __name__ == "__main__":

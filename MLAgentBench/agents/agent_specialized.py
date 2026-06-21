@@ -368,11 +368,6 @@ class SpecializedResearchAgent(ResearchAgent):
 
     def __init__(self, args, env, role="autoresearch"):
         self.role = role
-        config = load_agent_config(role)
-        if config and "model" in config:
-            args.llm_name = config["model"]
-        if config and "fast_model" in config:
-            args.fast_llm_name = config["fast_model"]
         super().__init__(args, env)
         addon = AGENT_PROMPTS.get(role, "")
         if addon:

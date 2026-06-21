@@ -5,6 +5,15 @@ This file is the entry point for MLAgentBench.
 import argparse
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load .env from project root (parent of MLAgentBench package)
+# override=True is critical: if OPENROUTER_API_KEY is already set as empty in the
+# shell environment, load_dotenv won't replace it without this flag
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"), override=True)
+load_dotenv(override=True)  # also try CWD as fallback
+
 from MLAgentBench.environment import Environment
 from MLAgentBench.agents.agent import Agent, SimpleActionAgent, ReasoningActionAgent
 from MLAgentBench.agents.agent_research import ResearchAgent
@@ -54,11 +63,11 @@ if __name__ == "__main__":
     # general agent configs
     parser.add_argument("--agent-type", type=str, default="ResearchAgent", help="agent type")
     parser.add_argument("--agent-role", type=str, default=None, help="specialized agent role (research_literature, autoresearch, cv_expert, dl_expert, llm_expert, satellite_expert, continual_learning, physics_expert)")
-    parser.add_argument("--llm-name", type=str, default="meta-llama/llama-3.3-70b-instruct:free", help="llm name")
-    parser.add_argument("--fast-llm-name", type=str, default="openai/gpt-oss-20b:free", help="llm name")
-    parser.add_argument("--feedback-llm-name", type=str, default="meta-llama/llama-3.3-70b-instruct:free", help="llm name")
+    parser.add_argument("--llm-name", type=str, default="nvidia/nemotron-3-super-120b-a12b:free", help="llm name")
+    parser.add_argument("--fast-llm-name", type=str, default="nvidia/nemotron-3-nano-30b-a3b:free", help="llm name")
+    parser.add_argument("--feedback-llm-name", type=str, default="nvidia/nemotron-3-super-120b-a12b:free", help="llm name")
     parser.add_argument("--feedback-llm-max-tokens", type=int, default=4000, help="llm max tokens")
-    parser.add_argument("--edit-script-llm-name", type=str, default="meta-llama/llama-3.3-70b-instruct:free", help="llm name")
+    parser.add_argument("--edit-script-llm-name", type=str, default="nvidia/nemotron-3-super-120b-a12b:free", help="llm name")
     parser.add_argument("--edit-script-llm-max-tokens", type=int, default=4000, help="llm max tokens")
     parser.add_argument("--agent-max-steps", type=int, default=50, help="the real number of max iterations for agent")
 
