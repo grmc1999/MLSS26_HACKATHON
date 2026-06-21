@@ -147,7 +147,7 @@ if __name__ == "__main__":
     train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=1)
     valid_dataloader = DataLoader(valid_dataset, 1, shuffle=None, num_workers=1)
 
-    model = UNet(n_channels=3, n_classes=2, base_ch=48)
+    model = UNet(n_channels=3, n_classes=2, base_ch=32)
     model = model.to(device)
     model.train()
 
