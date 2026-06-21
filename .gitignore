@@ -152,6 +152,7 @@ activemq-data/
 .envrc
 .venv
 env/
+!MLAgentBench/benchmarks/identify-contrails/env/
 venv/
 ENV/
 env.bak/
