@@ -1,10 +1,10 @@
-# AGENTS.md — MLSS26_HACKATHON Multi-Agent System
+# AGENTS.md — MLSS26_HACKATHON Scientific AI AutoResearch
 
 ## Overview
 
-This project implements a multi-agent system for ML experimentation, forked from [MLAgentBench](https://github.com/snap-stanford/MLAgentBench) with improvements from [MLRC-Bench](https://github.com/yunx-z/MLRC-Bench). The system uses **free OpenRouter models** to power specialized agents that collaborate on the `identify-contrails` satellite imagery task.
+This project implements a **unified Scientific AI AutoResearch** system for ML experimentation, forked from [MLAgentBench](https://github.com/snap-stanford/MLAgentBench) with improvements from [MLRC-Bench](https://github.com/yunx-z/MLRC-Bench). The system merges **Karpathy's autoresearch** loop with **8 specialized scientific AI agents** powered by free OpenRouter models.
 
-The autonomous experiment loop is inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — agents modify code, train, evaluate, keep/discard, and repeat indefinitely. The `program.md` file provides the baseline instructions for the autoresearch loop.
+The autonomous experiment loop: modify code → train → evaluate → keep/discard → repeat indefinitely. At each step, the orchestrator can consult specialized agents for domain expertise, then decide whether to keep or discard the change.
 
 Domain skills (computer-vision, deep-learning, imaging-algorithms) are integrated directly into the agents' system prompts, giving them access to library-specific code patterns and best practices.
 
@@ -14,20 +14,35 @@ Domain skills (computer-vision, deep-learning, imaging-algorithms) are integrate
 User / Dashboard
        |
        v
-  Orchestrator
++------------------------------+
+|    Scientific AutoResearch   |  ← Unified Loop (modify → run → eval → keep/discard)
+|    Orchestrator              |     + 14 subcommands
++------------------------------+
+       |         ↑
+       |         | consultation (route_to_agent)
+       v         |
++------------------------------+
+|    8 Specialized Agents     |  ← Domain experts with skill prompts
+|  (R, A, CV, DL, LLM, SAT,  |
+|   CL, PHY)                  |
++------------------------------+
        |
-  +----+----+----+----+----+----+----+----+
-  |    |    |    |    |    |    |    |    |
-  R    A    CV   DL  LLM  SAT  CL   PHY
+       v
++------------------------------+
+|   Experiment Pipeline       |  ← train.py → run_exp.py → eval.py
+|   (GPU: 2× RTX PRO 6000)   |
++------------------------------+
 ```
 
 ### Core Components
 
 | Component | File | Description |
 |-----------|------|-------------|
-| **Orchestrator** | `MLAgentBench/agents/orchestrator.py` | Routes subproblems to agents, manages iterations |
+| **AutoResearch Orchestrator** | `MLAgentBench/agents/orchestrator.py` | 🆕 Unified loop: consult → modify → commit → run → eval → keep/discard + 14 subcommands |
 | **Specialized Agents** | `MLAgentBench/agents/agent_specialized.py` | 8 role-specific agents extending ResearchAgent |
 | **Continual Learning** | `MLAgentBench/agents/continual_learning.py` | EWC + replay buffer + checkpoint versioning |
+| **Task Protocol** | `program.md` | Task-specific autoresearch instructions |
+| **AutoResearch Skill** | `.opencode/skills/autoresearch/SKILL.md` | 14 subcommands for the autonomous loop |
 | **LLM Router** | `MLAgentBench/LLM.py` | Routes calls to OpenRouter (free models) |
 | **Model Config** | `configs/models.yaml` | 22 free OpenRouter models with metadata |
 | **Agent Config** | `configs/agents.yaml` | Agent → model mappings + system prompts |
@@ -83,6 +98,61 @@ User / Dashboard
 - **Upgrade**: `openai/gpt-4o`
 - **Skills**: PINNs, advection-continuity equations, atmospheric physics, metric computation, physical consistency checks
 - **Focus**: CSI metrics, ERA5 wind fields, physics-informed constraints
+
+---
+
+## AutoResearch Subcommands (14)
+
+The orchestrator implements 14 subcommands from the autoresearch skill:
+
+| Subcommand | Purpose |
+|------------|---------|
+| `/plan` | Generate next experiment hypothesis from previous results |
+| `/run` | Execute single iteration: modify → commit → run → eval → keep/discard |
+| `/fix` | Debug crashed experiment — read stack trace, repair code |
+| `/analyze` | Deep analysis: learning curves, overfitting, statistical significance |
+| `/ship` | Lock in best model: final eval, export checkpoint, generate submission |
+| `/learn` | Extract lessons from past iterations |
+| `/reason` | Chain-of-thought about experiment trajectory |
+| `/probe` | Deep-dive into model internals (activations, gradients, attention) |
+| `/improve` | Focused improvement on weakest cases |
+| `/debug` | Interactive debugging session |
+| `/evals` | Comprehensive evaluation (Dice, IoU, precision, recall) |
+| `/regression` | Verify changes don't break existing functionality |
+| `/predict` | Predict outcome of proposed change before running |
+| `/scenario` | Run what-if scenarios (different weather, time, geography) |
+
+---
+
+## Autoresearch Experiment Loop
+
+The loop protocol (from `program.md`):
+
+```
+LOOP FOREVER:
+  1. Consult specialized agent for next hypothesis
+  2. Modify train.py (one focused change)
+  3. git commit
+  4. Run: python train.py or python scripts/run_exp.py
+  5. Extract metric: grep "Validation Dice Score" or "Test Dice"
+  6. If improved → KEEP (advance branch)
+  7. If worse/crash → DISCARD (git revert, restore worktree)
+  8. Log to TSV: iteration, commit, metric, delta, status, description
+  9. Repeat — NEVER STOP
+```
+
+Supported via the Scientific AutoResearch CLI:
+```bash
+# Run the automatic loop
+python scripts/run_exp.py --epochs 50
+
+# Or for the full agent-driven loop
+python -m MLAgentBench.runner \
+  --task identify-contrails \
+  --agent-role autoresearch \
+  --log-dir logs/autoresearch_run \
+  --agent-max-steps 25
+```
 
 ---
 
@@ -304,6 +374,11 @@ MLSS26_HACKATHON/
 ├── .env                               # Actual API keys (gitignored)
 ├── .gitignore
 ├── Project_definition.md              # Research project definition
+├── program.md                         # Task autoresearch protocol
+├── .opencode/
+│   └── skills/
+│       └── autoresearch/
+│           └── SKILL.md               # 14 subcommands skill
 ├── configs/
 │   ├── models.yaml                    # OpenRouter model configurations
 │   └── agents.yaml                    # Agent → model mappings
@@ -313,19 +388,20 @@ MLSS26_HACKATHON/
 │   ├── agents/
 │   │   ├── agent.py                   # Base Agent class
 │   │   ├── agent_research.py          # ResearchAgent (original)
-│   │   ├── agent_specialized.py       # 8 specialized agents
+│   │   ├── agent_specialized.py       # 8 specialized agents + skills
 │   │   ├── continual_learning.py      # EWC + replay + versioning
-│   │   └── orchestrator.py            # Agent orchestrator
+│   │   └── orchestrator.py            # 🆕 Unified AutoResearch Orchestrator
 │   ├── benchmarks/
 │   │   └── identify-contrails/        # Primary task (satellite imagery)
 │   └── benchmarks_base/               # MLRC-Bench research tasks
-├── data/
-│   └── era5/                          # ERA5 NetCDF data
+├── experiments/                       # Experiment logs (TSV, JSONL)
 ├── dashboard/
-│   ├── backend/                       # FastAPI
-│   └── frontend/                      # Next.js
+│   ├── backend/                       # FastAPI (port 8000)
+│   └── frontend/                      # Next.js (port 3000)
 ├── scripts/
+│   ├── run_exp.py                     # Standalone experiment CLI
+│   ├── run_hackathon.sh               # Agent launch script
 │   ├── setup.sh                       # Full installation
-│   └── run_hackathon.sh               # Main launch script
+│   └── start_dashboard.sh             # Dashboard launcher
 └── .venv/                             # Python virtual environment
 ```
