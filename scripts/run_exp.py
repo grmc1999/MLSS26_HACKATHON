@@ -31,7 +31,7 @@ def train_model(args):
     image_ids = os.listdir(data_path)
     ids_train, ids_valid = train_test_split(image_ids, test_size=0.1, random_state=42)
 
-    train_ds = ICRGWDataset(data_path, ids_train, 2)
+    train_ds = ICRGWDataset(data_path, ids_train, 2, augment=True)
     valid_ds = ICRGWDataset(data_path, ids_valid, 2)
     train_loader = DataLoader(train_ds, args.batch, shuffle=True, num_workers=1)
     valid_loader = DataLoader(valid_ds, 1, shuffle=False, num_workers=1)
