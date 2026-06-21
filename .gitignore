@@ -243,3 +243,4 @@ kaggle.json
 .env
 
 *.npy
+experiments/
