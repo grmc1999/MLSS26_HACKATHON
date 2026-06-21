@@ -101,6 +101,29 @@ User / Dashboard
 
 ---
 
+ ## Autoresearch Scientific Mode (NEW)
+
+The **`autoresearch_scientific`** skill merges the OpenCode autoresearch loop with the 8 specialized agents. Invoke via OpenCode:
+
+```
+/autoresearch_scientific Goal="Improve Dice Score" Metric="Test Dice" Iterations=25
+/autoresearch_scientific_plan Agent=cv_expert
+/autoresearch_scientific_ship
+```
+
+Or via CLI:
+```bash
+python -m MLAgentBench.agents.orchestrator --agent cv_expert --iterations 25
+bash scripts/run_autoresearch_scientific.sh autoresearch 25
+```
+
+At each iteration:
+1. Routes the current problem to the best agent via keyword matching
+2. Agent proposes a focused code change with scientific reasoning
+3. Experiment runs → metric extracted → keep/discard decision
+4. If improved, commit is kept; if worse/crash, reverted
+5. All logged to TSV + dashboard
+
 ## AutoResearch Subcommands (14)
 
 The orchestrator implements 14 subcommands from the autoresearch skill:
@@ -377,8 +400,10 @@ MLSS26_HACKATHON/
 ├── program.md                         # Task autoresearch protocol
 ├── .opencode/
 │   └── skills/
-│       └── autoresearch/
-│           └── SKILL.md               # 14 subcommands skill
+│       ├── autoresearch/
+│       │   └── SKILL.md               # 14 subcommands skill (base)
+│       └── autoresearch_scientific/
+│           └── SKILL.md               # 🆕 Scientific AI (agents + loop)
 ├── configs/
 │   ├── models.yaml                    # OpenRouter model configurations
 │   └── agents.yaml                    # Agent → model mappings

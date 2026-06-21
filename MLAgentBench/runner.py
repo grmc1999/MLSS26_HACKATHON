@@ -18,7 +18,7 @@ from MLAgentBench.environment import Environment
 from MLAgentBench.agents.agent import Agent, SimpleActionAgent, ReasoningActionAgent
 from MLAgentBench.agents.agent_research import ResearchAgent
 from MLAgentBench.agents.agent_specialized import SpecializedResearchAgent, create_agent, AGENT_PROMPTS
-from MLAgentBench.agents.orchestrator import AgentOrchestrator
+from MLAgentBench.agents.orchestrator import ScientificAutoResearch
 from MLAgentBench.constants import *
 
 

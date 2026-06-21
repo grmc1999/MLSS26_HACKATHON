@@ -546,3 +546,64 @@ class ScientificAutoResearch:
                 "Run experiment → keep/discard → repeat",
             ],
         }
+
+
+def main():
+    """CLI entry point for the autoresearch_scientific mode."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Scientific AI AutoResearch — merge autoresearch loop with 8 specialized agents",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run the full autonomy loop (25 iterations)
+  python -m MLAgentBench.agents.orchestrator --iterations 25 --agent cv_expert
+
+  # Run with specific verify command
+  python -m MLAgentBench.agents.orchestrator --iterations 5 --verify "python scripts/run_exp.py --epochs 50"
+
+  # Quick eval mode
+  python -m MLAgentBench.agents.orchestrator --subcommand evals
+
+  # Ship best model
+  python -m MLAgentBench.agents.orchestrator --subcommand ship
+        """,
+    )
+    parser.add_argument("--iterations", type=int, default=25, help="Max iterations")
+    parser.add_argument("--agent", default="autoresearch", choices=list(ROUTING_KEYWORDS.keys()),
+                       help="Primary agent role")
+    parser.add_argument("--subcommand", choices=list(AUTORESEARCH_SUBCOMMANDS.keys()),
+                       help="Run a single subcommand instead of the full loop")
+    parser.add_argument("--verify", default="python scripts/run_exp.py --epochs 50",
+                       help="Verify command that outputs the metric")
+    parser.add_argument("--log-dir", default=None, help="Log directory")
+    args = parser.parse_args()
+
+    # Create log dir
+    from datetime import datetime
+    log_dir = args.log_dir or f"experiments/loop-{datetime.now().strftime('%y%m%d-%H%M')}"
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Create orchestrator
+    orch = ScientificAutoResearch(
+        log_dir=log_dir,
+        max_iterations=args.iterations,
+    )
+
+    print(f"\n{'='*60}")
+    print(f"  Scientific AI AutoResearch")
+    print(f"  Agent: {args.agent}")
+    print(f"  Iterations: {args.iterations}")
+    print(f"  Log dir: {log_dir}")
+    print(f"{'='*60}\n")
+
+    if args.subcommand:
+        result = orch.run_subcommand(args.subcommand)
+        print(json.dumps(result, indent=2))
+    else:
+        orch.run_loop(primary_agent=args.agent)
+        print(f"\nDone. Results in {log_dir}")
+
+
+if __name__ == "__main__":
+    main()
