@@ -216,3 +216,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+*.nc
+
+# MLSS26_HACKATHON specific
+.kaggle/
+*.zip
+data/
+workspace/
+logs/
+checkpoints/
+dashboard.db
+dashboard/frontend/node_modules/
+dashboard/frontend/.next/
+dashboard/frontend/.env.local
+
+# ERA5 data
+30769e617fc7d3011ae57470218bd134/
+e20ab2936c0bf78f7b82871c72d77fc/
+
+# API key files (never commit these)
+openai_api_key.txt
+claude_api_key.txt
+crfm_api_key.txt
+kaggle.json
+.env
