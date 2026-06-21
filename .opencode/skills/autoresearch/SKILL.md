@@ -52,6 +52,7 @@ This project benchmarks contrail detection on GOES-16 satellite imagery.
 | `/autoresearch_improve` | Research ICP challenges, discover improvements, generate PRDs | 15 |
 | `/autoresearch_evals` | Analyze iteration results: trends, plateaus, regressions | N/A |
 | `/autoresearch_regression` | Regression stability gate: baseline vs candidate | N/A |
+| `/autoresearch_scientific` | Scientific AI mode: merge autoresearch loop with 8 specialized agents | 25 |
 
 ## Universal Flags
 
@@ -61,6 +62,35 @@ This project benchmarks contrail detection on GOES-16 satellite imagery.
 | `--evals` | All looping | Mid-loop checkpoints + final summary |
 | `--chain <targets>` | All | Sequential handoff after completion |
 | `--dry-run` | Orchestrator | Print derived config, no execution |
+
+## Scientific AI Mode (subcommand: `/autoresearch_scientific`)
+
+When invoked, this subcommand activates the full Scientific AI pipeline:
+1. **Route** the problem to the best specialized agent (CV, DL, Satellite, Physics, etc.)
+2. **Consult** the agent for a hypothesis + code change proposal
+3. **Execute** the experiment (modify `train.py` → commit → run → eval)
+4. **Decide** keep (metric improved) or discard (metric worsened/crash)
+5. **Log** results to TSV + dashboard
+6. **Repeat** up to N iterations
+
+### Agent Routing
+Keywords map problems to agents automatically:
+- `image`, `unet`, `augment`, `architecture` → **cv_expert**
+- `loss`, `optimizer`, `train`, `learning rate` → **dl_expert**
+- `satellite`, `band`, `goes`, `contrail`, `era5` → **satellite_expert**
+- `physics`, `advection`, `csi`, `pde` → **physics_expert**
+- `paper`, `sota`, `literature`, `arxiv` → **research_literature**
+- `forget`, `checkpoint`, `ewc`, `version` → **continual_learning**
+- `prompt`, `multi-agent`, `coordinate` → **llm_expert**
+- default → **autoresearch**
+
+### CLI
+```bash
+bash scripts/run_autoresearch_scientific.sh [agent] [iterations]
+python -m MLAgentBench.agents.orchestrator --agent cv_expert --iterations 25
+```
+
+---
 
 ## Orchestrator Loop
 

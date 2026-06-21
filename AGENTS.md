@@ -16,7 +16,7 @@ User / Dashboard
        v
 +------------------------------+
 |    Scientific AutoResearch   |  ← Unified Loop (modify → run → eval → keep/discard)
-|    Orchestrator              |     + 14 subcommands
+|    Orchestrator              |     + 15 subcommands
 +------------------------------+
        |         ↑
        |         | consultation (route_to_agent)
@@ -38,11 +38,11 @@ User / Dashboard
 
 | Component | File | Description |
 |-----------|------|-------------|
-| **AutoResearch Orchestrator** | `MLAgentBench/agents/orchestrator.py` | 🆕 Unified loop: consult → modify → commit → run → eval → keep/discard + 14 subcommands |
+| **AutoResearch Orchestrator** | `MLAgentBench/agents/orchestrator.py` | 🆕 Unified loop: consult → modify → commit → run → eval → keep/discard + 15 subcommands |
 | **Specialized Agents** | `MLAgentBench/agents/agent_specialized.py` | 8 role-specific agents extending ResearchAgent |
 | **Continual Learning** | `MLAgentBench/agents/continual_learning.py` | EWC + replay buffer + checkpoint versioning |
 | **Task Protocol** | `program.md` | Task-specific autoresearch instructions |
-| **AutoResearch Skill** | `.opencode/skills/autoresearch/SKILL.md` | 14 subcommands for the autonomous loop |
+| **AutoResearch Skill** | `.opencode/skills/autoresearch/SKILL.md` | 15 subcommands for the autonomous loop |
 | **LLM Router** | `MLAgentBench/LLM.py` | Routes calls to OpenRouter (free models) |
 | **Model Config** | `configs/models.yaml` | 22 free OpenRouter models with metadata |
 | **Agent Config** | `configs/agents.yaml` | Agent → model mappings + system prompts |
@@ -101,14 +101,12 @@ User / Dashboard
 
 ---
 
- ## Autoresearch Scientific Mode (NEW)
+ ## Autoresearch Scientific Mode (subcommand of `/autoresearch`)
 
-The **`autoresearch_scientific`** skill merges the OpenCode autoresearch loop with the 8 specialized agents. Invoke via OpenCode:
+`/autoresearch_scientific` is the **15th subcommand** of the `autoresearch` skill. It merges the autoresearch loop with the 8 specialized agents. Invoke it just like any other subcommand:
 
 ```
 /autoresearch_scientific Goal="Improve Dice Score" Metric="Test Dice" Iterations=25
-/autoresearch_scientific_plan Agent=cv_expert
-/autoresearch_scientific_ship
 ```
 
 Or via CLI:
@@ -124,9 +122,9 @@ At each iteration:
 4. If improved, commit is kept; if worse/crash, reverted
 5. All logged to TSV + dashboard
 
-## AutoResearch Subcommands (14)
+## AutoResearch Subcommands (15)
 
-The orchestrator implements 14 subcommands from the autoresearch skill:
+The orchestrator implements 15 subcommands from the autoresearch skill:
 
 | Subcommand | Purpose |
 |------------|---------|
@@ -144,6 +142,7 @@ The orchestrator implements 14 subcommands from the autoresearch skill:
 | `/regression` | Verify changes don't break existing functionality |
 | `/predict` | Predict outcome of proposed change before running |
 | `/scenario` | Run what-if scenarios (different weather, time, geography) |
+| `/autoresearch_scientific` | Scientific AI: autoresearch loop + 8 specialized agents | 25 |
 
 ---
 
@@ -401,7 +400,7 @@ MLSS26_HACKATHON/
 ├── .opencode/
 │   └── skills/
 │       ├── autoresearch/
-│       │   └── SKILL.md               # 14 subcommands skill (base)
+│       │   └── SKILL.md               # 15 subcommands skill (base)
 │       └── autoresearch_scientific/
 │           └── SKILL.md               # 🆕 Scientific AI (agents + loop)
 ├── configs/

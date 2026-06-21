@@ -82,7 +82,7 @@ def load_models_config():
 
 
 # ---------------------------------------------------------------------------
-# Autoresearch Skills (14 subcommands)
+# Autoresearch Skills (15 subcommands)
 # ---------------------------------------------------------------------------
 
 AUTORESEARCH_SUBCOMMANDS = {

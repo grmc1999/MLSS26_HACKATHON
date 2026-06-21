@@ -50,10 +50,9 @@ LOOP FOREVER (up to max_iterations):
 
 | Component | File | Description |
 |-----------|------|-------------|
-| **AutoResearch Orchestrator** | `MLAgentBench/agents/orchestrator.py` | Unified loop + 14 subcommands + agent routing |
+| **AutoResearch Orchestrator** | `MLAgentBench/agents/orchestrator.py` | Unified loop + 15 subcommands + agent routing |
 | **8 Specialized Agents** | `MLAgentBench/agents/agent_specialized.py` | Domain experts with skill-integrated prompts |
-| **Autoresearch Skill** | `.opencode/skills/autoresearch/SKILL.md` | 14 subcommands for the loop |
-| **🚀 AutoResearch Scientific** | `.opencode/skills/autoresearch_scientific/SKILL.md` | Autoresearch loop + 8 scientific agents + 14 subcommands |
+| **Autoresearch Skill** | `.opencode/skills/autoresearch/SKILL.md` | 15 subcommands (incl. scientific) for the loop |
 | **Task Instructions** | `program.md` | Task-specific autoresearch protocol |
 | **Continual Learning** | `MLAgentBench/agents/continual_learning.py` | EWC + replay + checkpoint versioning |
 | **LLM Router** | `MLAgentBench/LLM.py` | OpenRouter API (22 free models) |
@@ -62,38 +61,7 @@ LOOP FOREVER (up to max_iterations):
 
 ---
 
-## 🚀 Autoresearch Scientific Mode
-
-The **`autoresearch_scientific`** skill merges the OpenCode autoresearch loop with the 8 specialized agents into a single unified command.
-
-### Usage
-```
-# From OpenCode (chat)
-/autoresearch_scientific Goal="Improve Dice Score" Metric="Test Dice" Iterations=25
-/autoresearch_scientific_plan Agent=cv_expert
-/autoresearch_scientific_ship
-
-# From CLI
-bash scripts/run_autoresearch_scientific.sh [agent_role] [iterations]
-python -m MLAgentBench.agents.orchestrator --agent cv_expert --iterations 10 --subcommand ship
-```
-
-### How It Works
-```
-LOOP FOREVER (bounded):
-  1. Route to best agent via keyword matching
-  2. Agent proposes hypothesis + code change with scientific reasoning
-  3. Modify train.py → git commit → run experiment
-  4. Extract Test Dice → decide KEEP (if improved) or DISCARD (if worse/crash)
-  5. Log to TSV + dashboard → repeat
-```
-
-### Available Agents for Routing
-`research_literature`, `autoresearch`, `cv_expert`, `dl_expert`, `llm_expert`, `satellite_expert`, `continual_learning`, `physics_expert`
-
----
-
-## 14 AutoResearch Subcommands
+## 15 AutoResearch Subcommands
 
 | Command | Purpose |
 |---------|---------|
@@ -111,6 +79,7 @@ LOOP FOREVER (bounded):
 | `/regression` | Verify new changes don't break existing functionality |
 | `/predict` | Predict outcome of proposed change before running |
 | `/scenario` | Run what-if scenarios (different weather, time, geography) |
+| `/autoresearch_scientific` | Scientific AI: autoresearch loop + 8 specialized agents | 25 |
 
 ---
 
@@ -142,10 +111,8 @@ MLSS26_HACKATHON/
 ├── program.md                    # Task autoresearch protocol
 ├── .opencode/
 │   └── skills/
-│       ├── autoresearch/
-│       │   └── SKILL.md          # Autoresearch skill (14 subcommands)
-│       └── autoresearch_scientific/
-│           └── SKILL.md          # 🚀 Scientific AI (agents + loop)
+│       └── autoresearch/
+│           └── SKILL.md          # Autoresearch skill (15 subcommands)
 ├── configs/
 │   ├── agents.yaml               # 8 agents with model assignments
 │   └── models.yaml               # 22 free OpenRouter models
