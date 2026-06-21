@@ -19,7 +19,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 LOG_FILE = LOGS_DIR / "runs.jsonl"
 
 def train_model(args):
-    from train import UNet, ICRGWDataset, dice_score, ce_loss
+    from train import UNet, ICRGWDataset, dice_score, combined_loss
     import torch, numpy as np, pandas as pd
     from torch.utils.data import DataLoader
     from sklearn.model_selection import train_test_split
@@ -47,7 +47,7 @@ def train_model(args):
         for X, y in tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.epochs}", leave=False):
             X, y = X.to(device), y.to(device)
             optimizer.zero_grad()
-            loss = ce_loss(model(X), y)
+            loss = combined_loss(model(X), y)
             loss.backward()
             optimizer.step()
         scheduler.step()
