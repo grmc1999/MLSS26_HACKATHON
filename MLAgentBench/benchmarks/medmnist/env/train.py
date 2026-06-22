@@ -18,7 +18,7 @@ from loader import get_datasets, CLASS_NAMES, OOD_CLASS, N_CLASSES
 
 
 class SimpleCNN(nn.Module):
-    """Small CNN for 28x28 chest X-rays. Outputs 3 logits for better OOD detection."""
+    """3-layer CNN for 28x28 chest X-rays. Outputs 3 logits for better OOD detection."""
 
     def __init__(self, num_classes=2):
         super().__init__()
@@ -26,16 +26,20 @@ class SimpleCNN(nn.Module):
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
         self.pool = nn.MaxPool2d(2)
         self.dropout = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, 3)
+        self.dropout3 = nn.Dropout(0.25)
+        self.fc1 = nn.Linear(128 * 3 * 3, 256)
+        self.fc2 = nn.Linear(256, 3)
         self.num_classes = num_classes
 
     def forward(self, x):
         x = self.pool(F.leaky_relu(self.bn1(self.conv1(x)), 0.1))
         x = self.pool(F.leaky_relu(self.bn2(self.conv2(x)), 0.1))
+        x = self.dropout3(self.pool(F.leaky_relu(self.bn3(self.conv3(x)), 0.1)))
         x = x.view(x.size(0), -1)
         x = self.dropout(x)
         x = F.leaky_relu(self.fc1(x), 0.1)
