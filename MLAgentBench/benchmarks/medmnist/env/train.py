@@ -30,23 +30,6 @@ class LabelSmoothingCrossEntropy(nn.Module):
         return -(smooth_labels * log_probs).sum(dim=1).mean()
 
 
-class SmoothFocalLoss(nn.Module):
-    def __init__(self, gamma=2.0, smoothing=0.05):
-        super().__init__()
-        self.gamma = gamma
-        self.smoothing = smoothing
-
-    def forward(self, pred, target):
-        n_classes = pred.size(1)
-        one_hot = torch.zeros_like(pred).scatter(1, target.unsqueeze(1), 1)
-        smooth_labels = one_hot * (1 - self.smoothing) + self.smoothing / n_classes
-        log_probs = F.log_softmax(pred, dim=1)
-        probs = log_probs.exp()
-        pt = (smooth_labels * probs).sum(dim=1)
-        focal_weight = (1 - pt) ** self.gamma
-        return -(focal_weight * (smooth_labels * log_probs).sum(dim=1)).mean()
-
-
 class FocalLoss(nn.Module):
     def __init__(self, gamma=2.0, alpha=None):
         super().__init__()
@@ -360,7 +343,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
-    criterion = SmoothFocalLoss(gamma=2.0, smoothing=0.05)
+    criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
