@@ -18,7 +18,7 @@ from loader import get_datasets, CLASS_NAMES, OOD_CLASS, N_CLASSES
 
 
 class SimpleCNN(nn.Module):
-    """3-layer CNN for 28x28 chest X-rays. Outputs 2 logits; OOD via softmax threshold."""
+        """3-layer CNN for 28x28 chest X-rays. Outputs 2 logits; OOD via softmax threshold."""
 
     def __init__(self, num_classes=2):
         super().__init__()
