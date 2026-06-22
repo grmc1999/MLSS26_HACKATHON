@@ -31,12 +31,15 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
 
 class FocalLoss(nn.Module):
-    def __init__(self, gamma=2.0, alpha=None):
+    def __init__(self, gamma=2.0, alpha=None, logit_norm=False):
         super().__init__()
         self.gamma = gamma
         self.alpha = alpha
+        self.logit_norm = logit_norm
 
     def forward(self, pred, target):
+        if self.logit_norm:
+            pred = F.normalize(pred, p=2, dim=1)
         log_probs = F.log_softmax(pred, dim=1)
         probs = log_probs.exp()
         one_hot = torch.zeros_like(pred).scatter(1, target.unsqueeze(1), 1)
@@ -361,7 +364,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
-    criterion = FocalLoss(gamma=2.0)
+    criterion = FocalLoss(gamma=2.0, logit_norm=True)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
