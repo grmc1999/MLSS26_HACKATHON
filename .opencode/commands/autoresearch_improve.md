@@ -1,7 +1,7 @@
 ---
 name: autoresearch_improve
 description: "Research OOD detection improvements, discover SOTA methods, generate experiment proposals"
-argument-hint: "[Goal: <text>] [Iterations: N]"
+argument-hint: "[Goal: <text>] [Iterations: N] [Pretrained: yes|no]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -11,14 +11,23 @@ EXECUTE IMMEDIATELY.
 Extract from $ARGUMENTS:
 - `Goal:` or `--goal` — what to improve (Test Accuracy, OOD F1, calibration)
 - `Iterations:` or `--iterations` — default 15.
+- `Pretrained:` — "yes" to search and finetune pretrained models, "no" to train from scratch (default: no)
 
 ## Setup
 
 question (single batch):
   Q1 (Goal): "What to improve?" — Test Accuracy, OOD F1, calibration, model efficiency
   Q2 (Depth): "Research depth?" — shallow (5), standard (15), deep (30)
+  Q3 (Pretrained): "Start from scratch or finetune a pretrained model?" — Scratch (default) or Pretrained
 
 ## Research Categories
+
+### Pretrained Models & Finetuning
+- HuggingFace hub: medical imaging models (`microsoft/ biomedclip`, `google/vit-base-pneumonia`)
+- torchvision models: ResNet, DenseNet, EfficientNet adapted for 28×28 chest X-rays
+- GitHub: CheXNet (DenseNet-121), COVID-Net, OpenMED
+- Adaptation strategies: modify first conv for 1-channel input, resize 28→224, classifier head replacement
+- Transfer learning vs scratch: which performs better under domain shift?
 
 ### Architecture Improvements
 - ResNet, DenseNet, EfficientNet for 28×28

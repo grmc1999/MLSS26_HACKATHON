@@ -35,6 +35,15 @@ version: 2.2.0
 - Metrics: Test Accuracy (stdout) + OOD F1 (stdout)
 - Log to: `experiments/results.tsv` (tab-separated)
 
+## Pretrained Model Finetuning
+
+Configurable via `Pretrained: yes/no` argument (default: no).
+
+- **Sources**: HuggingFace Hub, PyTorch Hub, GitHub (CheXNet, COVID-Net)
+- **Models**: torchvision ResNet/DenseNet/EfficientNet, biomedical vision transformers
+- **Adaptation**: modify first conv (3→1 channel), resize 28→224, replace classifier head
+- **Decision**: compare finetuned vs scratch; keep whichever performs better
+
 ## Subcommands Reference
 
 Subcommands are self-contained in `.opencode/commands/` with full instructions.
