@@ -58,9 +58,17 @@ def train_model(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
+    ema_model = None
+    ema_decay = 0.999
     best_val_acc, best_epoch = 0, 0
     for epoch in range(args.epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
+        if ema_model is None:
+            ema_model = {k: v.detach().clone() for k, v in model.state_dict().items()}
+        else:
+            with torch.no_grad():
+                for k, v in model.state_dict().items():
+                    ema_model[k] = ema_decay * ema_model[k] + (1 - ema_decay) * v
         val_acc, _, _ = evaluate(model, val_loader, device)
         if val_acc > best_val_acc:
             best_val_acc, best_epoch = val_acc, epoch
@@ -69,7 +77,12 @@ def train_model(args):
             print(f"Epoch {epoch+1}/{args.epochs}: acc={acc:.4f}, val={val_acc:.4f}")
 
     elapsed = time.time() - start
-    model.load_state_dict(torch.load("medmnist_model.pth"))
+    best_sd = torch.load("medmnist_model.pth")
+    if ema_model is not None:
+        for k in best_sd:
+            if k in ema_model:
+                best_sd[k] = ema_model[k]
+    model.load_state_dict(best_sd)
 
     # Test evaluation
     import torch.nn.functional as F

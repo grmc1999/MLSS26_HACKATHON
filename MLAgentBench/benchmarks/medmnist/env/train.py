@@ -346,9 +346,18 @@ if __name__ == "__main__":
     criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    ema_model = None
+    ema_decay = 0.999
+
     best_acc = 0
     for epoch in range(epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
+        if ema_model is None:
+            ema_model = {k: v.detach().clone() for k, v in model.state_dict().items()}
+        else:
+            with torch.no_grad():
+                for k, v in model.state_dict().items():
+                    ema_model[k] = ema_decay * ema_model[k] + (1 - ema_decay) * v
         val_acc, _, _ = evaluate(model, val_loader, device)
         if val_acc > best_acc:
             best_acc = val_acc
@@ -356,8 +365,13 @@ if __name__ == "__main__":
         if (epoch + 1) % 5 == 0 or epoch == 0:
             print(f"Epoch {epoch+1}/{epochs}: train_acc={acc:.4f}, val_acc={val_acc:.4f}")
 
-    # Load best model and evaluate on test set
-    model.load_state_dict(torch.load("medmnist_model.pth"))
+    # Load best model with EMA and evaluate
+    best_sd = torch.load("medmnist_model.pth")
+    if ema_model is not None:
+        for k in best_sd:
+            if k in ema_model:
+                best_sd[k] = ema_model[k]
+    model.load_state_dict(best_sd)
     test_acc, preds, labels = evaluate(model, test_loader, device)
 
     # Predictions: model outputs 2 classes. Map OOD detection:
