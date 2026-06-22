@@ -51,11 +51,16 @@ class SimpleCNN(nn.Module):
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss, correct, total = 0, 0, 0
+    smoothing = 0.1
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
         pred = model(X)
-        loss = criterion(pred, y)
+        n_classes = pred.size(1)
+        targets = torch.full_like(pred, smoothing / (n_classes - 1))
+        targets.scatter_(1, y.unsqueeze(1), 1.0 - smoothing)
+        log_probs = F.log_softmax(pred, dim=1)
+        loss = -(targets * log_probs).sum(1).mean()
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
