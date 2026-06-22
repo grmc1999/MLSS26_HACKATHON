@@ -22,17 +22,17 @@ class SimpleCNN(nn.Module):
 
     def __init__(self, num_classes=2):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)
+        self.conv1 = nn.Conv2d(1, 64, 3, padding=1)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.conv2 = nn.Conv2d(64, 128, 3, padding=1)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv3 = nn.Conv2d(128, 256, 3, padding=1)
+        self.bn3 = nn.BatchNorm2d(256)
         self.pool = nn.MaxPool2d(2)
         self.dropout = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
         self.dropout3 = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(128 * 3 * 3, 256)
+        self.fc1 = nn.Linear(256 * 3 * 3, 256)
         self.fc2 = nn.Linear(256, 3)
         self.num_classes = num_classes
 
