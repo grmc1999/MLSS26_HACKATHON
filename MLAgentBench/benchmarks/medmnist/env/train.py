@@ -44,13 +44,11 @@ class SimpleCNN(nn.Module):
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss, correct, total = 0, 0, 0
-    # Class weights: pneumonia (class 1) is ~5x underrepresented in PneumoniaMNIST
-    class_weight = torch.tensor([0.5, 3.0, 1.0], device=device)
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
         pred = model(X)
-        loss = F.cross_entropy(pred, y, weight=class_weight)
+        loss = criterion(pred, y)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
