@@ -16,33 +16,66 @@ sys.path.insert(0, os.path.dirname(__file__))
 from pathlib import Path
 from loader import get_datasets, CLASS_NAMES, OOD_CLASS, N_CLASSES
 
+try:
+    from torchvision.models import densenet121, DenseNet121_Weights
+    HAS_TORCHVISION = True
+except ImportError:
+    HAS_TORCHVISION = False
+
+
+def create_pretrained_densenet(num_classes=3):
+    """DenseNet-121 with ImageNet weights, adapted for 28x28 grayscale input."""
+    weights = DenseNet121_Weights.IMAGENET1K_V1
+    model = densenet121(weights=weights)
+    old_conv = model.features.conv0
+    model.features.conv0 = nn.Conv2d(
+        1, old_conv.out_channels,
+        kernel_size=old_conv.kernel_size,
+        stride=1,
+        padding=old_conv.padding,
+        bias=False,
+    )
+    with torch.no_grad():
+        model.features.conv0.weight.data = old_conv.weight.data.sum(dim=1, keepdim=True)
+    model.features.pool0 = nn.Identity()
+    in_features = model.classifier.in_features
+    model.classifier = nn.Sequential(
+        nn.Linear(in_features, 256),
+        nn.ReLU(inplace=True),
+        nn.Dropout(0.3),
+        nn.Linear(256, num_classes),
+    )
+    return model
+
 
 class SimpleCNN(nn.Module):
-    """DenseNet-121 pretrained on ImageNet, adapted for 28x28 grayscale chest X-rays."""
+    """3-layer CNN for 28x28 chest X-rays. Outputs 3 logits for better OOD detection."""
 
     def __init__(self, num_classes=2):
         super().__init__()
-        import torchvision.models as models
-        d = models.densenet121(weights=models.DenseNet121_Weights.IMAGENET1K_V1)
-        self.features = d.features
-        avg_weight = d.features.conv0.weight.mean(1, keepdim=True)
-        self.features.conv0 = nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False)
-        self.features.conv0.weight = nn.Parameter(avg_weight)
-        in_features = d.classifier.in_features
-        self.classifier = nn.Sequential(
-            nn.Linear(in_features, 256),
-            nn.ReLU(),
-            nn.Dropout(0.25),
-            nn.Linear(256, 3),
-        )
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
+        self.pool = nn.MaxPool2d(2)
+        self.dropout = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.25)
+        self.dropout3 = nn.Dropout(0.25)
+        self.fc1 = nn.Linear(128 * 3 * 3, 256)
+        self.fc2 = nn.Linear(256, 3)
         self.num_classes = num_classes
 
     def forward(self, x):
-        x = self.features(x)
-        x = F.relu(x, inplace=True)
-        x = F.adaptive_avg_pool2d(x, (1, 1))
-        x = torch.flatten(x, 1)
-        x = self.classifier(x)
+        x = self.pool(F.leaky_relu(self.bn1(self.conv1(x)), 0.1))
+        x = self.pool(F.leaky_relu(self.bn2(self.conv2(x)), 0.1))
+        x = self.dropout3(self.pool(F.leaky_relu(self.bn3(self.conv3(x)), 0.1)))
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = F.leaky_relu(self.fc1(x), 0.1)
+        x = self.dropout2(x)
+        x = self.fc2(x)
         return x
 
 
@@ -230,6 +263,14 @@ def save_viz_data(model, loader, device, val_loader=None, out_dir=None):
     print(f"Viz data saved to {out_path}")
 
 
+def create_model(model_name="SimpleCNN", num_classes=2, pretrained=False):
+    if model_name == "DenseNet121" and HAS_TORCHVISION and pretrained:
+        model = create_pretrained_densenet(num_classes=3)
+        model.num_classes = num_classes
+        return model
+    return SimpleCNN(num_classes=num_classes)
+
+
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
@@ -247,7 +288,7 @@ if __name__ == "__main__":
     val_loader = DataLoader(val_ds, batch_size, shuffle=False, num_workers=1)
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
-    model = SimpleCNN(num_classes=2).to(device)
+    model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 

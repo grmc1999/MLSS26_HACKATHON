@@ -21,7 +21,7 @@ LOG_FILE = LOGS_DIR / "runs.jsonl"
 
 def train_model(args):
     from loader import get_datasets, CLASS_NAMES, OOD_CLASS
-    from train import SimpleCNN, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data, in_distribution_accuracy
+    from train import create_model, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data, in_distribution_accuracy
     import torch, torch.nn as nn, numpy as np
     from torch.utils.data import DataLoader
     from tqdm import tqdm
@@ -32,7 +32,7 @@ def train_model(args):
     val_loader = DataLoader(val_ds, args.batch, shuffle=False, num_workers=1)
     test_loader = DataLoader(test_ds, args.batch, shuffle=False, num_workers=1)
 
-    model = SimpleCNN(num_classes=2).to(device)
+    model = create_model(model_name=args.model, num_classes=2, pretrained=args.pretrained).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
@@ -70,7 +70,7 @@ def train_model(args):
 
     result = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "model": "SimpleCNN",
+        "model": args.model + ("_pretrained" if args.pretrained else ""),
         "epochs": args.epochs,
         "lr": args.lr,
         "batch": args.batch,
@@ -128,6 +128,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=20, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--batch", type=int, default=64, help="Batch size")
+    parser.add_argument("--model", type=str, default="SimpleCNN", help="Model: SimpleCNN or DenseNet121")
+    parser.add_argument("--pretrained", action="store_true", help="Use ImageNet pretrained weights")
     parser.add_argument("--ood-threshold", type=float, default=0.7, help="Softmax threshold for OOD detection")
     parser.add_argument("--list", action="store_true", help="List past runs")
     args = parser.parse_args()
