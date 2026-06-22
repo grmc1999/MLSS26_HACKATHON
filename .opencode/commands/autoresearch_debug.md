@@ -1,7 +1,7 @@
 ---
 name: autoresearch_debug
 description: "Hunt bugs in the chest X-ray OOD pipeline: hypothesize, test, falsify, repeat"
-argument-hint: "[Symptom: <text>] [Iterations: N] [--fix]"
+argument-hint: "[Symptom: <text>] [Iterations: N] [--fix] [RAG: yes|no]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -20,6 +20,7 @@ Extract from $ARGUMENTS:
    Q1 (Issue): "What's wrong?" — training crashes, poor accuracy, OOD not detected, memory error
    Q2 (Scope): "Which file?" — train.py (default), loader.py
    Q3 (Depth): "How deep?" — quick (5), standard (15), deep (30)
+   Q4 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Investigation Techniques
 

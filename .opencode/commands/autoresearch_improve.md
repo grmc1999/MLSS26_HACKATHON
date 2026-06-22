@@ -1,7 +1,7 @@
 ---
 name: autoresearch_improve
 description: "Research OOD detection improvements, discover SOTA methods, generate experiment proposals"
-argument-hint: "[Goal: <text>] [Iterations: N]"
+argument-hint: "[Goal: <text>] [Iterations: N] [RAG: yes|no]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -16,7 +16,8 @@ Extract from $ARGUMENTS:
 
 question (single batch):
   Q1 (Goal): "What to improve?" — Test Accuracy, OOD F1, calibration, model efficiency
-  Q2 (Depth): "Research depth?" — shallow (5), standard (15), deep (30)
+   Q2 (Depth): "Research depth?" — shallow (5), standard (15), deep (30)
+   Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Research Categories
 

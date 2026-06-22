@@ -1,7 +1,7 @@
 ---
 name: autoresearch_regression
 description: "Regression stability gate: verify new changes don't break existing results"
-argument-hint: "[--candidate <commit>] [--baseline <commit>]"
+argument-hint: "[--candidate <commit>] [--baseline <commit>] [RAG: yes|no]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -16,7 +16,8 @@ Extract from $ARGUMENTS:
 
 question (single batch):
   Q1 (Candidate): "Which commit to test?" — HEAD (default) or specific commit
-  Q2 (Baseline): "Compare against?" — best known commit or specific
+   Q2 (Baseline): "Compare against?" — best known commit or specific
+   Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Process
 

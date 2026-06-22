@@ -1,7 +1,7 @@
 ---
 name: autoresearch_reason
 description: "Adversarial debate about the experiment trajectory with blind judge convergence"
-argument-hint: "[Topic: <text>] [Iterations: N]"
+argument-hint: "[Topic: <text>] [Iterations: N] [RAG: yes|no]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -15,7 +15,8 @@ Extract from $ARGUMENTS:
 ## Setup
 
 question (single batch):
-  Q1 (Topic): "What decision needs reasoned debate?" — next architecture move, threshold strategy, whether to switch approach
+   Q1 (Topic): "What decision needs reasoned debate?" — next architecture move, threshold strategy, whether to switch approach
+   Q2 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Process
 

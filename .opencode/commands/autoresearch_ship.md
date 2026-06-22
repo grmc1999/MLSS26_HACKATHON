@@ -1,7 +1,7 @@
 ---
 name: autoresearch_ship
 description: "Lock in the best chest X-ray OOD model: final eval, export, register"
-argument-hint: "[--dry-run] [--checklist-only]"
+argument-hint: "[--dry-run] [--checklist-only] [RAG: yes|no]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -15,7 +15,8 @@ Extract from $ARGUMENTS:
 ## Setup
 
 question (single batch):
-  Q1 (Action): "What to do?" — ship best model, generate submission, create report, all
+   Q1 (Action): "What to do?" — ship best model, generate submission, create report, all
+   Q2 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Phase 1: Identify Best Model
 - Scan results.tsv for best metrics
