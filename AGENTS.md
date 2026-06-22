@@ -6,7 +6,7 @@ This project implements a **unified Scientific AI AutoResearch** system for ML e
 
 The autonomous experiment loop: modify code → train → evaluate → keep/discard → repeat indefinitely. At each step, the orchestrator can consult specialized agents for domain expertise, then decide whether to keep or discard the change.
 
-Domain skills (computer-vision, deep-learning, imaging-algorithms) are integrated directly into the agents' system prompts, giving them access to library-specific code patterns and best practices.
+Domain skills (time-series-forecasting, deep-learning, dynamical-systems) are integrated directly into the agents' system prompts, giving them access to library-specific code patterns and best practices.
 
 ## Architecture
 
@@ -55,37 +55,37 @@ User / Dashboard
 - **Model**: `qwen/qwen3-coder:free` (1M context, strong text)
 - **Upgrade**: `openai/gpt-4o`
 - **Skills**: paper search, citation generation, method summarization, literature review
-- **Focus**: Contrail detection, satellite image segmentation, U-Net architectures
+- **Focus**: Epidemiological forecasting, time series methods, RESPNET/ILINET literature
 
 ### 2. AutoResearch Agent (`autoresearch`)
 - **Model**: `nvidia/nemotron-3-ultra-550b-a55b:free` (1M context, largest free model)
 - **Upgrade**: `anthropic/claude-sonnet-4`
 - **Skills**: experiment planning, hypothesis generation, result analysis, iteration strategy
-- **Focus**: Iterative improvement of contrail detection models
+- **Focus**: Iterative improvement of dynamical systems / flu forecasting models
 
-### 3. Computer Vision Expert (`cv_expert`)
+### 3. Dynamical Systems Expert (`cv_expert`)
 - **Model**: `google/gemma-4-26b-a4b-it:free` (multimodal: text+image+video)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: image preprocessing, data augmentation, architecture design, segmentation, transfer learning
-- **Focus**: CNN/transformer architectures for GOES-16 satellite imagery
+- **Skills**: sequence modeling, architecture design, temporal pattern extraction, forecasting methods, transfer learning
+- **Focus**: LSTM/GRU/Transformer/TCN architectures for time series forecasting
 
 ### 4. Deep Learning Expert (`dl_expert`)
 - **Model**: `nousresearch/hermes-3-llama-3.1-405b:free` (405B params)
 - **Upgrade**: `anthropic/claude-sonnet-4`
-- **Skills**: training loop design, loss function engineering, optimizer config, LR scheduling, regularization, diffusion models
-- **Focus**: Efficient training with mixed precision, Dice/Focal/Tversky losses
+- **Skills**: training loop design, loss function engineering, optimizer config, LR scheduling, regularization
+- **Focus**: Efficient training for time series, MAE/RMSE/quantile losses
 
 ### 5. LLM Expert (`llm_expert`)
 - **Model**: `qwen/qwen3-next-80b-a3b-instruct:free` (strong instruction following)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: prompt engineering, multimodal reasoning, agent coordination, few-shot design, chain-of-thought
+- **Skills**: prompt engineering, reasoning, agent coordination, few-shot design, chain-of-thought
 - **Focus**: Inter-agent coordination and prompt optimization
 
-### 6. Satellite Image Expert (`satellite_expert`)
+### 6. Spatiotemporal Expert (`satellite_expert`)
 - **Model**: `nvidia/nemotron-nano-12b-v2-vl:free` (multimodal: text+image+video)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: remote sensing, spectral analysis, geospatial transforms, satellite image interpretation, atmospheric correction
-- **Focus**: GOES-16 ABI bands (8-16), false color composites (band 11/14/15), ERA5 data
+- **Skills**: epidemiological modeling, seasonal pattern analysis, health data interpretation, RESPNET/ILINET processing, external covariate integration
+- **Focus**: CDC ILINET data, epiweek seasonal patterns, multi-region forecasting
 
 ### 7. Continual Learning Expert (`continual_learning`)
 - **Model**: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` (multimodal + reasoning)
@@ -96,8 +96,8 @@ User / Dashboard
 ### 8. Physics Expert (`physics_expert`)
 - **Model**: `nvidia/nemotron-3-super-120b-a12b:free` (1M context, strong math)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: PINNs, advection-continuity equations, atmospheric physics, metric computation, physical consistency checks
-- **Focus**: CSI metrics, ERA5 wind fields, physics-informed constraints
+- **Skills**: dynamical systems modeling, compartmental models, SIR/SEIR equations, metric computation, physical consistency checks
+- **Focus**: Neural ODEs, SIR-net, compartmental models for epidemic forecasting
 
 ---
 
@@ -259,20 +259,19 @@ orchestrator:
 
 ---
 
-## Task: Identify Contrails
+## Task: Flu Forecasting (RESPNET / ILINET)
 
 ### Dataset
-- **Source**: Kaggle competition `google-research-identify-contrails-reduce-global-warming`
-- **Data**: GOES-16 ABI satellite imagery (bands 8-16), 256x256 patches
-- **Task**: Binary segmentation — detect aviation contrails in satellite images
-- **Metric**: Dice Score
-- **Baseline**: `nn.Conv2d(3, 2, 1)` (single conv layer)
+- **Source**: CDC ILINET surveillance network + RESPNET respiratory pathogen data
+- **Data**: Weekly %ILI (influenza-like illness) rates by HHS region
+- **Task**: Multi-step time series forecasting — predict 10 epiweeks ahead given 5 past observations
+- **Metric**: MAE (mean absolute error), lower is better
+- **Baseline**: Seasonal naive (repeat last season's values)
 
 ### Files
-- `MLAgentBench/benchmarks/identify-contrails/env/train.py` — Starter training script
-- `MLAgentBench/benchmarks/identify-contrails/env/data_description.txt` — Dataset description
-- `MLAgentBench/benchmarks/identify-contrails/scripts/eval.py` — Evaluation script
-- `MLAgentBench/benchmarks/identify-contrails/scripts/prepare.py` — Data download script
+- `env/train.py` — Training script (model, optimizer, training loop)
+- `env/data.py` — RESPNET/ILINET data loader
+- `env/eval.py` — Evaluation script (MAE, RMSE, quantile metrics)
 
 ### Running the Task
 ```bash
@@ -281,13 +280,12 @@ source .venv/bin/activate
 
 # Set environment variables
 export OPENROUTER_API_KEY=sk-or-v1-...
-export KAGGLE_CONFIG_DIR=.kaggle
 
 # Run with a specific specialized agent
 python -m MLAgentBench.runner \
-  --task identify-contrails \
+  --task flu-forecasting \
   --device 0 \
-  --log-dir logs/contrails_run1 \
+  --log-dir logs/flu_run1 \
   --work-dir workspace \
   --agent-role cv_expert \
   --llm-name "google/gemma-4-26b-a4b-it:free" \
@@ -415,9 +413,11 @@ MLSS26_HACKATHON/
 │   │   ├── agent_specialized.py       # 8 specialized agents + skills
 │   │   ├── continual_learning.py      # EWC + replay + versioning
 │   │   └── orchestrator.py            # 🆕 Unified AutoResearch Orchestrator
-│   ├── benchmarks/
-│   │   └── identify-contrails/        # Primary task (satellite imagery)
-│   └── benchmarks_base/               # MLRC-Bench research tasks
+│   ├── benchmarks_base/               # MLRC-Bench research tasks
+├── env/                               # Task environment
+│   ├── train.py                       # Flu forecasting training script
+│   ├── data.py                        # RESPNET/ILINET data loader
+│   └── eval.py                        # Evaluation script
 ├── experiments/                       # Experiment logs (TSV, JSONL)
 ├── dashboard/
 │   ├── backend/                       # FastAPI (port 8000)

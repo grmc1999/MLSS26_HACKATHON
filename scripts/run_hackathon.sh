@@ -5,7 +5,7 @@
 set -e
 
 AGENT_ROLE=${1:-cv_expert}
-TASK_NAME=${2:-identify-contrails}
+TASK_NAME=${2:-flu-forecasting}
 DEVICE=${3:-0}
 
 echo "====================================="

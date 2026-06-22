@@ -1,0 +1,40 @@
+# Cluster Configuration — Remote Training via SSH + Singularity/Apptainer
+# Fill in your cluster details before running remote experiments.
+
+cluster:
+  host: ""        # e.g., "login.cluster.edu" or "user@192.168.1.100"
+  port: 22
+  ssh_key: ""     # path to SSH private key, e.g. "~/.ssh/id_rsa" or "cluster/id_rsa"
+  user: ""
+
+  # Paths on the remote cluster
+  remote:
+    workspace: ""                    # e.g., "/home/user/MLSS26_HACKATHON"
+    data: ""                         # e.g., "/scratch/user/contrails-data"
+    experiments: ""                  # e.g., "/scratch/user/experiments"
+    logs: ""                         # e.g., "/scratch/user/logs"
+
+  # Singularity/Apptainer containers
+  container:
+    path: ""                         # e.g., "/scratch/user/containers/pytorch.sif"
+    pull: ""                         # pull URL if not cached, e.g., "docker://pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime"
+    options: "--nv --bind /scratch:/scratch"   # --nv for GPU, --bind for mounts
+
+  # GPU configuration
+  gpu:
+    count: 2                         # number of GPUs per node
+    type: "RTX_PRO_6000_BLACKWELL"   # GPU model
+    memory_per_gpu: 98               # GB
+
+  # Slurm / PBS (optional)
+  scheduler:
+    type: ""                         # "slurm" or "pbs" or ""
+    partition: ""
+    account: ""
+    time: "24:00:00"
+    nodes: 1
+    gpus_per_node: 2
+    cpu_per_gpu: 8
+    mem_per_cpu: 8G
+    job_name: "mlss26-contrails"
+    email: ""

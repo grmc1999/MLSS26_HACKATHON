@@ -82,7 +82,7 @@ def parse_runs_jsonl() -> list[dict]:
                     "timestamp": data.get("timestamp", ""),
                     "steps": [],
                     "scores": [],
-                    "final_score": data.get("test_dice"),
+                    "final_score": data.get("test_mae"),
                     "status": "completed",
                     "source": "run_exp",
                     "details": {
@@ -93,7 +93,7 @@ def parse_runs_jsonl() -> list[dict]:
                         "batch": data.get("batch", 2),
                         "params": data.get("params", 0),
                         "elapsed_s": data.get("elapsed_s", 0),
-                        "best_val_dice": data.get("best_val_dice"),
+                        "best_val_mae": data.get("best_val_mae"),
                         "best_epoch": data.get("best_epoch"),
                     },
                 }

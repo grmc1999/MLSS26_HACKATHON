@@ -247,3 +247,9 @@ kaggle.json
 experiments/
 
 *.pth
+
+# Cluster config — SSH keys, SIF containers, and local overrides
+cluster/id_rsa
+cluster/id_rsa.pub
+cluster/*.sif
+cluster/config.local.yaml

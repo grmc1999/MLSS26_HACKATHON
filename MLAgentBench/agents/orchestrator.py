@@ -32,7 +32,7 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIGS_DIR = PROJECT_ROOT / "configs"
-ENV_DIR = PROJECT_ROOT / "MLAgentBench" / "benchmarks" / "identify-contrails" / "env"
+ENV_DIR = PROJECT_ROOT / "env"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 
@@ -45,21 +45,22 @@ ROUTING_KEYWORDS = {
                            "related work", "state-of-the-art", "sota", "publication"],
     "autoresearch": ["experiment", "hypothesis", "plan", "iterate", "strategy",
                     "next step", "analyze result", "baseline", "improve", "compare"],
-    "cv_expert": ["image", "augment", "preprocess", "segment", "conv", "resnet",
-                 "unet", "u-net", "architecture", "encoder", "decoder", "deeplab",
-                 "segformer", "attention", "skip connection"],
+    "cv_expert": ["lstm", "gru", "transformer", "tcn", "sequence", "temporal",
+                 "encoder", "decoder", "architecture", "forecast", "multi-step",
+                 "time series", "seq2seq", "attention", "recurrent"],
     "dl_expert": ["train", "loss", "optimizer", "learning rate", "epoch", "batch",
                  "gradient", "adam", "scheduler", "regularization", "dropout",
-                 "normalization", "mixed precision", "focal", "dice loss"],
+                 "normalization", "mixed precision", "mae", "rmse", "quantile"],
     "llm_expert": ["prompt", "in-context", "few-shot", "chain-of-thought",
                    "reasoning", "coordinate", "instruction"],
-    "satellite_expert": ["satellite", "remote sensing", "spectral", "band", "goes",
-                        "abi", "infrared", "geospatial", "era5", "atmospheric",
-                        "contrail", "false color", "cloud"],
+    "satellite_expert": ["respnet", "ilinet", "flu", "influenza", "epidemic",
+                        "seasonal", "epiweek", "surveillance", "cdc", "who",
+                        "ili", "respiratory", "hospitalization", "covariate"],
     "continual_learning": ["forget", "remember", "version", "checkpoint", "ewc",
                           "replay", "rollback", "commit", "drift", "fisher"],
-    "physics_expert": ["physics", "advection", "continuity", "csi", "critical success",
-                      "physical", "residual", "constraint", "pde", "wind", "atmosphere"],
+    "physics_expert": ["physics", "ode", "pde", "sir", "seir", "compartment",
+                      "dynamical system", "neural ode", "continuity", "advection",
+                      "physical", "constraint", "r0", "reproductive number"],
 }
 
 
@@ -116,8 +117,8 @@ AUTORESEARCH_SUBCOMMANDS = {
     "debug": "Interactive debugging session. Step through the training loop, inspect "
              "tensors, and find bugs or performance bottlenecks.",
 
-    "evals": "Run a comprehensive evaluation suite: compute Dice, IoU, precision, recall, "
-             "F1, and per-class metrics on the test set.",
+    "evals": "Run a comprehensive evaluation suite: compute MAE, RMSE, MAPE, quantile loss, "
+             "and per-horizon metrics on the test set.",
 
     "regression": "Regression testing: verify that new changes don't break existing "
                   "functionality by comparing against known-good checkpoints.",
@@ -185,16 +186,15 @@ class ExperimentManager:
         try:
             entry = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "model": "unet",
-                "base_ch": 32,
-                "epochs": 50,
-                "lr": 0.0001,
-                "batch": 2,
+                "model": "seq2seq",
+                "epochs": 100,
+                "lr": 0.001,
+                "batch": 64,
                 "params": 0,
                 "elapsed_s": 0,
-                "best_val_dice": metric,
+                "best_val_mae": metric,
                 "best_epoch": 0,
-                "test_dice": metric,
+                "test_mae": metric,
                 "description": description,
             }
             PROJECT_ROOT.joinpath("experiments").mkdir(exist_ok=True)
@@ -248,7 +248,7 @@ class ExperimentManager:
         try:
             # Restore train.py from HEAD if it was deleted by revert
             result = subprocess.run(
-                ["git", "show", "HEAD:MLAgentBench/benchmarks/identify-contrails/env/train.py"],
+                ["git", "show", "HEAD:" + str(ENV_DIR.relative_to(PROJECT_ROOT) / "train.py")],
                 cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0 and result.stdout:
@@ -257,7 +257,7 @@ class ExperimentManager:
         except Exception:
             return False
 
-    def run_experiment(self, cmd: str = None) -> dict:
+    def run_experiment(self, cmd: str = None, metric_pattern: str = r"Test MAE:\s*([\d.]+)") -> dict:
         """Run the experiment and return the metric value."""
         if cmd is None:
             cmd = f"cd {ENV_DIR} && python train.py > run.log 2>&1"
@@ -267,20 +267,21 @@ class ExperimentManager:
             result = subprocess.run(cmd, shell=True, capture_output=True,
                                    text=True, timeout=600)
             elapsed = time.time() - start
-            # Parse the Validation Dice Score from output
-            dice_match = re.search(r"Validation Dice Score:\s*([\d.]+)", result.stdout)
+            # Parse the metric from output
+            match = re.search(metric_pattern, result.stdout)
+            metric = float(match.group(1)) if match else None
             print(f"[RUN] Completed in {elapsed:.1f}s")
             return {
                 "success": True,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
                 "elapsed": elapsed,
-                "dice": float(dice_match.group(1)) if dice_match else None,
+                "metric": metric,
             }
         except subprocess.TimeoutExpired:
-            return {"success": False, "error": "timeout", "dice": None}
+            return {"success": False, "error": "timeout", "metric": None}
         except Exception as e:
-            return {"success": False, "error": str(e), "dice": None}
+            return {"success": False, "error": str(e), "metric": None}
 
 
 class ScientificAutoResearch:
@@ -289,7 +290,7 @@ class ScientificAutoResearch:
     Merges the Karpathy-style autoresearch loop with specialized agent consultation.
     """
 
-    def __init__(self, log_dir: str, max_iterations: int = 25, direction="higher_is_better"):
+    def __init__(self, log_dir: str, max_iterations: int = 25, direction="lower_is_better"):
         self.log_dir = Path(log_dir)
         self.max_iterations = max_iterations
         self.direction = direction
@@ -299,6 +300,7 @@ class ScientificAutoResearch:
         self.activity_log = []
         self.current_iteration = 0
         self.best_metric = -1.0 if direction == "higher_is_better" else float("inf")
+        self.metric_direction = direction
         self.best_iteration = 0
         self.kept_count = 0
         self.discarded_count = 0
@@ -365,19 +367,21 @@ class ScientificAutoResearch:
         result = self.experiment.run_experiment(cmd)
 
         # Extract metric
-        if result["success"] and result["dice"] is not None:
-            metric = result["dice"]
-            print(f"[ITER {self.current_iteration}] Dice Score: {metric:.6f}")
+        if result["success"] and result["metric"] is not None:
+            metric = result["metric"]
+            print(f"[ITER {self.current_iteration}] Metric: {metric:.6f}")
         else:
             metric = 0.0
             print(f"[ITER {self.current_iteration}] Experiment failed: {result.get('error', 'unknown')}")
 
         # Calculate delta from previous best
         prev_best = self.best_metric
-        delta = metric - prev_best if prev_best >= 0 else 0.0
-
-        # Decide keep/discard
-        improved = metric > prev_best
+        if self.direction == "lower_is_better":
+            delta = prev_best - metric if prev_best != float("inf") else 0.0
+            improved = metric < prev_best
+        else:
+            delta = metric - prev_best if prev_best >= 0 else 0.0
+            improved = metric > prev_best
         crashed = not result["success"]
 
         if crashed:

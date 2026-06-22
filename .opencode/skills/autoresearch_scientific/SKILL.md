@@ -21,7 +21,7 @@ Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agent
 | **Research Literature** | Paper search, SOTA methods | Before trying new architecture |
 | **CV Expert** | CNN/transformer architecture, augmentation | When modifying model or data pipeline |
 | **DL Expert** | Loss functions, optimizers, schedulers | When tuning training hyperparameters |
-| **Satellite Expert** | GOES-16 bands, false color, ERA5 | When working with satellite data |
+| **Satellite Expert** | RESPNET/ILINET, seasonal patterns, ERA5 | When working with epidemiological data |
 | **Physics Expert** | PINNs, advection, CSI metrics | When adding physical constraints |
 | **Continual Learning** | EWC, replay, checkpoints | When managing model versions across iterations |
 | **LLM Expert** | Multi-agent coordination | When synthesizing advice from multiple agents |
@@ -37,7 +37,7 @@ Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agent
 | `/autoresearch_scientific_fix` | Diagnose crash with agent help, repair code | 15 |
 | `/autoresearch_scientific_analyze` | Deep analysis with statistical rigor | N/A |
 | `/autoresearch_scientific_ship` | Lock best model: final eval, export, submission | N/A |
-| `/autoresearch_scientific_evals` | Full metric suite: Dice, IoU, precision, recall | N/A |
+| `/autoresearch_scientific_evals` | Full metric suite: MAE, RMSE, quantile loss | N/A |
 | `/autoresearch_scientific_probe` | Model internals: activations, gradients, attention | N/A |
 | `/autoresearch_scientific_improve` | Targeted improvement on weakest cases | 10 |
 | `/autoresearch_scientific_debug` | Interactive debugging with agent support | 10 |
@@ -53,17 +53,18 @@ Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agent
 - GPU 0 = training
 
 ### Experiment CLI
-- `python scripts/run_exp.py --epochs N --lr X --base-ch N --batch N`
+- `python scripts/run_exp.py --epochs N --lr X --hidden-dim N --batch N`
 - `python scripts/run_exp.py --list` — past runs
-- Metric: **Test Dice** (range [0,1], higher is better)
+- Metric: **Test MAE** (lower is better)
 
 ### Data
-- GOES-16 ABI bands 11, 14, 15 (false color composite)
-- 256×256 patches, binary contrail masks
-- Class imbalance: contrails are <1% of pixels
+- CDC ILINET surveillance network (weekly %ILI rates)
+- RESPNET respiratory pathogen data
+- 5 past epiweeks → 10 future epiweeks forecast
+- Multi-region (HHS regions) spatiotemporal data
 
 ### Current Best
-- Test Dice: **0.6000** (class weights [0.1, 15.0], U-Net base_ch=32)
+- Test MAE: **TBD** (baseline: seasonal naive)
 
 ## Orchestrator Loop
 
@@ -73,8 +74,8 @@ LOOP FOREVER (bounded):
   2. Agent proposes hypothesis + code change
   3. Modify train.py with one focused change
   4. git commit
-  5. Run: python scripts/run_exp.py --epochs 50
-  6. Extract metric: grep "Test Dice" from output
+  5. Run: python scripts/run_exp.py --epochs 100
+  6. Extract metric: grep "Test MAE" from output
   7. If improved → KEEP (advance branch, update best)
   8. If worse/crash → DISCARD (git revert, restore worktree)
   9. Log iteration to TSV + JSONL
