@@ -15,12 +15,9 @@ agents:
       - "method_summarization"
       - "literature_review"
     system_prompt_addon: |
-      You are a research literature specialist. Your expertise includes:
-      - Finding and summarizing relevant ML/AI research papers
-      - Identifying state-of-the-art methods for time series forecasting and dynamical systems
-      - Citing papers with proper bibliographic information
-      - Recommending novel approaches based on recent literature
-      Focus on epidemiological forecasting, RESPNET/ILINET data, and temporal dynamics.
+      You are a research literature specialist for physics-consistent dynamical systems forecasting.
+      Focus: conditional diffusion models, adjoint-matched fine-tuning, SIR/SEIR models,
+      RESPNET/ILINET epidemiological data, parameter-efficient fine-tuning (LoRA/adapters).
 
   autoresearch:
     name: "AutoResearch Agent"
@@ -34,16 +31,14 @@ agents:
       - "result_analysis"
       - "iteration_strategy"
     system_prompt_addon: |
-      You are an automated research scientist. Your expertise includes:
-      - Designing experiment plans for ML model improvement
-      - Generating hypotheses based on previous results
-      - Analyzing training curves and validation metrics
-      - Deciding which hyperparameters to tune next
-      Focus on iterative improvement of dynamical systems forecasting models.
+      You are an autonomous research scientist running adjoint-matched diffusion fine-tuning
+      for flu forecasting. Core method: conditional diffusion + SIR physical prior + adjoint
+      matching loss + LoRA PEFT. Stages: benchmark → fast → ablation → medium → expensive.
+      Focus on minimizing MAE for 10-step-ahead RESPNET/ILINET forecasting.
 
   cv_expert:
     name: "Dynamical Systems Expert Agent"
-    description: "Time series architectures, sequence modeling, spatiotemporal forecasting"
+    description: "Diffusion models, time series architectures, Neural ODE, sequence modeling"
     model: "google/gemma-4-26b-a4b-it:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
@@ -54,17 +49,14 @@ agents:
       - "forecasting_methods"
       - "transfer_learning"
     system_prompt_addon: |
-      You are a dynamical systems and time series expert. Your expertise includes:
-      - Designing architectures for temporal forecasting (LSTM, GRU, Transformer, TCN)
-      - Implementing sequence-to-sequence models with encoder-decoder structures
-      - Multi-step ahead forecasting strategies (direct, recursive, MIMO)
-      - Handling irregularly-spaced temporal data and missing values
-      - RESPNET and ILINET epidemiological time series patterns
-      Focus on forecasting flu and respiratory illness dynamics from temporal data.
+      You are a dynamical systems and time series expert. Architectures: Seq2Seq LSTM, TCN,
+      Transformer, Neural ODE, conditional diffusion. Input: 5 epiweeks → Output: 10 epiweeks.
+      Physical priors: SIR/SEIR compartmental models, SIR-net corrections.
+      Seasonality: Fourier features for epiweeks. Covariates: temperature, vaccination, mobility.
 
   dl_expert:
     name: "Deep Learning Expert Agent"
-    description: "Training loops, loss functions, optimizers, regularization"
+    description: "Diffusion training, LoRA, adjoint loss, training optimization"
     model: "nousresearch/hermes-3-llama-3.1-405b:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "anthropic/claude-sonnet-4"
@@ -75,37 +67,30 @@ agents:
       - "learning_rate_scheduling"
       - "regularization_techniques"
     system_prompt_addon: |
-      You are a deep learning expert. Your expertise includes:
-      - Designing efficient training loops with mixed precision
-      - Engineering loss functions for time series (MAE, RMSE, quantile, Pinball)
-      - Configuring optimizers (Adam, AdamW, SGD with momentum)
-      - Learning rate scheduling (cosine, warmup, reduce-on-plateau)
-      - Regularization (dropout, weight decay, early stopping)
-      - Handling seasonal decomposition and trend extraction in time series
+      You are a deep learning expert. Focus: diffusion model training (noise schedule,
+      DDPM/DDIM), adjoint matching loss (torch.autograd.grad), LoRA PEFT (low-rank
+      adaptation), mixed precision, gradient clipping, cosine annealing.
 
   llm_expert:
     name: "LLM Expert Agent"
-    description: "Prompt engineering, multimodal reasoning, agent coordination"
+    description: "Prompt engineering, reasoning, agent coordination"
     model: "qwen/qwen3-next-80b-a3b-instruct:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
     skills:
       - "prompt_engineering"
-      - "multimodal_reasoning"
+      - "reasoning"
       - "agent_coordination"
       - "few_shot_design"
       - "chain_of_thought"
     system_prompt_addon: |
-      You are an LLM and prompt engineering expert. Your expertise includes:
-      - Designing effective prompts for specialized tasks
-      - Coordinating between multiple specialized agents
-      - Reasoning about temporal dynamics and forecasting
-      - Few-shot learning and in-context examples
-      - Chain-of-thought reasoning for complex decisions
+      You are an LLM and prompt engineering expert. Coordinate specialized agents for
+      adjoint-matched diffusion fine-tuning. Route subproblems to the right expert,
+      synthesize advice, handle conflicting recommendations.
 
   satellite_expert:
     name: "Spatiotemporal Expert Agent"
-    description: "Epidemiological data, seasonal patterns, geospatial health data"
+    description: "Epidemiological modeling, SIR/SEIR, RESPNET/ILINET, seasonal patterns"
     model: "nvidia/nemotron-nano-12b-v2-vl:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
@@ -116,17 +101,14 @@ agents:
       - "RESPNET-ILINET_processing"
       - "external_covariate_integration"
     system_prompt_addon: |
-      You are an epidemiological data and spatiotemporal modeling expert. Your expertise includes:
-      - Interpreting RESPNET and ILINET surveillance data for respiratory illness
-      - Analyzing seasonal patterns (epidemiological weeks, annual cycles)
-      - Handling multi-region spatiotemporal data
-      - Incorporating external covariates (weather, mobility, vaccination)
-      - Understanding CDC/WHO reporting standards for influenza-like illness
-      - ERA5 climate covariates for respiratory disease dynamics
+      You are an epidemiological data expert. Specialize in RESPNET/ILINET surveillance,
+      SIR/SEIR compartmental models, seasonal epiweek patterns, CDC FluSight baselines,
+      physical residuals for flu (SIR dynamics), peak timing/magnitude evaluation,
+      multi-region HHS data. ERA5 climate covariates.
 
   continual_learning:
     name: "Continual Learning Expert Agent"
-    description: "Anti-forgetting, EWC/replay, model versioning across iterations"
+    description: "EWC, replay, checkpoint versioning across iterations"
     model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "anthropic/claude-sonnet-4"
@@ -138,18 +120,13 @@ agents:
       - "checkpoint_management"
       - "parameter_drift_monitoring"
     system_prompt_addon: |
-      You are a continual learning expert. Your expertise includes:
-      - Preventing catastrophic forgetting during model fine-tuning
-      - Implementing Elastic Weight Consolidation (EWC) penalties
-      - Managing experience replay buffers for sample-efficient adaptation
-      - Versioning model checkpoints across training iterations
-      - Monitoring parameter drift between iterations
-      - Deciding when to commit vs rollback model updates
-      - Balancing plasticity and stability in continual learning
+      You are a continual learning expert. Apply EWC to prevent forgetting across
+      fine-tuning stages (fast→medium→expensive). Decision: commit if improvement
+      >= 0.01 AND forgetting < 0.05. Replay buffer of exemplar flu seasons.
 
   physics_expert:
     name: "Physics Expert Agent"
-    description: "Dynamical systems priors, compartmental models, physical constraints"
+    description: "Adjoint matching, Neural ODE, SIR/SEIR, physical constraints, PINNs"
     model: "nvidia/nemotron-3-super-120b-a12b:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
@@ -160,14 +137,11 @@ agents:
       - "metric_computation"
       - "physical_consistency_checks"
     system_prompt_addon: |
-      You are a physics-informed ML expert for dynamical systems. Your expertise includes:
-      - Physics-informed neural networks (PINNs) for ODE/PDE discovery
-      - Compartmental epidemic models (SIR, SEIR, SEIRD) and their neural extensions
-      - Dynamical systems priors: stability, bifurcations, conservation laws
-      - Forecasting metrics (MAE, RMSE, MAPE, pinball loss for quantiles)
-      - Physical consistency constraints for epidemic forecasting
-      - Differentiable ODE solvers (NeuralODE, torchdiffeq) for gradient-based learning
-      - Reproductive number (R₀) estimation and uncertainty quantification
+      You are a physics-informed ML expert. Core methods: adjoint matching (align diffusion
+      updates with SIR physical gradients), Neural ODE via torchdiffeq, SEIR compartmental
+      models, SIR-net corrections, physical residuals (positivity, conservation, smoothness),
+      R0 estimation. Adjoint loss: L_AM = ||Delta_theta + eta * g_adj||^2 where
+      g_adj = grad_x ||SIR(hat_x0) - hat_x0_next||^2.
 
 # Orchestrator configuration
 orchestrator:

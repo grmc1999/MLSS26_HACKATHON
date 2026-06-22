@@ -1,27 +1,27 @@
-# Project Outline  
-## Adjoint-Matched Fine-Tuning of Physics-Consistent Diffusion Models for Rainfall Prediction
+# Project Outline
+## Adjoint-Matched Fine-Tuning of Physics-Consistent Diffusion Models for Epidemiological Forecasting
 
 ## 1. Project Motivation
 
-Rainfall prediction is a critical task for flood forecasting, disaster prevention, agriculture, energy planning, and urban management. Deep learning models have shown strong potential for short-term rainfall prediction, especially in nowcasting settings. However, several limitations remain:
+Forecasting influenza-like illness (ILI) and respiratory pathogen dynamics is critical for public health preparedness, hospital capacity planning, and intervention timing. Deep learning models have shown strong potential for ILI forecasting, especially with RESPNET and ILINET surveillance data. However, several limitations remain:
 
-- Deterministic models often produce blurry predictions.
-- Generative models can produce sharper and more realistic forecasts but may violate physical consistency.
+- Deterministic models often fail to capture trajectory uncertainty, especially during epidemic peaks.
+- Generative (diffusion) models can produce realistic probabilistic forecasts but may violate physical consistency (e.g., negative ILI rates, non-conservation of population).
 - Diffusion models are expensive to train from scratch.
 - Fine-tuning pretrained diffusion models is more computationally efficient, but naive fine-tuning may degrade physical plausibility.
-- Rainfall prediction requires strong performance on rare and extreme events, where standard pixel-wise losses are insufficient.
+- Flu forecasting requires strong performance on rare events (peak timing, severity of novel strains), where standard MAE losses are insufficient.
 
-This project proposes an efficient fine-tuning strategy for diffusion-based rainfall prediction that uses adjoint-informed physical gradients to improve adaptation while preserving physical consistency.
+This project proposes an efficient fine-tuning strategy for diffusion-based ILI forecasting that uses adjoint-informed physical gradients (from SIR/SEIR compartmental models) to improve adaptation while preserving physical consistency.
 
 ---
 
 ## 2. Main Research Question
 
-Can adjoint matching improve the fine-tuning of pretrained diffusion models for rainfall prediction by increasing predictive skill, especially Critical Success Index, while maintaining physical consistency?
+Can adjoint matching improve the fine-tuning of pretrained diffusion models for flu forecasting by increasing predictive skill, especially peak timing/severity prediction, while maintaining physical consistency?
 
 The central hypothesis is:
 
-> A diffusion rainfall model can be fine-tuned more efficiently and more physically consistently if the learned denoising updates are aligned with adjoint-informed physical correction directions.
+> A diffusion-based ILI forecasting model can be fine-tuned more efficiently and more physically consistently if the learned denoising updates are aligned with adjoint-informed physical correction directions derived from differentiable SIR/SEIR dynamics.
 
 ---
 
@@ -29,17 +29,17 @@ The central hypothesis is:
 
 ### 3.1 Main Objective
 
-Develop and evaluate an adjoint-matched fine-tuning method for physics-consistent diffusion models applied to rainfall prediction.
+Develop and evaluate an adjoint-matched fine-tuning method for physics-consistent diffusion models applied to epidemiological forecasting with RESPNET/ILINET data.
 
 ### 3.2 Specific Objectives
 
-- Build an MLRC-benchmark-style rainfall prediction task.
+- Build an MLRC-benchmark-style flu forecasting task (5 past epiweeks → 10 future epiweeks).
 - Evaluate fine-tuning capacity under limited data and limited compute.
-- Compare diffusion fine-tuning against non-diffusion baselines.
-- Measure rainfall prediction quality using CSI-centered metrics.
-- Measure physical consistency through differentiable physical residuals.
-- Study whether adjoint matching improves heavy-rain and extreme-rain prediction.
-- Design the method so it can later be extended to PDE or ODE discovery.
+- Compare diffusion fine-tuning against non-diffusion baselines (LSTM, TCN, Transformer).
+- Measure forecast quality using MAE, per-horizon MAE, and peak timing/severity metrics.
+- Measure physical consistency through differentiable SIR/SEIR residuals.
+- Study whether adjoint matching improves peak-season prediction.
+- Design the method so it can later be extended to PDE or ODE discovery for epidemiological dynamics.
 
 ---
 
@@ -47,54 +47,43 @@ Develop and evaluate an adjoint-matched fine-tuning method for physics-consisten
 
 ### 4.1 Task Definition
 
-Given a sequence of past rainfall, radar, or satellite observations,
+Given a sequence of past ILI observations:
 
 \[
-x_{t-k+1:t},
+x_{t-4:t},
 \]
 
-predict a sequence of future rainfall fields,
+predict a sequence of future ILI rates:
 
 \[
-x_{t+1:t+h}.
+x_{t+1:t+10}.
 \]
 
-The initial task should focus on rainfall nowcasting:
+- **Input**: 5 past epiweeks (weekly %ILI rates)
+- **Output**: 10 future epiweeks (multi-step ahead forecast)
+- **Data**: CDC ILINET surveillance network (HHS regions)
+- **Metric**: MAE (primary), per-horizon MAE, peak timing error (secondary)
 
-\[
-\text{past frames} \rightarrow \text{future rainfall frames}.
-\]
-
-### 4.2 Recommended Initial Setting
-
-- Input: 6 to 12 past frames.
-- Output: 6 to 12 future frames.
-- Temporal resolution: 5 to 10 minutes.
-- Prediction horizon: 30 to 60 minutes for fast experiments.
-- Spatial resolution: 48×48 or 64×64 for fast experiments.
-- Dataset: sub-SEVIR, SEVIR subset, or similar radar/satellite rainfall dataset.
-
-### 4.3 MLRC-Benchmark-Style Requirements
+### 4.2 MLRC-Benchmark-Style Requirements
 
 The benchmark should include:
 
-- Fixed train/validation/test splits.
-- Hidden test set for final evaluation.
-- Standardized preprocessing.
-- Fixed evaluation script.
-- Baseline implementations.
+- Fixed train/validation/test splits (by season).
+- Standardized preprocessing (normalization, Fourier features).
+- Fixed evaluation script (MAE, RMSE, peak metrics).
+- Baseline implementations (seasonal naive, LSTM, TCN, Transformer).
 - Reproducible training scripts.
 - Compute-budget tracks.
 - Leaderboard-style reporting.
-- Main score based on CSI and fine-tuning efficiency.
+- Main score based on MAE and fine-tuning efficiency.
 
 ---
 
 ## 5. Proposed Method
 
-## 5.1 Conditional Diffusion Model
+### 5.1 Conditional Diffusion Model (Time Series)
 
-We assume a pretrained conditional diffusion model:
+We assume a conditional diffusion model:
 
 \[
 \epsilon_\theta(x_\tau, c, \tau),
@@ -102,687 +91,261 @@ We assume a pretrained conditional diffusion model:
 
 where:
 
-- \(x_\tau\) is the noisy rainfall prediction at diffusion step \(\tau\),
-- \(c\) is the conditioning information, usually past rainfall frames,
-- \(\epsilon_\theta\) is the denoising network.
+- \(x_\tau\) is the noisy ILI forecast at diffusion step \(\tau\),
+- \(c\) is the conditioning information (5 past epiweeks of ILI data),
+- \(\epsilon_\theta\) is the denoising network (LSTM, TCN, or Transformer backbone).
 
 The standard diffusion loss is:
 
 \[
-\mathcal{L}_{\text{diff}}
-=
-\mathbb{E}_{x_0,\epsilon,\tau}
-\left[
-\left\|
-\epsilon -
-\epsilon_\theta(x_\tau,c,\tau)
-\right\|^2
-\right].
+\mathcal{L}_{\text{diff}} 
+= \mathbb{E}_{x_0,\epsilon,\tau} \left[ \left\| \epsilon - \epsilon_\theta(x_\tau, c, \tau) \right\|^2 \right].
 \]
 
----
+The forward process corrupts the 10-step forecast with Gaussian noise via a cosine schedule. The reverse process iteratively denoises from pure noise to a clean 10-step forecast conditioned on the past 5 epiweeks.
 
-## 5.2 Physical Consistency Residual
+### 5.2 Physical Consistency Residual (SIR/SEIR)
 
-A simple physical approximation for rainfall evolution is an advection-continuity residual:
+A physical approximation for ILI dynamics is the SIR compartmental model:
 
 \[
-\frac{\partial r}{\partial t}
-+
-v \cdot \nabla r
--
-s
-\approx 0,
+\frac{dI}{dt} = \beta \frac{SI}{N} - \gamma I,
 \]
 
 where:
 
-- \(r\) is rainfall intensity,
-- \(v\) is an estimated velocity or motion field,
-- \(s\) is a source/sink term representing rainfall growth and decay.
+- \(I\) is the infected (ILI) fraction,
+- \(S\) is the susceptible fraction,
+- \(\beta\) is the transmission rate,
+- \(\gamma\) is the recovery rate.
 
-The physical loss can be written as:
-
-\[
-\mathcal{L}_{\text{phys}}
-=
-\left\|
-\frac{\partial r}{\partial t}
-+
-v \cdot \nabla r
--
-s
-\right\|^2.
-\]
-
----
-
-## 5.3 Adjoint Matching
-
-The adjoint direction is defined as the gradient of the physical objective with respect to the noisy or reconstructed rainfall state:
+The physical loss is:
 
 \[
-g_{\text{adj}}
-=
-\nabla_{x_\tau}
-\Phi_{\text{phys}}(\hat{x}_0(x_\tau)).
+\mathcal{L}_{\text{phys}} = \left\| \frac{d\hat{I}}{dt} - \beta \frac{S\hat{I}}{N} + \gamma \hat{I} \right\|^2.
 \]
 
-The proposed adjoint-matching loss aligns the learned fine-tuning correction with the physical correction direction:
+For a discrete-time forecast, we use the Euler step:
 
 \[
-\mathcal{L}_{\text{adjoint-match}}
-=
-\left\|
-\Delta_\theta(x_\tau,c,\tau)
-+
-\eta_\tau g_{\text{adj}}
-\right\|^2.
+\Phi_{\text{SIR}}(\hat{I}_t, S_t) = \hat{I}_t + \Delta t \left( \beta \frac{S_t \hat{I}_t}{N} - \gamma \hat{I}_t \right).
 \]
+
+The residual penalizes deviation from SIR dynamics:
+
+\[
+\mathcal{L}_{\text{phys}} = \left\| \hat{I}_{t+1} - \Phi_{\text{SIR}}(\hat{I}_t, S_t) \right\|^2.
+\]
+
+### 5.3 Adjoint Matching
+
+The adjoint direction is the gradient of the physical objective with respect to the noisy or reconstructed ILI forecast:
+
+\[
+g_{\text{adj}} = \nabla_{x_\tau} \Phi_{\text{phys}}(\hat{x}_0(x_\tau)).
+\]
+
+The adjoint-matching loss aligns the learned fine-tuning correction with the physical correction direction:
+
+\[
+\mathcal{L}_{\text{adjoint-match}} = \left\| \Delta_\theta(x_\tau, c, \tau) + \eta_\tau g_{\text{adj}} \right\|^2,
+\]
+
+where \(\Delta_\theta = \epsilon_\theta(x_\tau, c, \tau) - x_\tau\) (the denoising update vector).
 
 The total fine-tuning objective is:
 
 \[
-\mathcal{L}
-=
-\mathcal{L}_{\text{diff}}
-+
-\lambda_{\text{AM}}
-\mathcal{L}_{\text{adjoint-match}}
-+
-\lambda_{\text{phys}}
-\mathcal{L}_{\text{phys}}
-+
-\lambda_{\text{event}}
-\mathcal{L}_{\text{event}}.
+\mathcal{L} = \mathcal{L}_{\text{diff}} + \lambda_{\text{AM}} \mathcal{L}_{\text{adjoint-match}} + \lambda_{\text{phys}} \mathcal{L}_{\text{phys}} + \lambda_{\text{event}} \mathcal{L}_{\text{event}}.
 \]
 
----
+### 5.4 Parameter-Efficient Fine-Tuning
 
-## 5.4 Parameter-Efficient Fine-Tuning
+To keep experiments computationally efficient, use:
 
-To keep experiments computationally efficient, the method should initially use parameter-efficient fine-tuning strategies:
-
-- LoRA.
-- Adapters.
-- Bias-only fine-tuning.
-- Last-block fine-tuning.
-- Conditioning-module fine-tuning.
-- FiLM modulation.
-- Small residual correction modules.
+- **LoRA**: low-rank adaptation of denoising network linear layers.
+- **Adapters**: bottleneck MLP inserted per layer.
+- **Bias-only / last-block fine-tuning**: minimal parameter updates.
 
 The main proposed method is:
 
-> Adjoint-matched parameter-efficient fine-tuning of pretrained rainfall diffusion models.
+> Adjoint-matched parameter-efficient fine-tuning of pretrained diffusion models for ILI forecasting.
 
 ---
 
 ## 6. Experimental Design
 
-# 6.1 Stage 0 — Benchmark Construction
+### 6.1 Stage 0 — Benchmark Construction
 
-### Goal
+**Goal**: Build a reproducible flu forecasting benchmark before testing the proposed method.
 
-Build a reproducible rainfall prediction benchmark before testing the proposed method.
-
-### Tasks
-
-- Select dataset.
-- Define input-output format.
-- Define train/validation/test split.
-- Define thresholds for rainfall events.
-- Implement evaluation metrics.
-- Implement baseline models.
+**Tasks**:
+- Select dataset (CDC ILINET, RESPNET).
+- Define input-output format (5→10 epiweeks).
+- Define train/validation/test splits (by season, chronologically).
+- Implement evaluation metrics (MAE, RMSE, peak metrics, SIR residual).
+- Implement baseline models (seasonal naive, LSTM, GRU, TCN, Transformer).
 - Implement training and fine-tuning scripts.
 - Define compute-budget tracks.
 
-### Deliverables
+### 6.2 Stage 1 — Fast Experiments
 
-- Dataset loader.
-- Baseline models.
-- Evaluation script.
-- Leaderboard-style metrics report.
-- Reproducible experiment configuration.
+**Goal**: Test whether fine-tuning improves ILI forecasting under limited compute.
 
----
-
-# 6.2 Stage 1 — Fast Experiments
-
-### Goal
-
-Test whether fine-tuning improves rainfall prediction under limited compute.
-
-### Dataset Setting
-
-- Use sub-SEVIR or small SEVIR/RainBench subset.
-- Resolution: 48×48 or 64×64.
-- Horizon: 30 to 60 minutes.
-- One GPU setting.
-- Small number of fine-tuning steps.
-
-### Baselines
-
-- Persistence.
-- Optical-flow/advection extrapolation.
-- Small deterministic U-Net.
-- ConvLSTM or ConvGRU.
+**Baselines**:
+- Seasonal naive (repeat last season).
+- LSTM / GRU / TCN.
+- Transformer.
 - Frozen pretrained diffusion model.
 - Naive diffusion fine-tuning.
 - LoRA diffusion fine-tuning.
 - Adapter diffusion fine-tuning.
-- Adjoint-matched LoRA or adapter fine-tuning.
+- Adjoint-matched LoRA / adapter fine-tuning.
 
-### Fine-Tuning Regimes
-
-Use limited target-domain data:
-
+**Fine-Tuning Regimes** (limited target seasons):
 \[
-1\%,\ 5\%,\ 10\%,\ 25\%,\ 100\%.
+1,\ 2,\ 3,\ 5,\ 10 \text{ seasons}.
 \]
 
-Use fixed fine-tuning budgets:
+**Main Evaluation Plots**:
+- MAE vs. fine-tuning samples.
+- MAE vs. fine-tuning steps.
+- MAE vs. GPU-hours.
+- Peak timing error vs. GPU-hours.
+- SIR residual vs. MAE.
 
-\[
-100,\ 500,\ 1000,\ 5000
-\]
+### 6.3 Stage 2 — Physics Consistency Ablation
 
-optimization steps.
-
-### Main Evaluation
-
-The main plots should be:
-
-- CSI vs. fine-tuning samples.
-- CSI vs. fine-tuning steps.
-- CSI vs. GPU-hours.
-- Heavy-rain CSI vs. GPU-hours.
-- Physical residual vs. CSI.
-
----
-
-# 6.3 Stage 2 — Physics Consistency Ablation
-
-### Goal
-
-Determine whether adjoint matching improves performance because of physical information rather than generic regularization.
-
-### Methods to Compare
-
-1. No physics:
-
-\[
-\mathcal{L}
-=
-\mathcal{L}_{\text{diff}}.
-\]
-
-2. Naive physics penalty:
-
-\[
-\mathcal{L}
-=
-\mathcal{L}_{\text{diff}}
-+
-\lambda
-\mathcal{L}_{\text{phys}}.
-\]
-
+**Methods to Compare**:
+1. No physics: \(\mathcal{L} = \mathcal{L}_{\text{diff}}\).
+2. Naive SIR penalty: \(\mathcal{L} = \mathcal{L}_{\text{diff}} + \lambda \mathcal{L}_{\text{phys}}\).
 3. Sampling-time physics guidance.
-
 4. Training-time adjoint matching.
+5. Training-time adjoint matching + sampling-time guidance.
 
-5. Training-time adjoint matching plus sampling-time guidance.
+**Physical Metrics**:
+- SIR residual (dynamics consistency).
+- Positivity violation (negative ILI rates).
+- Seasonal peak timing error.
+- Seasonal peak magnitude error.
 
-### Physical Metrics
+### 6.4 Stage 3 — Medium-Cost Benchmark Experiments
 
-- Advection residual.
-- Mass or accumulated rainfall error.
-- Non-negativity violation.
-- Temporal smoothness.
-- Spectral similarity.
-- Storm-cell displacement error.
-
----
-
-# 6.4 Stage 3 — Medium-Cost Benchmark Experiments
-
-### Goal
-
-Evaluate the method on a stronger and more credible rainfall nowcasting benchmark.
-
-### Dataset Setting
-
-- Larger SEVIR subset.
-- Full SEVIR.
-- RainBench low-resolution setting.
-- Longer prediction horizon.
-- Multiple random seeds.
-
-### Models
-
-- Persistence.
-- Optical flow / PySTEPS-style baseline.
-- U-Net.
-- ConvLSTM / ConvGRU.
-- PredRNN-style model.
-- Transformer-based nowcasting model.
-- Conditional latent diffusion.
+**Models**:
+- Seasonal naive.
+- Persistence (repeat last year).
+- LSTM / GRU.
+- TCN.
+- Transformer.
+- Conditional diffusion.
 - Physics-aware diffusion baseline.
-- Proposed adjoint-matched diffusion fine-tuning.
+- Adjoint-matched diffusion fine-tuning.
 
-### Main Questions
-
-- Does adjoint matching improve CSI compared with naive fine-tuning?
-- Does it improve heavy-rain CSI?
-- Does it reduce physical residuals?
+**Main Questions**:
+- Does adjoint matching improve MAE compared with naive fine-tuning?
+- Does it improve peak timing prediction?
+- Does it reduce SIR physical residuals?
 - Is it more compute-efficient?
-- Does it improve domain transfer?
+- Does it improve season-to-season transfer?
 
----
+### 6.5 Stage 4 — Expensive Experiments
 
-# 6.5 Stage 4 — Expensive Experiments
-
-### Goal
-
-Demonstrate scalability and scientific relevance.
-
-### Dataset Setting
-
-- Full-resolution radar or satellite-radar rainfall data.
-- Longer horizons: 1 to 3 hours.
-- Multi-variable conditioning.
-- Optional NWP inputs.
-- Ensemble probabilistic forecasts.
-
-### Experiments
-
-#### Spatial Transfer
-
-Train on one region and fine-tune on another.
-
-#### Temporal Transfer
-
-Pretrain on earlier years and fine-tune on later years.
-
-#### Seasonal Transfer
-
-Pretrain on one season and fine-tune on another.
-
-#### Extreme-Event Transfer
-
-Fine-tune specifically on rare heavy-rain cases.
-
-#### Sensor Transfer
-
-Adapt between radar, satellite, and combined sensor settings.
+**Experiments**:
+- **Temporal transfer**: Train on 2010-2019, fine-tune on 2020+ (COVID-era shift).
+- **Seasonal transfer**: Train on one season, fine-tune on another.
+- **Regional transfer**: Train on one HHS region, fine-tune on another.
+- **Extreme-season specialization**: Fine-tune specifically on pandemic seasons.
+- **ODE discovery**: Learn the dynamics operator from diffusion predictions.
 
 ---
 
 ## 7. Evaluation Metrics
 
-# 7.1 Primary Metric: Critical Success Index
-
-For rainfall threshold \(\theta\):
+### 7.1 Primary Metric: MAE
 
 \[
-\text{CSI}_\theta
-=
-\frac{TP}{TP+FP+FN}.
+\text{MAE} = \frac{1}{H} \sum_{h=1}^{H} |y_{t+h} - \hat{y}_{t+h}|,
 \]
 
-CSI should be reported at several rainfall thresholds:
+where \(H = 10\) forecast horizons.
 
-\[
-\theta \in \{0.5,\ 1,\ 4,\ 8,\ 16\}\ \text{mm/h}.
-\]
+### 7.2 Per-Horizon Metrics
 
-The benchmark score should emphasize heavy rainfall:
+- MAE at week 1, 2, ..., 10 (to measure error accumulation).
+- Weighted horizon score: \(S = \sum_{h=1}^{10} w_h \cdot \text{MAE}_h\) (near-term weighted higher).
 
-\[
-\text{Score}
-=
-0.2\,\text{CSI}_{\text{light}}
-+
-0.3\,\text{CSI}_{\text{moderate}}
-+
-0.5\,\text{CSI}_{\text{heavy}}.
-\]
+### 7.3 Peak Metrics
+
+- **Peak timing error**: \(|\text{week}_{\text{peak}} - \widehat{\text{week}}_{\text{peak}}|\) (weeks off).
+- **Peak magnitude error**: \(|\text{ILI}_{\text{peak}} - \widehat{\text{ILI}}_{\text{peak}}|\) (%ILI error).
+- **Seasonal baseline**: compare to naive seasonal forecast.
+
+### 7.4 Physical Consistency Metrics
+
+- **SIR residual**: \(\left\| \hat{I}_{t+1} - \Phi_{\text{SIR}}(\hat{I}_t, S_t) \right\|_2\).
+- **Positivity violation**: \(\sum \max(0, -\hat{y})\).
+- **Conservation error**: \(|N - (S+E+I+R)|\) for SEIR.
+
+### 7.5 Fine-Tuning Capacity Metrics
+
+- **FTC_compute**: \(\Delta \text{MAE} / \text{GPU-hour}\).
+- **FTC_params**: \(\Delta \text{MAE} / \#\text{trainable parameters}\).
+- **FTC_data**: \(\Delta \text{MAE} / \#\text{target seasons}\).
 
 ---
 
-# 7.2 Secondary Categorical Metrics
+## 8. Main Ablation Studies
 
-Probability of Detection:
+### 8.1 Fine-Tuning Strategy
+Full fine-tuning vs. last-block vs. bias-only vs. LoRA vs. adapters vs. adjoint-matched LoRA.
 
-\[
-\text{POD}
-=
-\frac{TP}{TP+FN}.
-\]
+### 8.2 Physics Loss Placement
+On final prediction vs. intermediate denoising estimates vs. latent space vs. denoising direction.
 
-False Alarm Ratio:
+### 8.3 Adjoint Matching Variants
+Direct gradient alignment vs. cosine alignment vs. magnitude matching vs. projected adjoint.
 
-\[
-\text{FAR}
-=
-\frac{FP}{TP+FP}.
-\]
+### 8.4 Physical Operator Quality
+SIR vs. SEIR vs. SEIRD vs. learned SIR-net vs. no source term.
 
-Heidke Skill Score:
-
-\[
-\text{HSS}
-=
-\frac{2(TP\cdot TN-FP\cdot FN)}
-{(TP+FN)(FN+TN)+(TP+FP)(FP+TN)}.
-\]
+### 8.5 Domain Shift
+Temporal (season-to-season, year-to-year), regional (HHS region transfer), pandemic shift.
 
 ---
 
-# 7.3 Regression Metrics
-
-- MAE.
-- RMSE.
-- Log-MAE.
-- Weighted RMSE.
-- Event-weighted MAE.
-- Accumulated rainfall error.
-
----
-
-# 7.4 Probabilistic Metrics
-
-Because diffusion models are probabilistic, evaluate:
-
-- CRPS.
-- Brier score.
-- Reliability diagrams.
-- Ensemble spread-skill.
-- Best-of-\(N\) CSI.
-- Mean-of-\(N\) CSI.
-- Ensemble mean RMSE.
-- Ensemble diversity.
-
----
-
-# 7.5 Physical Consistency Metrics
-
-Evaluate:
-
-\[
-R_{\text{adv}}
-=
-\left\|
-\frac{\partial r}{\partial t}
-+
-v\cdot \nabla r
--
-s
-\right\|_2.
-\]
-
-Also report:
-
-\[
-E_{\text{mass}}
-=
-\left|
-\sum_{i,j} \hat{r}_{t+1}(i,j)
--
-\sum_{i,j} r_t(i,j)
-\right|.
-\]
-
-Non-negativity violation:
-
-\[
-E_{\text{neg}}
-=
-\sum_{i,j,t}
-\max(0,-\hat{r}_{i,j,t}).
-\]
-
-Additional physical metrics:
-
-- Temporal consistency.
-- Spatial smoothness.
-- Spectral energy similarity.
-- Object displacement error.
-- Storm growth/decay consistency.
-
----
-
-## 8. Fine-Tuning Capacity Metrics
-
-Fine-tuning capacity should measure how efficiently a method adapts to a new domain.
-
-### 8.1 CSI Gain per Compute
-
-\[
-\text{FTC}_{\text{compute}}
-=
-\frac{
-\Delta \text{CSI}_{\text{target}}
-}{
-\text{GPU-hours}
-}.
-\]
-
-### 8.2 CSI Gain per Trainable Parameter
-
-\[
-\text{FTC}_{\text{params}}
-=
-\frac{
-\Delta \text{CSI}_{\text{target}}
-}{
-\#\text{trainable parameters}
-}.
-\]
-
-### 8.3 CSI Gain per Fine-Tuning Sample
-
-\[
-\text{FTC}_{\text{data}}
-=
-\frac{
-\Delta \text{CSI}_{\text{target}}
-}{
-\#\text{target training samples}
-}.
-\]
-
-### 8.4 Main Fine-Tuning Plots
-
-- CSI vs. number of target-domain samples.
-- CSI vs. fine-tuning steps.
-- CSI vs. GPU-hours.
-- CSI vs. trainable parameters.
-- Heavy-rain CSI vs. physical residual.
-- CSI improvement vs. physical-consistency improvement.
-
----
-
-## 9. Main Ablation Studies
-
-# 9.1 Fine-Tuning Strategy
-
-Compare:
-
-- Full fine-tuning.
-- Last-block fine-tuning.
-- Bias-only fine-tuning.
-- LoRA.
-- Adapters.
-- FiLM conditioning.
-- Conditioning-only tuning.
-- Adjoint-matched LoRA.
-- Adjoint-matched adapters.
-
----
-
-# 9.2 Physics Loss Placement
-
-Compare physics information applied:
-
-- Only on final clean prediction.
-- On intermediate denoising estimates.
-- In latent space.
-- On the denoising direction.
-- Only at late denoising steps.
-- At all denoising steps.
-
----
-
-# 9.3 Adjoint Matching Variants
-
-Compare:
-
-- Direct gradient alignment.
-- Cosine alignment.
-- Magnitude matching.
-- Projected adjoint matching.
-- Threshold-weighted adjoint matching.
-- Heavy-rain-region adjoint matching.
-
----
-
-# 9.4 Physical Operator Quality
-
-Compare adjoint matching using:
-
-- Optical-flow velocity.
-- Learned motion field.
-- NWP wind field.
-- Differentiable advection solver.
-- No source term.
-- Learned source/sink term.
-
----
-
-# 9.5 Domain Shift
-
-Evaluate transfer across:
-
-- Region.
-- Year.
-- Season.
-- Rainfall intensity distribution.
-- Sensor type.
-- Storm type.
-
----
-
-# 9.6 Extreme-Rain Specialization
-
-Fine-tune on heavy rainfall examples and evaluate:
-
-- Heavy-rain CSI.
-- Extreme-rain CSI.
-- False alarm ratio.
-- Probability of detection.
-- Storm displacement.
-- Physical residual.
-
----
-
-## 10. Expected Results
+## 9. Expected Results
 
 The proposed method is expected to:
 
-- Improve CSI compared with frozen pretrained diffusion models.
-- Improve CSI faster than full fine-tuning.
-- Improve heavy-rain CSI compared with naive diffusion fine-tuning.
-- Reduce physical residuals compared with unconstrained diffusion fine-tuning.
-- Require fewer trainable parameters when combined with LoRA or adapters.
-- Improve transfer to new rainfall regimes.
-- Provide a foundation for later PDE/ODE discovery.
+- Improve MAE compared with frozen pretrained diffusion models.
+- Improve MAE faster than full fine-tuning.
+- Improve peak timing and severity prediction compared with naive diffusion fine-tuning.
+- Reduce SIR physical residuals compared with unconstrained diffusion fine-tuning.
+- Require fewer trainable parameters when combined with LoRA.
+- Improve transfer to new seasons and regions.
+- Provide a foundation for later PDE/ODE discovery of epidemiological dynamics.
 
 ---
 
-## 11. Extension to PDE or ODE Discovery
+## 10. Extension to ODE Discovery
 
-After validating adjoint-matched fine-tuning, the physical residual can be replaced or augmented with a learnable dynamics model.
-
-Assume rainfall evolves according to:
+After validating adjoint-matched fine-tuning, the SIR physical residual can be replaced with a learnable dynamics model:
 
 \[
-\frac{\partial r}{\partial t}
-=
-\mathcal{F}_\psi(r, \nabla r, \nabla^2 r, u, q, t),
+\frac{dI}{dt} = \mathcal{F}_\psi(I, S, \text{covariates}, t),
 \]
 
-where:
+where \(\mathcal{F}_\psi\) is a learnable physical operator (neural ODE, symbolic regression).
 
-- \(r\) is rainfall intensity,
-- \(u\) is wind or motion field,
-- \(q\) represents additional atmospheric variables,
-- \(\mathcal{F}_\psi\) is a learnable physical operator.
-
-The extended goal becomes:
-
-> Learn both a generative rainfall model and a physically meaningful evolution operator that explains the forecast trajectories.
-
-Possible extensions:
-
-- Sparse PDE discovery.
-- Neural ODE discovery in latent space.
-- Neural operator discovery.
-- Differentiable advection-reaction models.
-- Joint fine-tuning of diffusion model and physical dynamics.
-- Interpretable rainfall evolution models.
+The extended goal is: > Learn both a generative ILI forecast model and a physically meaningful evolution operator that explains the epidemic trajectory.
 
 ---
 
-## 12. Recommended First Milestone
+## 11. Recommended First Milestone
 
-### Milestone 1: Fast MLRC-Style Rainfall Fine-Tuning Benchmark
+### Milestone 1: Fast MLRC-Style Flu Forecasting Benchmark
 
-### Dataset
-
-- sub-SEVIR or small SEVIR subset.
-
-### Resolution
-
-- 48×48.
-
-### Horizon
-
-- 30 to 60 minutes.
-
-### Baselines
-
-- Persistence.
-- Optical flow.
-- U-Net.
-- ConvLSTM.
-- Frozen diffusion.
-- Naive diffusion fine-tuning.
-- LoRA diffusion fine-tuning.
-- Adjoint-matched LoRA fine-tuning.
-
-### Metrics
-
-- CSI at multiple thresholds.
-- Heavy-rain CSI.
-- CSI gain per GPU-hour.
-- CSI gain per target-domain sample.
-- Physical advection residual.
-
-### Main Deliverable
-
-A reproducible benchmark showing whether adjoint-matched fine-tuning improves rainfall prediction skill and physical consistency under limited data and compute.
-
----
-
-## 13. Final Project Contributions
-
-The expected contributions of the project are:
-
-1. A benchmark-style rainfall prediction task focused on fine-tuning capacity.
-2. A CSI-centered evaluation protocol for rainfall diffusion models.
-3. A parameter-efficient diffusion fine-tuning framework.
-4. An adjoint-matching objective for physics-consistent fine-tuning.
-5. A systematic comparison with non-diffusion and diffusion baselines.
-6. A compute-aware experimental design separating fast, medium, and expensive experiments.
-7. A path toward PDE or ODE discovery from learned rainfall dynamics.
+- **Dataset**: CDC ILINET (national or HHS region), 5→10 epiweeks.
+- **Metrics**: MAE (primary), per-horizon MAE, peak timing error.
+- **Baselines**: seasonal naive, LSTM, TCN, Transformer, diffusion.
+- **Main Deliverable**: A reproducible benchmark showing whether adjoint-matched fine-tuning improves flu forecasting skill and physical consistency under limited data and compute.
