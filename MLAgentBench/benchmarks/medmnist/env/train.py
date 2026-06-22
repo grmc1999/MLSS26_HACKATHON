@@ -51,7 +51,6 @@ def train_epoch(model, loader, optimizer, criterion, device):
         pred = model(X)
         loss = criterion(pred, y)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         total_loss += loss.item()
         correct += (pred.argmax(1) == y).sum().item()
