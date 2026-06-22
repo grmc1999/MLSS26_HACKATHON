@@ -111,19 +111,14 @@ class SimpleCNN(nn.Module):
         return x
 
 
-def train_epoch(model, loader, optimizer, criterion, device, mixup_alpha=0.2):
+def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss, correct, total = 0, 0, 0
-    beta_dist = torch.distributions.Beta(torch.tensor(mixup_alpha), torch.tensor(mixup_alpha))
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
-        lam = beta_dist.sample().item()
-        perm = torch.randperm(X.size(0), device=device)
-        X_mix = lam * X + (1 - lam) * X[perm]
-        y_a, y_b = y, y[perm]
         optimizer.zero_grad()
-        pred = model(X_mix)
-        loss = lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+        pred = model(X)
+        loss = criterion(pred, y)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
