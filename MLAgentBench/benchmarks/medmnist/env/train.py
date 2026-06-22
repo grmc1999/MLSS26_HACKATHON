@@ -346,6 +346,7 @@ if __name__ == "__main__":
     criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    swa_model = None
     best_acc = 0
     for epoch in range(epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
@@ -353,11 +354,25 @@ if __name__ == "__main__":
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), "medmnist_model.pth")
+        if epoch >= epochs * 0.75:
+            if swa_model is None:
+                swa_model = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                swa_count = 1
+            else:
+                for k, v in model.state_dict().items():
+                    swa_model[k] = swa_model[k] + v.detach().clone()
+                swa_count += 1
         if (epoch + 1) % 5 == 0 or epoch == 0:
             print(f"Epoch {epoch+1}/{epochs}: train_acc={acc:.4f}, val_acc={val_acc:.4f}")
 
-    # Load best model and evaluate on test set
-    model.load_state_dict(torch.load("medmnist_model.pth"))
+    # Load best model with SWA
+    best_sd = torch.load("medmnist_model.pth")
+    if swa_model is not None:
+        for k in swa_model:
+            swa_model[k] = swa_model[k] / swa_count
+            if k in best_sd and best_sd[k].shape == swa_model[k].shape:
+                best_sd[k] = swa_model[k]
+    model.load_state_dict(best_sd)
     test_acc, preds, labels = evaluate(model, test_loader, device)
 
     # Predictions: model outputs 2 classes. Map OOD detection:

@@ -58,6 +58,8 @@ def train_model(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
+    swa_model = None
+    swa_count = 0
     best_val_acc, best_epoch = 0, 0
     for epoch in range(args.epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
@@ -65,11 +67,25 @@ def train_model(args):
         if val_acc > best_val_acc:
             best_val_acc, best_epoch = val_acc, epoch
             torch.save(model.state_dict(), "medmnist_model.pth")
+        if epoch >= args.epochs * 0.75:
+            if swa_model is None:
+                swa_model = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                swa_count = 1
+            else:
+                for k, v in model.state_dict().items():
+                    swa_model[k] = swa_model[k] + v.detach().clone()
+                swa_count += 1
         if (epoch + 1) % 5 == 0 or epoch == 0:
             print(f"Epoch {epoch+1}/{args.epochs}: acc={acc:.4f}, val={val_acc:.4f}")
 
     elapsed = time.time() - start
-    model.load_state_dict(torch.load("medmnist_model.pth"))
+    best_sd = torch.load("medmnist_model.pth")
+    if swa_model is not None:
+        for k in swa_model:
+            swa_model[k] = swa_model[k] / swa_count
+            if k in best_sd and best_sd[k].shape == swa_model[k].shape:
+                best_sd[k] = swa_model[k]
+    model.load_state_dict(best_sd)
 
     # Test evaluation
     import torch.nn.functional as F
