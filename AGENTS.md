@@ -384,10 +384,8 @@ MLSS26_HACKATHON/
 ├── program.md                         # Task autoresearch protocol
 ├── .opencode/
 │   └── skills/
-│       ├── autoresearch/
-│       │   └── SKILL.md               # 15 subcommands skill (base)
-│       └── autoresearch_scientific/
-│           └── SKILL.md               # 🆕 Scientific AI (agents + loop)
+│       └── autoresearch/
+│           └── SKILL.md               # 15 subcommands skill (base)
 ├── configs/
 │   ├── models.yaml                    # OpenRouter model configurations
 │   └── agents.yaml                    # Agent → model mappings
