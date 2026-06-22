@@ -49,28 +49,10 @@ class FocalLoss(nn.Module):
 
 
 try:
-    from torchvision.models import densenet121, DenseNet121_Weights, resnet18, ResNet18_Weights
+    from torchvision.models import densenet121, DenseNet121_Weights
     HAS_TORCHVISION = True
 except ImportError:
     HAS_TORCHVISION = False
-
-
-def create_pretrained_resnet18(num_classes=3):
-    weights = ResNet18_Weights.IMAGENET1K_V1
-    model = resnet18(weights=weights)
-    old_conv = model.conv1
-    model.conv1 = nn.Conv2d(1, old_conv.out_channels, kernel_size=old_conv.kernel_size, stride=1, padding=old_conv.padding, bias=False)
-    with torch.no_grad():
-        model.conv1.weight.data = old_conv.weight.data.sum(dim=1, keepdim=True)
-    model.maxpool = nn.Identity()
-    in_features = model.fc.in_features
-    model.fc = nn.Sequential(
-        nn.Linear(in_features, 256),
-        nn.ReLU(inplace=True),
-        nn.Dropout(0.3),
-        nn.Linear(256, num_classes),
-    )
-    return model
 
 
 def create_pretrained_densenet(num_classes=3):
@@ -316,10 +298,6 @@ def save_viz_data(model, loader, device, val_loader=None, out_dir=None):
 def create_model(model_name="SimpleCNN", num_classes=2, pretrained=False):
     if model_name == "DenseNet121" and HAS_TORCHVISION and pretrained:
         model = create_pretrained_densenet(num_classes=3)
-        model.num_classes = num_classes
-        return model
-    if model_name == "ResNet18" and HAS_TORCHVISION and pretrained:
-        model = create_pretrained_resnet18(num_classes=3)
         model.num_classes = num_classes
         return model
     return SimpleCNN(num_classes=num_classes)
