@@ -263,28 +263,20 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("medmnist_model.pth"))
     test_acc, preds, labels = evaluate(model, test_loader, device)
 
-    # Energy-based OOD detection (Liu et al., NeurIPS 2020).
-    # Energy = -logsumexp(logits). Lower energy (more negative) → ID, higher energy → OOD.
+    # Predictions: model outputs 2 classes. Map OOD detection:
+    # If model predicts class 0 or 1 with low confidence → mark as OOD.
+    # Simple approach: use softmax threshold for OOD detection.
     model.eval()
     ood_preds = []
     with torch.no_grad():
-        # Calibrate energy threshold from training set
-        train_energies = []
-        for X, _ in train_loader:
-            X = X.to(device)
-            logits = model(X)
-            train_energies.append(torch.logsumexp(logits, dim=1))
-        train_energies = torch.cat(train_energies)
-        # Use 15th percentile of training energy as threshold
-        energy_threshold = train_energies.quantile(0.15).item()
-        print(f"  Energy threshold (15th %ile of train): {energy_threshold:.4f}")
-
         for X, _ in test_loader:
             X = X.to(device)
             logits = model(X)
-            energy = torch.logsumexp(logits, dim=1)
-            # Lower energy → OOD (consolidation class 2)
-            ood = (energy < energy_threshold).cpu().numpy().astype(int) * 2
+            probs = F.softmax(logits, dim=1)
+            max_probs, hard_preds = probs.max(1)
+            # If max probability < threshold, label as OOD (class 2)
+            threshold = 0.7
+            ood = (max_probs < threshold).cpu().numpy().astype(int) * 2
             ood_preds.extend(ood)
 
     ood_preds = np.array(ood_preds)
