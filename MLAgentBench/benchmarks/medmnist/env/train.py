@@ -17,7 +17,7 @@ from loader import get_datasets, CLASS_NAMES, OOD_CLASS, N_CLASSES
 
 
 class SimpleCNN(nn.Module):
-    """Small CNN for 28x28 chest X-rays. Outputs 3 logits with learned temperature."""
+    """Small CNN for 28x28 chest X-rays. Outputs 3 logits for better OOD detection."""
 
     def __init__(self, num_classes=2):
         super().__init__()
@@ -29,7 +29,6 @@ class SimpleCNN(nn.Module):
         self.dropout = nn.Dropout(0.25)
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
         self.fc2 = nn.Linear(128, 3)
-        self.t = nn.Parameter(torch.tensor(1.0))
         self.num_classes = num_classes
 
     def forward(self, x):
@@ -39,7 +38,7 @@ class SimpleCNN(nn.Module):
         x = self.dropout(x)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
-        return x / self.t
+        return x
 
 
 def train_epoch(model, loader, optimizer, criterion, device):
