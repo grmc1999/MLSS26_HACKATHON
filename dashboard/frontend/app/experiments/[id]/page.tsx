@@ -324,16 +324,14 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
                 const testData = vizData.embeddings?.filter(e => e.label === cls && e.dataset === 'ChestMNIST (test)') ?? [];
                 const valData = vizData.embeddings?.filter(e => e.label === cls && e.dataset !== 'ChestMNIST (test)') ?? [];
                 const className = vizData.class_names?.[cls] ?? `Class ${cls}`;
-                return (
-                  <>
-                    <Scatter key={`test-${cls}`} name={`ChestMNIST ${className}`} data={testData}
-                             fill={color} shape="circle" fillOpacity={0.9} />
-                    {valData.length > 0 && (
-                      <Scatter key={`val-${cls}`} name={`PneumoniaMNIST ${className}`} data={valData}
-                               fill={color} shape="diamond" fillOpacity={0.4} stroke={color} strokeWidth={1} strokeOpacity={0.6} />
-                    )}
-                  </>
-                );
+                return [
+                  <Scatter key={`test-${cls}`} name={`ChestMNIST ${className}`} data={testData}
+                           fill={color} shape="circle" fillOpacity={0.9} />,
+                  valData.length > 0 ? (
+                    <Scatter key={`val-${cls}`} name={`PneumoniaMNIST ${className}`} data={valData}
+                             fill={color} shape="diamond" fillOpacity={0.4} stroke={color} strokeWidth={1} strokeOpacity={0.6} />
+                  ) : null,
+                ];
               })}
             </ScatterChart>
           </ResponsiveContainer>
