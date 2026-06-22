@@ -306,23 +306,20 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("medmnist_model.pth"))
     test_acc, preds, labels = evaluate(model, test_loader, device)
 
-    # Predictions: model outputs 3 logits. Map OOD detection:
+    # Predictions: model outputs 2 classes. Map OOD detection:
     # If model predicts class 0 or 1 with low confidence → mark as OOD.
-    # Energy-based OOD detection: use Helmholtz free energy instead of softmax.
-    # Low energy = in-distribution, high energy = OOD.
-    # E(x) = -T * log(sum(exp(logits / T))) where T is temperature.
+    # Simple approach: use softmax threshold for OOD detection.
     model.eval()
     ood_preds = []
     with torch.no_grad():
-        temp = 1.0
         for X, _ in test_loader:
             X = X.to(device)
             logits = model(X)
-            # Energy score: negative log-sum-exp
-            energy = -temp * torch.logsumexp(logits / temp, dim=1)
-            # If energy > threshold → OOD
-            threshold = -2.0
-            ood = (energy > threshold).cpu().numpy().astype(int) * 2
+            probs = F.softmax(logits, dim=1)
+            max_probs, hard_preds = probs.max(1)
+            # If max probability < threshold, label as OOD (class 2)
+            threshold = 0.7
+            ood = (max_probs < threshold).cpu().numpy().astype(int) * 2
             ood_preds.extend(ood)
 
     ood_preds = np.array(ood_preds)
