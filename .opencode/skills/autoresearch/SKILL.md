@@ -6,7 +6,7 @@ version: 2.2.0
 
 # Autoresearch — Chest X-ray OOD Detection
 
-15 real opencode slash commands defined in `.opencode/commands/autoresearch_*.md`.
+16 real opencode slash commands defined in `.opencode/commands/autoresearch_*.md`.
 
 ## Commands
 
@@ -27,6 +27,7 @@ version: 2.2.0
 | `/autoresearch_evals` | Analyze iteration results: trends, plateaus |
 | `/autoresearch_regression` | Stability gate: baseline vs candidate |
 | `/autoresearch_scientific` | Full loop + 8 specialized agents for chest X-ray OOD |
+| `/autoresearch_pipeline` | Multi-expert pipeline: research → plan → code → review |
 
 ## Context
 
