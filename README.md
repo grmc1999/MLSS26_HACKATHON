@@ -63,25 +63,27 @@ User / Dashboard
 
 ---
 
-## 15 AutoResearch Subcommands
+## 15 AutoResearch Slash Commands
+
+Available as opencode commands (type `/` in the TUI). Defined in `.opencode/commands/autoresearch_*.md`.
 
 | Command | Purpose |
 |---------|---------|
 | `/autoresearch` | Iterate against metric: modify → verify → keep/discard |
-| `/autoresearch_plan` | Generate next hypothesis |
-| `/autoresearch_run` | Execute single iteration |
-| `/autoresearch_fix` | Debug crashes |
-| `/autoresearch_analyze` | Deep analysis of results |
-| `/autoresearch_ship` | Lock best model |
+| `/autoresearch_plan` | Convert goal into experiment config |
+| `/autoresearch_debug` | Hunt bugs via hypothesis testing |
+| `/autoresearch_fix` | Fix errors one-by-one to zero |
+| `/autoresearch_security` | Security audit of pipeline |
+| `/autoresearch_ship` | Lock best model, final eval |
+| `/autoresearch_scenario` | Explore edge cases and sensitivity |
+| `/autoresearch_predict` | 5-expert debate before changing code |
 | `/autoresearch_learn` | Extract cross-iteration lessons |
-| `/autoresearch_evals` | Comprehensive metrics |
-| `/autoresearch_probe` | Model internals |
-| `/autoresearch_improve` | Targeted improvements |
-| `/autoresearch_debug` | Interactive debugging |
-| `/autoresearch_reason` | Trajectory analysis |
-| `/autoresearch_scenario` | What-if scenarios |
-| `/autoresearch_regression` | Regression testing |
-| `/autoresearch_scientific` | 🧪 Full loop + 8 agents |
+| `/autoresearch_reason` | Adversarial debate with blind judges |
+| `/autoresearch_probe` | Surface hidden constraints |
+| `/autoresearch_improve` | Research SOTA methods, generate PRDs |
+| `/autoresearch_evals` | Analyze trends across all runs |
+| `/autoresearch_regression` | Baseline vs candidate stability gate |
+| `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents |
 
 ---
 

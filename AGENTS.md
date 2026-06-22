@@ -56,3 +56,25 @@ Configured in `configs/agents.yaml`, system prompts in `agent_specialized.py`, r
 ## No CI / No tests / No lint / No typecheck
 
 This project has no CI pipeline, test suite, linter, or type checker.
+
+## Slash Commands (15 autoresearch modes)
+
+Defined in `.opencode/commands/autoresearch_*.md`:
+
+| Command | What it does |
+|---------|-------------|
+| `/autoresearch` | Modify train.py → run → keep/discard against metric |
+| `/autoresearch_plan` | Convert goal into experiment config |
+| `/autoresearch_debug` | Hunt bugs via hypothesis testing |
+| `/autoresearch_fix` | Fix errors one-by-one to zero |
+| `/autoresearch_security` | Security audit of pipeline |
+| `/autoresearch_ship` | Lock best model, final eval |
+| `/autoresearch_scenario` | Explore edge cases and sensitivity |
+| `/autoresearch_predict` | 5-expert debate before changing code |
+| `/autoresearch_learn` | Extract cross-iteration lessons |
+| `/autoresearch_reason` | Adversarial debate with blind judges |
+| `/autoresearch_probe` | Surface hidden constraints |
+| `/autoresearch_improve` | Research SOTA methods, generate PRDs |
+| `/autoresearch_evals` | Analyze trends across all runs |
+| `/autoresearch_regression` | Baseline vs candidate stability gate |
+| `/autoresearch_scientific` | Full loop + 8 specialized agents |
