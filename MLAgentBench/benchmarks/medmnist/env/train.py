@@ -111,11 +111,13 @@ class SimpleCNN(nn.Module):
         return x
 
 
-def train_epoch(model, loader, optimizer, criterion, device):
+def train_epoch(model, loader, optimizer, criterion, device, noise_std=0.02):
     model.train()
     total_loss, correct, total = 0, 0, 0
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
+        if noise_std > 0:
+            X = X + torch.randn_like(X) * noise_std
         optimizer.zero_grad()
         pred = model(X)
         loss = criterion(pred, y)
