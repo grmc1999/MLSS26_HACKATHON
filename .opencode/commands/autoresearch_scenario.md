@@ -1,7 +1,7 @@
 ---
 name: autoresearch_scenario
 description: "Explore what-if scenarios: different data splits, class distributions, noise levels"
-argument-hint: "[Scenario: <text>] [Iterations: N] [RAG: yes|no]"
+argument-hint: "[Scenario: <text>] [Iterations: N]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -16,8 +16,7 @@ Extract from $ARGUMENTS:
 
 question (single batch):
   Q1 (Scenario): "What scenario to explore?" — class imbalance, domain shift, noise, data size
-   Q2 (Depth): "Depth?" — standard (15), deep (30)
-   Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
+  Q2 (Depth): "Depth?" — standard (15), deep (30)
 
 ## Scenario Dimensions (Chest X-ray OOD)
 

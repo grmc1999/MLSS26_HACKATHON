@@ -108,7 +108,7 @@ This gives agents visual context from medical literature (tables, charts, radiog
 
 This project has no CI pipeline, test suite, linter, or type checker.
 
-## Slash Commands (16 autoresearch modes)
+## Slash Commands (15 autoresearch modes)
 
 Defined in `.opencode/commands/autoresearch_*.md`:
 
@@ -129,4 +129,3 @@ Defined in `.opencode/commands/autoresearch_*.md`:
 | `/autoresearch_evals` | Analyze trends across all runs |
 | `/autoresearch_regression` | Baseline vs candidate stability gate |
 | `/autoresearch_scientific` | Full loop + 8 specialized agents |
-| `/autoresearch_pipeline` | Multi-expert: research → plan → code → review |

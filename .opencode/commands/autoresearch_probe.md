@@ -1,7 +1,7 @@
 ---
 name: autoresearch_probe
 description: "Interrogate the project and requirements: surface constraints, assumptions, blind spots"
-argument-hint: "[Topic: <text>] [--chain <targets>] [RAG: yes|no]"
+argument-hint: "[Topic: <text>] [--chain <targets>]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -15,8 +15,7 @@ Extract from $ARGUMENTS:
 ## Setup
 
 question (single batch):
-   Q1 (Topic): "What area needs probing?" — data quality, model assumptions, metric validity, experiment design
-   Q2 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
+  Q1 (Topic): "What area needs probing?" — data quality, model assumptions, metric validity, experiment design
 
 ## 8 Personas
 

@@ -1,7 +1,7 @@
 ---
 name: autoresearch_fix
 description: "Crush errors in the OOD pipeline one-by-one until zero remain"
-argument-hint: "[Target: train|eval|data] [Iterations: N] [--from-debug] [RAG: yes|no]"
+argument-hint: "[Target: train|eval|data] [Iterations: N] [--from-debug]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -19,7 +19,6 @@ Extract from $ARGUMENTS:
 2. Present results:
    Q1 (Fix What): "Found errors. Fix what?" — crashes, accuracy, OOD F1, all
    Q2 (Launch): "Ready?" — fix until zero or fix with limit
-   Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Establish Baseline (Iteration 0)
 

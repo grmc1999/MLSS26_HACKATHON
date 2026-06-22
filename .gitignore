@@ -220,6 +220,9 @@ __marimo__/
 
 *.nc
 
+# Large model weight files
+models/
+
 # MLSS26_HACKATHON specific
 .kaggle/
 *.zip
@@ -252,9 +255,3 @@ literature/
 literature_md/
 pixels/
 index_output/
-
-# Large model files (downloaded, not source code)
-models/
-# CIFAR-10 dataset (downloaded)
-MLAgentBench/benchmarks/cifar10/env/data/cifar-10-python.tar.gz
-assets/

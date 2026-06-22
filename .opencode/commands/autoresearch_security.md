@@ -1,7 +1,7 @@
 ---
 name: autoresearch_security
 description: "Audit the OOD pipeline for security issues: leak paths, data integrity, adversarial robustness"
-argument-hint: "[Iterations: N] [RAG: yes|no]"
+argument-hint: "[Iterations: N]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -14,8 +14,7 @@ Extract from $ARGUMENTS:
 ## Setup
 
 question (single batch):
-   Q1 (Focus): "Security audit focus?" — data leakage, model poisoning, adversarial robustness, API key exposure, all
-   Q2 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
+  Q1 (Focus): "Security audit focus?" — data leakage, model poisoning, adversarial robustness, API key exposure, all
 
 ## Audit Areas
 

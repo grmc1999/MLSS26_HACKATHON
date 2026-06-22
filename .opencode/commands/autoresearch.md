@@ -1,7 +1,7 @@
 ---
 name: autoresearch
 description: "Autonomous iteration loop: modify, verify, keep/discard against Test Accuracy or OOD F1"
-argument-hint: "[Goal: <text>] [Metric: Test Accuracy|OOD F1] [Iterations: N] [RAG: yes|no] [--evals]"
+argument-hint: "[Goal: <text>] [Metric: Test Accuracy|OOD F1] [Iterations: N] [--evals]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -20,7 +20,6 @@ Extract from $ARGUMENTS:
 If Goal or Metric missing → use question (single batched call):
   Q1 (Goal): "What do you want to improve?" — Test Accuracy, OOD F1, or both
   Q2 (Iterations): "Iterations?" — default 25
-  Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Precondition Checks
 
@@ -44,7 +43,6 @@ For each iteration (1 to max_iterations):
 - Run `git log --oneline -10` — see what worked/failed
 - Run `git diff HEAD~1` if last was keep to see what improved metric
 - Identify: what worked, what failed, what's untried
-- **If RAG is enabled**: run `agent_specialized.search_medical_literature(query, k=5)` to find relevant papers. Ground your change in the literature.
 
 ### Phase 2: Modify
 - Make ONE focused change to `MLAgentBench/benchmarks/medmnist/env/train.py`

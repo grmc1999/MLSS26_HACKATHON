@@ -1,7 +1,7 @@
 ---
 name: autoresearch_learn
 description: "Extract cross-iteration lessons: what worked, what failed, what patterns emerged"
-argument-hint: "[--mode init|update] [Iterations: N] [RAG: yes|no]"
+argument-hint: "[--mode init|update] [Iterations: N]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -15,8 +15,7 @@ Extract from $ARGUMENTS:
 ## Setup
 
 question (single batch):
-   Q1 (Mode): "What to do?" — init (generate lessons from results), update (append newer results), check (read-only)
-   Q2 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
+  Q1 (Mode): "What to do?" — init (generate lessons from results), update (append newer results), check (read-only)
 
 ## Process
 

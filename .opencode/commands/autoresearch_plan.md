@@ -1,7 +1,7 @@
 ---
 name: autoresearch_plan
 description: "Convert a chest X-ray OOD goal into validated Scope, Metric, Verify config"
-argument-hint: "[Goal: <text>] [RAG: yes|no]"
+argument-hint: "[Goal: <text>]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -16,8 +16,7 @@ Remaining text = goal description.
 
 question (single batch):
   Q1 (Goal): "What do you want to achieve?" — improve accuracy, OOD detection, calibration, etc.
-   Q2 (Focus): "Which metric?" — Test Accuracy, OOD F1, both, or something else
-   Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
+  Q2 (Focus): "Which metric?" — Test Accuracy, OOD F1, both, or something else
 
 ## Phase 1: Analyze Goal
 

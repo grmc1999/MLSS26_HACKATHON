@@ -1,7 +1,7 @@
 ---
 name: autoresearch_predict
 description: "Multi-expert prediction: estimate expected improvement before running an experiment"
-argument-hint: "[Proposal: <text>] [RAG: yes|no]"
+argument-hint: "[Proposal: <text>]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -14,8 +14,7 @@ Extract from $ARGUMENTS:
 ## Setup
 
 question (single batch):
-   Q1 (Proposal): "What change do you want to predict the outcome of?"
-   Q2 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
+  Q1 (Proposal): "What change do you want to predict the outcome of?"
 
 ## Expert Personas
 

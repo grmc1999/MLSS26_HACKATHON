@@ -1,7 +1,7 @@
 ---
 name: autoresearch_evals
 description: "Analyze experiment results: trends, plateaus, regressions across all runs"
-argument-hint: "[path/to/results.tsv] [--format text|json|md] [RAG: yes|no]"
+argument-hint: "[path/to/results.tsv] [--format text|json|md]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -11,11 +11,6 @@ EXECUTE IMMEDIATELY.
 Extract from $ARGUMENTS:
 - Positional path to a specific TSV or JSONL file
 - `--format` — output format: text (default), json, md
-
-## Setup
-
-question (single batch):
-  Q1 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Input Discovery
 
