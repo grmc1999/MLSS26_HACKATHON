@@ -28,6 +28,7 @@ class SimpleCNN(nn.Module):
         self.bn2 = nn.BatchNorm2d(64)
         self.pool = nn.MaxPool2d(2)
         self.dropout = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.25)
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
         self.fc2 = nn.Linear(128, 3)
         self.num_classes = num_classes
@@ -38,6 +39,7 @@ class SimpleCNN(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.dropout(x)
         x = F.leaky_relu(self.fc1(x), 0.1)
+        x = self.dropout2(x)
         x = self.fc2(x)
         return x
 
