@@ -3,6 +3,7 @@
 Provides endpoints for:
 - Experiment listing and details
 - Score timeline data
+- Visualization data for experiments
 - Agent configuration and model swapping
 - OpenRouter model listing
 - WebSocket for real-time updates
@@ -21,12 +22,11 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Project root directory
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIGS_DIR = PROJECT_ROOT / "configs"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
-app = FastAPI(title="MLSS26_HACKATHON Dashboard API", version="1.0.0")
+app = FastAPI(title="MLSS26_HACKATHON Dashboard API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,13 +37,9 @@ app.add_middleware(
 )
 
 
-# --- Models ---
-
 class ModelSwapRequest(BaseModel):
     model_id: str
 
-
-# --- Config Loading ---
 
 def load_yaml(path):
     if not path.exists():
@@ -60,12 +56,9 @@ def get_agents_config():
     return load_yaml(CONFIGS_DIR / "agents.yaml")
 
 
-# --- Experiment Parsing ---
-
 EXPERIMENTS_RUNS = PROJECT_ROOT / "experiments" / "runs.jsonl"
 
 def parse_runs_jsonl() -> list[dict]:
-    """Parse experiment runs from experiments/runs.jsonl."""
     experiments = []
     if not EXPERIMENTS_RUNS.exists():
         return experiments
@@ -77,24 +70,25 @@ def parse_runs_jsonl() -> list[dict]:
             try:
                 data = json.loads(line)
                 exp = {
-                    "id": data.get("timestamp", "unknown").replace(" ", "_").replace(":", ""),
+                    "id": str(hash(line))[-8:],
                     "path": str(EXPERIMENTS_RUNS),
                     "timestamp": data.get("timestamp", ""),
                     "steps": [],
                     "scores": [],
-                    "final_score": data.get("test_dice"),
+                    "final_score": data.get("test_acc"),
                     "status": "completed",
                     "source": "run_exp",
                     "details": {
-                        "model": data.get("model", "unet"),
-                        "base_ch": data.get("base_ch", 32),
-                        "epochs": data.get("epochs", 50),
-                        "lr": data.get("lr", 0.0001),
-                        "batch": data.get("batch", 2),
+                        "model": data.get("model", "SimpleCNN"),
+                        "epochs": data.get("epochs", 20),
+                        "lr": data.get("lr", 0.001),
+                        "batch": data.get("batch", 64),
                         "params": data.get("params", 0),
                         "elapsed_s": data.get("elapsed_s", 0),
-                        "best_val_dice": data.get("best_val_dice"),
-                        "best_epoch": data.get("best_epoch"),
+                        "test_acc": data.get("test_acc"),
+                        "ood_f1": data.get("ood_f1"),
+                        "ood_precision": data.get("ood_precision"),
+                        "ood_recall": data.get("ood_recall"),
                     },
                 }
                 experiments.append(exp)
@@ -102,8 +96,8 @@ def parse_runs_jsonl() -> list[dict]:
                 continue
     return experiments
 
+
 def parse_loop_results() -> list[dict]:
-    """Parse loop experiment results from experiments/loop-*/results.tsv."""
     experiments = []
     loop_dirs = sorted(PROJECT_ROOT.glob("experiments/loop-*/results.tsv"), reverse=True)
     for tsv_path in loop_dirs:
@@ -112,17 +106,34 @@ def parse_loop_results() -> list[dict]:
             continue
         loop_id = tsv_path.parent.name
         scores = []
+        iterations_data = []
         final_score = None
-        for line in lines[1:]:
+        for i, line in enumerate(lines[1:]):
             if not line or line.startswith("#"):
                 continue
             parts = line.split("\t")
-            if len(parts) >= 4:
+            if len(parts) >= 7:
                 try:
-                    metric = float(parts[3])
-                    scores.append({"step": int(parts[0]), "score": metric})
+                    iteration = parts[0].strip()
+                    commit = parts[1].strip()
+                    test_acc = float(parts[2]) if parts[2] else None
+                    ood_f1 = float(parts[3]) if parts[3] else None
+                    memory_gb = parts[4].strip()
+                    status = parts[5].strip()
+                    description = parts[6].strip()
+                    metric = test_acc if test_acc is not None else 0.0
+                    scores.append({"step": int(iteration), "score": metric})
                     final_score = metric
-                except ValueError:
+                    iterations_data.append({
+                        "iteration": int(iteration),
+                        "commit": commit,
+                        "test_acc": test_acc,
+                        "ood_f1": ood_f1,
+                        "memory_gb": memory_gb,
+                        "status": status,
+                        "description": description,
+                    })
+                except (ValueError, IndexError):
                     continue
         experiments.append({
             "id": loop_id,
@@ -133,15 +144,18 @@ def parse_loop_results() -> list[dict]:
             "final_score": final_score,
             "status": "completed" if scores else "unknown",
             "source": "auto_loop",
-            "details": {},
+            "details": {
+                "iterations": iterations_data,
+                "total_iterations": len(iterations_data),
+                "kept": sum(1 for d in iterations_data if d["status"] == "keep"),
+                "discarded": sum(1 for d in iterations_data if d["status"] == "discard"),
+            },
+            "iterations": iterations_data,
         })
     return experiments
 
-def parse_experiment(log_dir: Path) -> dict:
-    """Parse a single experiment log directory into a structured dict."""
-    agent_log = log_dir / "agent_log"
-    env_log = log_dir / "env_log"
 
+def parse_experiment(log_dir: Path) -> dict:
     experiment = {
         "id": log_dir.name,
         "path": str(log_dir),
@@ -151,8 +165,10 @@ def parse_experiment(log_dir: Path) -> dict:
         "scores": [],
         "final_score": None,
         "status": "unknown",
-        "agent_log_file": str(agent_log / "main_log") if (agent_log / "main_log").exists() else None,
+        "agent_log_file": str(log_dir / "agent_log" / "main_log") if (log_dir / "agent_log" / "main_log").exists() else None,
     }
+    agent_log = log_dir / "agent_log"
+    env_log = log_dir / "env_log"
 
     main_log = agent_log / "main_log"
     if main_log.exists():
@@ -192,7 +208,6 @@ def parse_experiment(log_dir: Path) -> dict:
 
 
 def get_all_experiments():
-    """Get all experiment runs from logs, runs.jsonl, and loop results."""
     experiments = []
     if LOGS_DIR.exists():
         for log_dir in sorted(LOGS_DIR.iterdir(), reverse=True):
@@ -204,7 +219,22 @@ def get_all_experiments():
     return experiments
 
 
-# --- WebSocket Connection Manager ---
+def find_experiment_by_id(experiment_id: str) -> Optional[dict]:
+    # Check LOGS_DIR
+    if LOGS_DIR.exists():
+        log_dir = LOGS_DIR / experiment_id
+        if log_dir.exists() and log_dir.is_dir():
+            return parse_experiment(log_dir)
+    # Check runs.jsonl
+    for exp in parse_runs_jsonl():
+        if exp["id"] == experiment_id:
+            return exp
+    # Check loop results
+    for exp in parse_loop_results():
+        if exp["id"] == experiment_id:
+            return exp
+    return None
+
 
 class ConnectionManager:
     def __init__(self):
@@ -229,48 +259,63 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# --- Endpoints ---
-
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "MLSS26_HACKATHON Dashboard API"}
+    return {"status": "ok", "message": "MLSS26_HACKATHON Dashboard API v2"}
 
 
 @app.get("/experiments")
 async def list_experiments():
-    """List all experiment runs."""
     return {"experiments": get_all_experiments()}
 
 
 @app.get("/experiments/{experiment_id}")
 async def get_experiment(experiment_id: str):
-    """Get detailed info for a specific experiment."""
-    log_dir = LOGS_DIR / experiment_id
-    if not log_dir.exists():
+    exp = find_experiment_by_id(experiment_id)
+    if exp is None:
         raise HTTPException(status_code=404, detail="Experiment not found")
-    return parse_experiment(log_dir)
+    return exp
+
+
+@app.get("/experiments/{experiment_id}/iterations")
+async def get_experiment_iterations(experiment_id: str):
+    exp = find_experiment_by_id(experiment_id)
+    if exp is None:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    iterations = exp.get("iterations", [])
+    return {"experiment_id": experiment_id, "iterations": iterations}
 
 
 @app.get("/scores")
 async def get_scores(experiment_id: Optional[str] = None):
-    """Get score timeline data for charts."""
     if experiment_id:
-        log_dir = LOGS_DIR / experiment_id
-        if not log_dir.exists():
+        exp = find_experiment_by_id(experiment_id)
+        if exp is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
-        exp = parse_experiment(log_dir)
-        return {"experiment_id": experiment_id, "scores": exp["scores"]}
+        return {"experiment_id": experiment_id, "scores": exp.get("scores", [])}
     experiments = get_all_experiments()
     all_scores = {}
     for exp in experiments:
-        if exp["scores"]:
+        if exp.get("scores"):
             all_scores[exp["id"]] = exp["scores"]
     return {"all_scores": all_scores}
 
 
+@app.get("/experiments/{experiment_id}/viz")
+async def get_experiment_viz(experiment_id: str):
+    exp = find_experiment_by_id(experiment_id)
+    if exp is None:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    if exp.get("source") == "auto_loop":
+        loop_dir = Path(exp["path"])
+        viz_file = loop_dir / "viz" / "data.json"
+        if viz_file.exists():
+            return json.loads(viz_file.read_text())
+    return {}
+
+
 @app.get("/agents")
 async def list_agents():
-    """List all agents and their current model configurations."""
     config = get_agents_config()
     agents = config.get("agents", {})
     result = []
@@ -289,7 +334,6 @@ async def list_agents():
 
 @app.post("/agents/{agent_name}/model")
 async def swap_agent_model(agent_name: str, request: ModelSwapRequest):
-    """Swap the LLM model for a specific agent."""
     config = get_agents_config()
     agents = config.get("agents", {})
     if agent_name not in agents:
@@ -304,7 +348,6 @@ async def swap_agent_model(agent_name: str, request: ModelSwapRequest):
 
 @app.get("/models")
 async def list_models():
-    """List all available OpenRouter models."""
     config = get_models_config()
     return {
         "free_models": config.get("tiers", {}).get("free", []),
@@ -316,7 +359,6 @@ async def list_models():
 
 @app.get("/status")
 async def get_status():
-    """Get overall system status."""
     experiments = get_all_experiments()
     config = get_agents_config()
     return {
@@ -330,7 +372,6 @@ async def get_status():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket for real-time updates."""
     await manager.connect(websocket)
     try:
         while True:

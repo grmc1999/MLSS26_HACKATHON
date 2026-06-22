@@ -3,6 +3,43 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import { StatCard, SourceBadge, StatusBadge, ScoreChart } from '../../../src/components/StatCard';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, Cell, ScatterChart, Scatter, ZAxis,
+} from 'recharts';
+
+interface Iteration {
+  iteration: number;
+  commit: string;
+  test_acc: number | null;
+  ood_f1: number | null;
+  memory_gb: string;
+  status: string;
+  description: string;
+}
+
+interface Embedding {
+  x: number;
+  y: number;
+  label: number;
+  label_name: string;
+  pred_raw: number;
+  pred_ood: number;
+  is_ood: boolean;
+}
+
+interface VizData {
+  per_class_accuracy?: Record<string, { total: number; correct: number; accuracy: number }>;
+  confusion_matrix?: number[][];
+  ood_confusion_matrix?: number[][];
+  class_names?: string[];
+  embeddings?: Embedding[];
+  sample_images?: Record<string, string[]>;
+  pca_explained_variance?: number[];
+  total_samples?: number;
+  test_acc?: number;
+  ood_f1?: number;
+}
 
 interface ExperimentDetail {
   id: string;
@@ -14,23 +51,38 @@ interface ExperimentDetail {
   scores?: { step: number; score: number }[];
   steps?: { step: number; action?: Record<string, unknown>; observation?: string }[];
   details?: Record<string, unknown>;
+  iterations?: Iteration[];
   runtime?: string;
   agent_log_file?: string | null;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  keep: '#10b981',
+  discard: '#ef4444',
+  baseline: '#3b82f6',
+};
+
 export default function ExperimentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [experiment, setExperiment] = useState<ExperimentDetail | null>(null);
+  const [vizData, setVizData] = useState<VizData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`/api/experiments/${encodeURIComponent(id)}`);
-        if (res.ok) {
-          setExperiment(await res.json());
+        const [expRes, vizRes] = await Promise.all([
+          fetch(`/api/experiments/${encodeURIComponent(id)}`),
+          fetch(`/api/experiments/${encodeURIComponent(id)}/viz`),
+        ]);
+        if (expRes.ok) {
+          setExperiment(await expRes.json());
         } else {
           setExperiment(null);
+        }
+        if (vizRes.ok) {
+          const vd = await vizRes.json();
+          if (Object.keys(vd).length > 0) setVizData(vd);
         }
       } catch (e) {
         console.error('Failed to fetch experiment:', e);
@@ -40,7 +92,7 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
       }
     }
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [id]);
 
@@ -63,7 +115,34 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
 
   const scores = experiment.scores || [];
   const steps = experiment.steps || [];
+  const iterations = experiment.iterations || [];
   const improvement = scores.length >= 2 ? ((scores[scores.length - 1].score - scores[0].score)) : null;
+
+  const keptIterations = iterations.filter(i => i.status === 'keep');
+  const discardedIterations = iterations.filter(i => i.status === 'discard');
+
+  const iterChartData = iterations.map((it, idx) => ({
+    iteration: it.iteration,
+    test_acc: it.test_acc,
+    ood_f1: it.ood_f1,
+    status: it.status,
+    delta: idx > 0 && iterations[idx - 1].test_acc
+      ? it.test_acc !== null && iterations[idx - 1].test_acc !== null
+        ? (it.test_acc - iterations[idx - 1].test_acc) : 0
+      : 0,
+  }));
+
+  const bestTestAcc = Math.max(...iterChartData.map(d => d.test_acc ?? 0));
+  const bestOODF1 = Math.max(...iterChartData.map(d => d.ood_f1 ?? 0));
+
+  const accuracyBarData = iterations
+    .filter(i => i.test_acc !== null && i.ood_f1 !== null)
+    .map(i => ({
+      name: `#${i.iteration}`,
+      test_acc: i.test_acc,
+      ood_f1: i.ood_f1,
+      status: i.status,
+    }));
 
   return (
     <div className="space-y-6">
@@ -75,25 +154,216 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <StatCard label="Final Score" value={experiment.final_score !== null ? experiment.final_score.toFixed(4) : 'N/A'}
-                  color={experiment.final_score !== null && experiment.final_score > 0.5 ? '#10b981' : '#ef4444'} />
-        <StatCard label="Steps" value={experiment.total_steps ?? steps.length ?? 0} />
-        <StatCard label="Best Improvement" value={improvement !== null ? `${(improvement * 100).toFixed(1)}%` : 'N/A'} />
-        <StatCard label="Runtime" value={experiment.runtime || '—'} />
+        <StatCard label="Best Test Acc" value={bestTestAcc.toFixed(4)}
+                  color="#10b981" />
+        <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
+                  color="#8b5cf6" />
+        <StatCard label="Total Iterations" value={iterations.length} />
+        <StatCard label="Kept / Discarded"
+                  value={`${keptIterations.length} / ${discardedIterations.length}`}
+                  color={keptIterations.length > discardedIterations.length ? '#10b981' : '#f59e0b'} />
+        <StatCard label="Improvement"
+                  value={improvement !== null ? `${(improvement * 100).toFixed(1)}%` : 'N/A'}
+                  color={improvement !== null && improvement > 0 ? '#10b981' : '#ef4444'} />
         <StatCard label="Status" value={experiment.status} />
-        <StatCard label="Timestamp" value={experiment.timestamp ? new Date(experiment.timestamp).toLocaleDateString() : '—'} />
       </div>
 
-      {experiment.source === 'run_exp' && experiment.details && (
+      {iterChartData.length > 1 && (
         <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-3">Run Details</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            {Object.entries(experiment.details).map(([key, value]) => (
-              <div key={key}>
-                <span className="text-slate-400 block">{key.replace('_', ' ')}</span>
-                <span className="text-white font-mono">{String(value)}</span>
+          <h2 className="text-lg font-semibold mb-4">Test Accuracy & OOD F1 Over Iterations</h2>
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart data={iterChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
+              <YAxis yAxisId="left" stroke="#3b82f6" domain={[0, 1]} />
+              <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 1]} />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
+              <Legend />
+              <Line yAxisId="left" type="monotone" dataKey="test_acc" stroke="#3b82f6" strokeWidth={2.5}
+                    dot={{ r: 5 }} name="Test Accuracy" connectNulls />
+              <Line yAxisId="right" type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
+                    dot={{ r: 5 }} name="OOD F1" connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {accuracyBarData.length > 1 && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Per-Iteration Metrics Comparison</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={accuracyBarData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" domain={[0, 1]} />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
+              <Legend />
+              <Bar dataKey="test_acc" fill="#3b82f6" name="Test Accuracy" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="ood_f1" fill="#8b5cf6" name="OOD F1" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {iterations.length > 0 && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-3">Iteration Log</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700 bg-slate-900/50">
+                  <th className="text-left py-2 px-3">#</th>
+                  <th className="text-left py-2 px-3">Commit</th>
+                  <th className="text-right py-2 px-3">Test Acc</th>
+                  <th className="text-right py-2 px-3">OOD F1</th>
+                  <th className="text-right py-2 px-3">Memory</th>
+                  <th className="text-left py-2 px-3">Status</th>
+                  <th className="text-left py-2 px-3">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {iterations.map((it, idx) => {
+                  const prevTestAcc = idx > 0 ? iterations[idx - 1].test_acc : null;
+                  const testDelta = it.test_acc !== null && prevTestAcc !== null
+                    ? it.test_acc - prevTestAcc : null;
+                  return (
+                    <tr key={idx} className="border-b border-slate-800 hover:bg-slate-700/30">
+                      <td className="py-2 px-3 font-mono text-slate-400">{it.iteration}</td>
+                      <td className="py-2 px-3 font-mono text-xs text-slate-400">
+                        {it.commit.length > 12 ? it.commit.slice(0, 12) + '...' : it.commit}
+                      </td>
+                      <td className={`py-2 px-3 text-right font-mono ${testDelta !== null && testDelta > 0 ? 'text-emerald-400' : testDelta !== null && testDelta < 0 ? 'text-red-400' : 'text-white'}`}>
+                        {it.test_acc !== null ? it.test_acc.toFixed(4) : '—'}
+                        {testDelta !== null && (
+                          <span className={`text-xs ml-1 ${testDelta >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            ({testDelta >= 0 ? '+' : ''}{testDelta.toFixed(4)})
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-white">
+                        {it.ood_f1 !== null ? it.ood_f1.toFixed(4) : '—'}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">{it.memory_gb}</td>
+                      <td className="py-2 px-3">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          it.status === 'keep' ? 'bg-emerald-900/50 text-emerald-300' :
+                          it.status === 'discard' ? 'bg-red-900/50 text-red-300' :
+                          'bg-blue-900/50 text-blue-300'
+                        }`}>
+                          {it.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-slate-300 text-xs max-w-[300px] truncate">{it.description}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {vizData && vizData.sample_images && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Sample Images by Class</h2>
+          <div className="grid grid-cols-3 gap-4">
+            {Object.entries(vizData.sample_images).map(([className, images]) => (
+              <div key={className}>
+                <h3 className="text-sm font-medium text-slate-300 mb-2 capitalize">{className}</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {(images as string[]).map((b64, i) => (
+                    <img key={i} src={`data:image/png;base64,${b64}`}
+                         alt={`${className} sample ${i}`}
+                         className="rounded border border-slate-600 w-full aspect-square object-cover" />
+                  ))}
+                </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {vizData && vizData.embeddings && vizData.embeddings.length > 0 && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-2">Feature Embeddings (PCA)</h2>
+          <p className="text-xs text-slate-400 mb-4">
+            Penultimate layer features projected to 2D via PCA.
+            Each point is a test sample colored by ground truth class.
+          </p>
+          <ResponsiveContainer width="100%" height={400}>
+            <ScatterChart margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="x" stroke="#94a3b8" name="PC1" />
+              <YAxis dataKey="y" stroke="#94a3b8" name="PC2" />
+              <ZAxis range={[40, 60]} />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                       formatter={(value: number, name: string) => [value.toFixed(2), name]}
+                       labelFormatter={(label: string) => ''} />
+              <Legend />
+              {[0, 1, 2].map(cls => {
+                const color = cls === 0 ? '#3b82f6' : cls === 1 ? '#10b981' : '#ef4444';
+                const name = vizData.class_names?.[cls] ?? `Class ${cls}`;
+                const data = vizData.embeddings?.filter(e => e.label === cls) ?? [];
+                return <Scatter key={cls} name={name} data={data} fill={color} shape="circle" />;
+              })}
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {vizData && vizData.per_class_accuracy && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Per-Class Accuracy</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={(Object.entries(vizData.per_class_accuracy) as [string, { accuracy: number }][]).map(([name, d]) => ({
+              name,
+              accuracy: d.accuracy,
+            }))} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" domain={[0, 1]} />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
+              <Bar dataKey="accuracy" name="Accuracy" radius={[4, 4, 0, 0]}>
+                {(Object.entries(vizData.per_class_accuracy || {}) as [string, { accuracy: number }][]).map(([name, d], i) => (
+                  <Cell key={name} fill={d.accuracy > 0.5 ? '#10b981' : d.accuracy > 0.2 ? '#f59e0b' : '#ef4444'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {vizData && vizData.ood_confusion_matrix && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">OOD Confusion Matrix</h2>
+          <p className="text-xs text-slate-400 mb-3">
+            Rows = true class, Columns = predicted class (0: normal, 1: pneumonia, 2: OOD/consolidation)
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="py-2 px-3 text-left">True ↓ / Pred →</th>
+                  <th className="py-2 px-3 text-right">Normal (0)</th>
+                  <th className="py-2 px-3 text-right">Pneumonia (1)</th>
+                  <th className="py-2 px-3 text-right">OOD (2)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vizData.ood_confusion_matrix.map((row, ri) => (
+                  <tr key={ri} className="border-b border-slate-800">
+                    <td className="py-2 px-3 font-medium text-slate-300">
+                      {vizData.class_names?.[ri] ?? ri} ({ri})
+                    </td>
+                    {row.map((val, ci) => (
+                      <td key={ci} className={`py-2 px-3 text-right font-mono ${
+                        ri === ci ? 'text-emerald-400' : 'text-red-400'
+                      }`}>{val}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -102,6 +372,20 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
         <h2 className="text-lg font-semibold mb-4">Score Progression</h2>
         <ScoreChart scores={scores} color="#3b82f6" height={300} />
       </div>
+
+      {experiment.source === 'run_exp' && experiment.details && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-3">Run Details</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            {Object.entries(experiment.details).filter(([k]) => k !== 'iterations').map(([key, value]) => (
+              <div key={key}>
+                <span className="text-slate-400 block">{key.replace('_', ' ')}</span>
+                <span className="text-white font-mono">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {steps.length > 0 && (
         <div className="bg-slate-800 rounded-lg p-6">
@@ -120,36 +404,6 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
                 )}
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {experiment.source === 'auto_loop' && scores.length > 0 && (
-        <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-3">Iteration Log</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left py-2 px-2">#</th>
-                  <th className="text-right py-2 px-2">Score</th>
-                  <th className="text-right py-2 px-2">Delta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scores.map((s, i) => (
-                  <tr key={i} className="border-b border-slate-800">
-                    <td className="py-1.5 px-2">{s.step}</td>
-                    <td className={`py-1.5 px-2 text-right font-mono ${s.score > 0.5 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {s.score.toFixed(4)}
-                    </td>
-                    <td className="py-1.5 px-2 text-right font-mono text-slate-400">
-                      {i > 0 ? (s.score - scores[i - 1].score >= 0 ? '+' : '') + (s.score - scores[i - 1].score).toFixed(4) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       )}

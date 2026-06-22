@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar,
+} from 'recharts';
 import { StatCard, SourceBadge, StatusBadge, getExpColor, ScoreChart } from '../src/components/StatCard';
 
 interface Experiment {
@@ -14,6 +17,7 @@ interface Experiment {
   scores?: { step: number; score: number }[];
   steps?: { step: number }[];
   details?: Record<string, unknown>;
+  iterations?: { iteration: number; test_acc: number | null; ood_f1: number | null; status: string }[];
 }
 
 interface ScoreData { step: number; score: number; }
@@ -24,49 +28,76 @@ interface StatusData {
   timestamp: string;
 }
 
-const EXPERIMENT_COLORS = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
-];
-
 export default function Home() {
   const [status, setStatus] = useState<StatusData | null>(null);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [allScores, setAllScores] = useState<Record<string, ScoreData[]>>({});
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statusRes, expRes, scoresRes] = await Promise.all([
+        const [statusRes, expRes] = await Promise.all([
           fetch('/api/status'),
           fetch('/api/experiments'),
-          fetch('/api/scores'),
         ]);
         setStatus(await statusRes.json());
         const expData = await expRes.json();
         setExperiments(expData.experiments || []);
-        const scoresData = await scoresRes.json();
-        setAllScores(scoresData.all_scores || {});
       } catch (e) {
         console.error('Failed to fetch data:', e);
       }
     }
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const bestScore = useMemo(() =>
-    experiments.map(e => e.final_score).filter((s): s is number => s !== null).sort((a, b) => b - a)[0] ?? null,
+  const loopExps = useMemo(() =>
+    experiments.filter(e => e.source === 'auto_loop'),
     [experiments]
   );
 
-  const runningCount = useMemo(() =>
-    experiments.filter(e => e.status === 'running').length,
+  const recentExps = useMemo(() =>
+    experiments.filter(e => e.source === 'run_exp').slice(0, 12),
     [experiments]
   );
 
-  const scoreKeys = useMemo(() => Object.keys(allScores), [allScores]);
+  const allIterations = useMemo(() => {
+    const data: { iteration: number; test_acc: number; ood_f1: number; loop: string }[] = [];
+    loopExps.forEach(exp => {
+      if (exp.iterations) {
+        exp.iterations.forEach(it => {
+          if (it.test_acc !== null && it.ood_f1 !== null) {
+            data.push({
+              iteration: it.iteration,
+              test_acc: it.test_acc,
+              ood_f1: it.ood_f1 ?? 0,
+              loop: exp.id,
+            });
+          }
+        });
+      }
+    });
+    return data.sort((a, b) => a.iteration - b.iteration);
+  }, [loopExps]);
+
+  const bestTestAcc = useMemo(() =>
+    Math.max(...allIterations.map(d => d.test_acc), 0),
+    [allIterations]
+  );
+
+  const bestOODF1 = useMemo(() =>
+    Math.max(...allIterations.map(d => d.ood_f1), 0),
+    [allIterations]
+  );
+
+  const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc : 0;
+  const latestOODF1 = allIterations.length > 0 ? allIterations[allIterations.length - 1].ood_f1 : 0;
+  const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc : 0;
+
+  const recentRuns = useMemo(() =>
+    experiments.filter(e => e.source === 'run_exp').slice(0, 8),
+    [experiments]
+  );
 
   return (
     <div className="space-y-8">
@@ -74,103 +105,114 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <StatCard label="Total Experiments" value={status?.total_experiments ?? 0}
-                  sub={`${experiments.filter(e => e.source === 'auto_loop').length} auto loops`} />
+                  sub={`${loopExps.length} auto loops`} />
         <StatCard label="Agents" value={status?.total_agents ?? 0} />
-        <StatCard label="Best Score" value={bestScore !== null ? bestScore.toFixed(4) : 'N/A'}
-                  color="#10b981" sub={bestScore !== null ? 'Test Dice' : undefined} />
-        <StatCard label="Running" value={runningCount} color="#f59e0b" />
+        <StatCard label="Best Test Acc" value={bestTestAcc.toFixed(4)}
+                  color="#10b981" sub="PneumoniaMNIST → ChestMNIST 3-class" />
+        <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
+                  color="#8b5cf6" sub="Consolidation detection" />
         <StatCard label="Improvement" value={
-          (() => {
-            const scores = experiments.map(e => e.final_score).filter((s): s is number => s !== null);
-            if (scores.length < 2) return 'N/A';
-            return `${(((scores[0] - scores[scores.length - 1]) / Math.max(scores[scores.length - 1], 0.0001)) * 100).toFixed(0)}%`;
-          })()
-        } color="#8b5cf6" sub="first → latest" />
+          firstTestAcc > 0 ? `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%` : 'N/A'
+        } color="#f59e0b" sub="test acc: first → latest" />
       </div>
 
-      <div className="bg-slate-800 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Score Timeline</h2>
-        {scoreKeys.length > 0 ? (
+      {allIterations.length > 1 && (
+        <div className="bg-slate-800 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Test Accuracy & OOD F1 Over All Iterations</h2>
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={allIterations} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="step" stroke="#94a3b8" type="number" domain={['dataMin', 'dataMax']} />
-              <YAxis stroke="#94a3b8" domain={[0, 'auto']} />
+              <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
+              <YAxis yAxisId="left" stroke="#3b82f6" domain={[0, 1]} />
+              <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 1]} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
               <Legend />
-              {scoreKeys.map((expId, i) => (
-                <Line key={expId} type="monotone" dataKey="score"
-                      data={allScores[expId]} name={expId.slice(0, 28)}
-                      stroke={getExpColor(expId, i)} dot={false} strokeWidth={2}
-                      connectNulls />
-              ))}
+              <Line yAxisId="left" type="monotone" dataKey="test_acc" stroke="#3b82f6" strokeWidth={3}
+                    dot={{ r: 6, fill: '#3b82f6' }} name="Test Accuracy" connectNulls />
+              <Line yAxisId="right" type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={3}
+                    dot={{ r: 6, fill: '#8b5cf6' }} name="OOD F1" connectNulls />
             </LineChart>
           </ResponsiveContainer>
-        ) : (
-          <p className="text-slate-400 text-center py-8">No score data available yet.</p>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Experiments</h2>
-          {experiments.length > 0 ? (
+          <h2 className="text-xl font-semibold mb-4">Recent Runs</h2>
+          {recentRuns.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-700">
                     <th className="text-left py-2">ID</th>
-                    <th className="text-left py-2">Type</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-right py-2">Score</th>
+                    <th className="text-right py-2">Test Acc</th>
+                    <th className="text-right py-2">OOD F1</th>
+                    <th className="text-right py-2">Time</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {experiments.slice(0, 12).map((exp) => (
-                    <tr key={exp.id} className="border-b border-slate-800 hover:bg-slate-700/50">
-                      <td className="py-2 max-w-[180px] truncate">
-                        <a href={`/experiments/${exp.id}`} className="text-blue-400 hover:underline font-mono text-xs">
-                          {exp.id}
-                        </a>
-                      </td>
-                      <td className="py-2"><SourceBadge source={exp.source} /></td>
-                      <td className="py-2"><StatusBadge status={exp.status} /></td>
-                      <td className="py-2 text-right font-mono">
-                        {exp.final_score !== null ? exp.final_score.toFixed(4) : <span className="text-slate-500">—</span>}
-                      </td>
-                    </tr>
-                  ))}
+                  {recentRuns.map((exp) => {
+                    const details = exp.details || {};
+                    return (
+                      <tr key={exp.id} className="border-b border-slate-800 hover:bg-slate-700/50">
+                        <td className="py-2 max-w-[150px] truncate">
+                          <a href={`/experiments/${exp.id}`} className="text-blue-400 hover:underline font-mono text-xs">
+                            {exp.id.slice(0, 12)}
+                          </a>
+                        </td>
+                        <td className="py-2 text-right font-mono text-sm">
+                          {(details.test_acc as number)?.toFixed(4) ?? '—'}
+                        </td>
+                        <td className="py-2 text-right font-mono text-sm">
+                          {(details.ood_f1 as number)?.toFixed(4) ?? '—'}
+                        </td>
+                        <td className="py-2 text-right text-xs text-slate-400">
+                          {details.elapsed_s ? `${details.elapsed_s}s` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-slate-400">No experiments found.</p>
+            <p className="text-slate-400">No runs yet.</p>
           )}
         </div>
 
         <div className="bg-slate-800 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Auto-Loop Experiments</h2>
-          {(() => {
-            const loops = experiments.filter(e => e.source === 'auto_loop');
-            if (loops.length === 0) return <p className="text-slate-400">No auto-loop experiments yet. Run the autoresearch loop.</p>;
-            return (
-              <div className="space-y-4">
-                {loops.slice(0, 3).map((loop) => (
+          {loopExps.length > 0 ? (
+            <div className="space-y-4">
+              {loopExps.slice(0, 3).map((loop) => {
+                const iterCount = loop.iterations?.length ?? 0;
+                const keptCount = loop.iterations?.filter(i => i.status === 'keep').length ?? 0;
+                const bestAcc = loop.iterations
+                  ? Math.max(...loop.iterations.map(i => i.test_acc ?? 0))
+                  : 0;
+                return (
                   <div key={loop.id} className="bg-slate-900 rounded p-4 border border-slate-700">
                     <div className="flex justify-between items-start mb-2">
-                      <a href={`/experiments/${loop.id}`} className="text-purple-400 hover:underline font-mono text-sm">
-                        {loop.id}
-                      </a>
-                      <span className="text-sm font-bold" style={{ color: loop.final_score !== null && loop.final_score > 0.5 ? '#10b981' : '#ef4444' }}>
-                        {loop.final_score !== null ? loop.final_score.toFixed(4) : '—'}
+                      <div>
+                        <a href={`/experiments/${loop.id}`} className="text-purple-400 hover:underline font-mono text-sm">
+                          {loop.id}
+                        </a>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {iterCount} iterations ({keptCount} kept)
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-400">
+                        {bestAcc.toFixed(4)}
                       </span>
                     </div>
-                    <ScoreChart scores={loop.scores || []} color="#8b5cf6" height={120} />
+                    <ScoreChart scores={loop.scores || []} color="#8b5cf6" height={100} />
                   </div>
-                ))}
-              </div>
-            );
-          })()}
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-slate-400">No auto-loop experiments yet.</p>
+          )}
         </div>
       </div>
     </div>
