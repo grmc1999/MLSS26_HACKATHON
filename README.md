@@ -14,12 +14,18 @@ Uses **free OpenRouter models** to power 8 specialized agents that collaborate t
 | **Classes** | normal, pneumonia |
 | **Test** | ChestMNIST 3-class subset (600 samples) |
 | **Classes** | normal (300), pneumonia (59), **consolidation 🆕 OOD** (241) |
-| **Goal** | Maximize OOD F1 + in-distribution accuracy |
-| **Baseline** | Test acc: 22%, OOD F1: 0.15 |
+| **Goal** | Maximize OOD F1 + ID test accuracy |
+| **Baseline** | ID Test Acc: 71%, OOD F1: 0.12 |
 
 The scientific challenge: a model trained only on PneumoniaMNIST must:
 1. Correctly classify normal vs pneumonia from ChestMNIST (domain transfer)
 2. Detect consolidation as **OOD** despite looking nearly identical to pneumonia on X-rays
+
+## Sample Run Results
+
+![Loop Results](assets/loop_results.png)
+
+The plot shows a typical autoresearch run: weight decay (iteration 2) improved ID Test Acc from 71% to 78% (+9.8%). Discarded changes are shown in red, kept in green.
 
 ---
 
