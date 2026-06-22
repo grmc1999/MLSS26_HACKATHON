@@ -51,11 +51,14 @@ class SimpleCNN(nn.Module):
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss, correct, total = 0, 0, 0
+    weight_decay = 5e-4
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
         pred = model(X)
         loss = criterion(pred, y)
+        l2 = sum(p.pow(2).sum() for p in model.parameters())
+        loss = loss + weight_decay * l2
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
