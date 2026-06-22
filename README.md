@@ -41,6 +41,8 @@ Flatten → Dropout → FC(3136→128) → LeakyReLU → Dropout → FC(128→3)
 
 **OOD detection**: after training, the model's softmax probabilities are thresholded at 0.7 — any sample with max probability < 0.7 is flagged as OOD (consolidation). This requires the model to be well-calibrated for reliable confidence-based detection.
 
+If `Pretrained: yes` is set, the pipeline will first search HuggingFace Hub, GitHub, and torchvision for suitable pretrained models (CheXNet, DenseNet, ResNet, biomedical ViTs), adapt them for 28×28 grayscale inputs, and run a finetuning baseline. If finetuning doesn't beat scratch SimpleCNN, it falls back.
+
 **Baseline performance** (on ChestMNIST 3-class test set):
 | Metric | Value |
 |--------|-------|
@@ -92,6 +94,21 @@ User / Dashboard
 | **Physics Expert** → **Robustness Expert** | Uncertainty quantification | OOD scoring, Mahalanobis distance |
 
 ---
+
+## Flags & Toggles
+
+Every autoresearch command accepts these optional flags:
+
+| Flag | Values | Default | What it does |
+|------|--------|---------|--------------|
+| `Goal:` | text | (prompted) | What to improve (Test Accuracy, OOD F1, calibration) |
+| `Iterations:` | number or "unlimited" | 5-25 | How many experiment rounds to run |
+| `Pretrained:` | yes / no | no | Search & finetune pretrained models (HF Hub, GitHub, torchvision) instead of training from scratch |
+| `RAG:` | yes / no | yes | Use FAISS literature search to guide experiments |
+| `--evals` | flag | off | Enable mid-loop checkpoint analysis |
+| `--evals-interval N` | number | 1 | Checkpoint frequency override |
+
+When a flag isn't provided, the command will prompt you as questions before starting.
 
 ## 15 AutoResearch Slash Commands
 
