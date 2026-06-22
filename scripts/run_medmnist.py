@@ -54,7 +54,7 @@ def train_model(args):
     test_loader = DataLoader(test_ds, args.batch, shuffle=False, num_workers=1)
 
     model = create_model(model_name=args.model, num_classes=2, pretrained=args.pretrained).to(device)
-    criterion = FocalLoss(gamma=3.0)
+    criterion = FocalLoss(gamma=2.0)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()

@@ -120,7 +120,6 @@ def train_epoch(model, loader, optimizer, criterion, device):
         pred = model(X)
         loss = criterion(pred, y)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         total_loss += loss.item()
         correct += (pred.argmax(1) == y).sum().item()
@@ -344,7 +343,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
-    criterion = FocalLoss(gamma=3.0)
+    criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
