@@ -344,19 +344,17 @@ if __name__ == "__main__":
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
     criterion = FocalLoss(gamma=2.0)
-    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
     for epoch in range(epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
         val_acc, _, _ = evaluate(model, val_loader, device)
-        scheduler.step()
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), "medmnist_model.pth")
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"Epoch {epoch+1}/{epochs}: train_acc={acc:.4f}, val_acc={val_acc:.4f}, lr={scheduler.get_last_lr()[0]:.6f}")
+            print(f"Epoch {epoch+1}/{epochs}: train_acc={acc:.4f}, val_acc={val_acc:.4f}")
 
     # Load best model and evaluate on test set
     model.load_state_dict(torch.load("medmnist_model.pth"))

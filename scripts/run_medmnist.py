@@ -55,20 +55,18 @@ def train_model(args):
 
     model = create_model(model_name=args.model, num_classes=2, pretrained=args.pretrained).to(device)
     criterion = FocalLoss(gamma=2.0)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
     best_val_acc, best_epoch = 0, 0
     for epoch in range(args.epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
         val_acc, _, _ = evaluate(model, val_loader, device)
-        scheduler.step()
         if val_acc > best_val_acc:
             best_val_acc, best_epoch = val_acc, epoch
             torch.save(model.state_dict(), "medmnist_model.pth")
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"Epoch {epoch+1}/{args.epochs}: acc={acc:.4f}, val={val_acc:.4f}, lr={scheduler.get_last_lr()[0]:.6f}")
+            print(f"Epoch {epoch+1}/{args.epochs}: acc={acc:.4f}, val={val_acc:.4f}")
 
     elapsed = time.time() - start
     model.load_state_dict(torch.load("medmnist_model.pth"))
