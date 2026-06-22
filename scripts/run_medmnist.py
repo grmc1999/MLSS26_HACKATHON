@@ -36,10 +36,9 @@ def train_model(args):
     ])
 
     class AugmentedDataset(torch.utils.data.Dataset):
-        def __init__(self, base_ds, transform, erasing_prob=0.25):
+        def __init__(self, base_ds, transform):
             self.base_ds = base_ds
             self.transform = transform
-            self.eraser = transforms.RandomErasing(p=erasing_prob, scale=(0.02, 0.15))
         def __len__(self):
             return len(self.base_ds)
         def __getitem__(self, idx):
@@ -48,7 +47,6 @@ def train_model(args):
             img_pil = Image.fromarray((img_np * 255).astype(np.uint8), mode='L')
             img_pil = self.transform(img_pil)
             img = torch.from_numpy(np.array(img_pil).astype(np.float32) / 255.0).unsqueeze(0)
-            img = self.eraser(img)
             return img, label
 
     train_loader = DataLoader(AugmentedDataset(train_ds, train_transform), args.batch, shuffle=True, num_workers=1)
