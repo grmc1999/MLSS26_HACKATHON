@@ -369,11 +369,9 @@ if __name__ == "__main__":
         for X, _ in test_loader:
             X = X.to(device)
             logits = model(X)
-            probs = F.softmax(logits, dim=1)
-            max_probs, hard_preds = probs.max(1)
-            # If max probability < threshold, label as OOD (class 2)
-            threshold = 0.7
-            ood = (max_probs < threshold).cpu().numpy().astype(int) * 2
+            ood_score = logits[:, 2]
+            threshold = 0.0
+            ood = (ood_score > threshold).cpu().numpy().astype(int) * 2
             ood_preds.extend(ood)
 
     ood_preds = np.array(ood_preds)
