@@ -49,28 +49,10 @@ class FocalLoss(nn.Module):
 
 
 try:
-    from torchvision.models import densenet121, DenseNet121_Weights, efficientnet_b0, EfficientNet_B0_Weights
+    from torchvision.models import densenet121, DenseNet121_Weights
     HAS_TORCHVISION = True
 except ImportError:
     HAS_TORCHVISION = False
-
-
-def create_pretrained_efficientnet(num_classes=3):
-    weights = EfficientNet_B0_Weights.IMAGENET1K_V1
-    model = efficientnet_b0(weights=weights)
-    old_stem = model.features[0][0]
-    model.features[0][0] = nn.Conv2d(1, old_stem.out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-    with torch.no_grad():
-        model.features[0][0].weight.data = old_stem.weight.data.sum(dim=1, keepdim=True)
-    in_features = model.classifier[1].in_features
-    model.classifier = nn.Sequential(
-        nn.Dropout(p=0.3, inplace=True),
-        nn.Linear(in_features, 256),
-        nn.ReLU(inplace=True),
-        nn.Dropout(0.3),
-        nn.Linear(256, num_classes),
-    )
-    return model
 
 
 def create_pretrained_densenet(num_classes=3):
@@ -316,10 +298,6 @@ def save_viz_data(model, loader, device, val_loader=None, out_dir=None):
 def create_model(model_name="SimpleCNN", num_classes=2, pretrained=False):
     if model_name == "DenseNet121" and HAS_TORCHVISION and pretrained:
         model = create_pretrained_densenet(num_classes=3)
-        model.num_classes = num_classes
-        return model
-    if model_name == "EfficientNetB0" and HAS_TORCHVISION and pretrained:
-        model = create_pretrained_efficientnet(num_classes=3)
         model.num_classes = num_classes
         return model
     return SimpleCNN(num_classes=num_classes)
