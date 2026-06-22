@@ -54,6 +54,19 @@ try:
 except ImportError:
     HAS_TORCHVISION = False
 
+try:
+    import torchxrayvision as xrv
+    HAS_XRV = True
+except ImportError:
+    HAS_XRV = False
+
+
+def create_xrv_densenet(num_classes=3):
+    model = xrv.models.DenseNet(weights="densenet121-res224-all")
+    in_features = model.classifier.in_features
+    model.classifier = nn.Linear(in_features, num_classes)
+    return model
+
 
 def create_pretrained_densenet(num_classes=3):
     """DenseNet-121 with ImageNet weights, adapted for 28x28 grayscale input."""
@@ -298,6 +311,10 @@ def save_viz_data(model, loader, device, val_loader=None, out_dir=None):
 def create_model(model_name="SimpleCNN", num_classes=2, pretrained=False):
     if model_name == "DenseNet121" and HAS_TORCHVISION and pretrained:
         model = create_pretrained_densenet(num_classes=3)
+        model.num_classes = num_classes
+        return model
+    if model_name == "XRV_DenseNet" and HAS_XRV and pretrained:
+        model = create_xrv_densenet(num_classes=3)
         model.num_classes = num_classes
         return model
     return SimpleCNN(num_classes=num_classes)
