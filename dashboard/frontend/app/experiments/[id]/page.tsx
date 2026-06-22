@@ -342,9 +342,11 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
         <div className="bg-slate-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Per-Class Accuracy</h2>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={(Object.entries(vizData.per_class_accuracy) as [string, { accuracy: number }][]).map(([name, d]) => ({
+             <BarChart data={(Object.entries(vizData.per_class_accuracy) as [string, { total: number; correct: number; accuracy: number }][]).map(([name, d]) => ({
               name,
               accuracy: d.accuracy,
+              correct: d.correct,
+              total: d.total,
             }))} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="name" stroke="#94a3b8" />

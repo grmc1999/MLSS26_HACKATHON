@@ -194,12 +194,18 @@ def save_viz_data(model, loader, device, val_loader=None, out_dir=None):
             "pred_ood": this_ood, "is_ood": bool(this_ood == 2),
         })
 
-    # Per-class accuracy
+    # Per-class accuracy (on test set using OOD predictions)
+    test_labels = all_labels[test_mask]
     per_class_acc = {}
     for c in range(3):
-        mask = test_mask & (all_labels == c)
+        mask = test_labels == c
         if mask.sum() > 0:
-            per_class_acc[CLASS_NAMES[c]] = {"total": int(mask.sum()), "correct": 0, "accuracy": 0.0}
+            correct = int((ood_preds[mask] == c).sum())
+            per_class_acc[CLASS_NAMES[c]] = {
+                "total": int(mask.sum()),
+                "correct": correct,
+                "accuracy": round(correct / int(mask.sum()), 4),
+            }
 
     data = {
         "per_class_accuracy": per_class_acc,
