@@ -27,6 +27,12 @@ The scientific challenge: a model trained only on PneumoniaMNIST must:
 
 The plot shows a typical autoresearch run: weight decay (iteration 2) improved ID Test Acc from 71% to 78% (+9.8%). Discarded changes are shown in red, kept in green.
 
+## Dataset Samples
+
+![Dataset Samples](assets/dataset_samples.png)
+
+The model trains on **PneumoniaMNIST** (28×28 grayscale chest X-rays, 2 classes: normal, pneumonia) and is evaluated on **ChestMNIST** (same resolution, 3 classes: normal, pneumonia, **consolidation** as an unseen OOD class). The 6 columns show 3 training samples per class from PneumoniaMNIST (left) and 3 test samples per class from ChestMNIST (right). Notice the visual similarity between pneumonia and consolidation — this is the key OOD detection challenge.
+
 ---
 
 ## Architecture
