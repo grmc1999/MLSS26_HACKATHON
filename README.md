@@ -6,6 +6,26 @@ Uses **free OpenRouter models** to power 8 specialized agents that collaborate t
 
 ---
 
+## Baseline Model
+
+The baseline is a **2-layer `SimpleCNN`** defined in `train.py`:
+
+| Component | Detail |
+|-----------|--------|
+| **Architecture** | Conv2d(1→32) → BN → LeakyReLU → MaxPool → Conv2d(32→64) → BN → LeakyReLU → MaxPool → FC(3136→128) → FC(128→3) |
+| **Params** | ~415K |
+| **Optimizer** | Adam, lr=1e-3 |
+| **Epochs** | 20 |
+| **Batch size** | 64 |
+| **OOD method** | Softmax confidence threshold (τ=0.7) — max prob < 0.7 → predict OOD (class 2) |
+| **Loss** | Cross-entropy (2-class on PneumoniaMNIST) |
+
+**Baseline results** (train_backup.py): ID Test Acc ≈ **71%**, OOD F1 ≈ **0.12**.
+
+A frozen copy of the baseline is saved at `MLAgentBench/benchmarks/medmnist/env/train_backup.py` — it is never modified, and all experiment iterations are compared against it.
+
+---
+
 ## Task: Chest X-ray OOD Detection
 
 | | |
