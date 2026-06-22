@@ -53,6 +53,25 @@ Configured in `configs/agents.yaml`, system prompts in `agent_specialized.py`, r
 - `scripts/run_autoresearch_scientific.sh <agent> <iterations>` — launch orchestrator loop
 - `scripts/start_dashboard.sh` — starts both backend + frontend
 
+## Literature
+
+- `literature/` — 28 PDF papers on OOD detection, chest X-ray classification, domain adaptation, contrastive learning, uncertainty estimation
+- `literature_md/` — same papers as markdown (text-extracted via PyMuPDF) for RAG indexing
+- `index_output/` — FAISS index (525 tiles, 2048 dim, IVF) + articles.json for retrieval
+
+## FAISS Index
+
+Built from rendered PDF tiles using Qwen3-VL-Embedding-2B. 525 tile embeddings across 28 papers.
+
+```python
+import faiss, json
+index = faiss.read_index("index_output/index.faiss")
+articles = json.load(open("index_output/articles.json"))
+# Query with an embedding from the model
+dist, idx = index.search(query_embedding, k=5)
+results = [articles[i] for i in idx[0]]
+```
+
 ## PixelRAG — Visual RAG for Medical Literature
 
 Integrated from [`github.com/StarTrail-org/PixelRAG`](https://github.com/StarTrail-org/PixelRAG).

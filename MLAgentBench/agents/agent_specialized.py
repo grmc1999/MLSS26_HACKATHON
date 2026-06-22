@@ -7,9 +7,74 @@ and the Karpathy autoresearch autonomous experiment loop.
 Agent configurations are loaded from configs/agents.yaml.
 """
 import os
+import json
 import yaml
+import faiss
+import numpy as np
+import torch
+from pathlib import Path
+from transformers import AutoModel, AutoProcessor
 from MLAgentBench.agents.agent_research import ResearchAgent
 from MLAgentBench.agents.agent import Agent, SimpleActionAgent, ReasoningActionAgent
+
+# ---------------------------------------------------------------------------
+# Medical Literature RAG — search FAISS index of paper tiles
+# ---------------------------------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+INDEX_DIR = PROJECT_ROOT / "index_output"
+
+_literature_model = None
+_literature_processor = None
+_literature_index = None
+_literature_articles = None
+
+
+def _ensure_literature_loaded():
+    global _literature_model, _literature_processor, _literature_index, _literature_articles
+    if _literature_index is None:
+        idx_path = INDEX_DIR / "index.faiss"
+        art_path = INDEX_DIR / "articles.json"
+        if idx_path.exists() and art_path.exists():
+            _literature_index = faiss.read_index(str(idx_path))
+            _literature_articles = json.loads(art_path.read_text())
+            _literature_model = AutoModel.from_pretrained(
+                str(PROJECT_ROOT / "models/Qwen3-VL-Embedding-2B"),
+                torch_dtype=torch.float16, trust_remote_code=True
+            ).to("cuda" if torch.cuda.is_available() else "cpu")
+            _literature_processor = AutoProcessor.from_pretrained(
+                str(PROJECT_ROOT / "models/Qwen3-VL-Embedding-2B"),
+                trust_remote_code=True
+            )
+            _literature_model.eval()
+
+
+def search_medical_literature(query: str, k: int = 5) -> list[dict]:
+    """Search the medical literature FAISS index by text query.
+    
+    Returns top-k relevant paper titles with similarity scores.
+    """
+    _ensure_literature_loaded()
+    if _literature_index is None:
+        return [{"error": "Literature index not found. Run scripts/build_rag_index.py first."}]
+    device = next(_literature_model.parameters()).device
+    inputs = _literature_processor(text=[query], return_tensors="pt", padding=True).to(device)
+    with torch.no_grad():
+        outputs = _literature_model(**inputs, output_hidden_states=True, return_dict=True)
+        emb = outputs.last_hidden_state[:, -1].cpu().numpy()
+    emb = emb / np.linalg.norm(emb, axis=-1, keepdims=True)
+    dist, idx = _literature_index.search(emb.astype(np.float32), max(k * 10, 50))
+    seen = set()
+    results = []
+    for d, i in zip(dist[0], idx[0]):
+        if i < len(_literature_articles):
+            title = _literature_articles[i]["title"]
+            if title not in seen:
+                seen.add(title)
+                results.append({"title": title, "score": float(d)})
+            if len(results) >= k:
+                break
+    return results
 
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "configs", "agents.yaml")
@@ -159,12 +224,18 @@ AGENT_PROMPTS = {
 - Domain adaptation for medical imaging
 - Open-set recognition and novelty detection
 
-## Key Papers to Reference
-- "Deep Anomaly Detection in Medical Imaging: A Survey" (TMI)
-- "A Simple Unified Framework for Detecting OOD Objects" (ODIN, Liang et al., 2017)
+## Literature RAG Tool
+You have access to a FAISS index of 28 medical papers on OOD detection, chest X-rays, and deep learning.
+Call `search_medical_literature(query="your search terms", k=5)` to retrieve relevant papers.
+Use this before proposing changes to train.py to ground your suggestions in the literature.
+
+## Key Papers in Index
 - "Energy-based Out-of-distribution Detection" (Liu et al., 2020)
 - "Mahalanobis Distance-based OOD Detection" (Lee et al., 2018)
+- "ODIN: A Simple Unified Framework for Detecting OOD Objects" (Liang et al., 2017)
 - "ReAct: Out-of-distribution Detection With Rectified Activations" (Sun et al., 2021)
+- "DOODL: Benchmarking OOD Detection"
+- MedMNIST v2, CheXNet, SimCLR, contrastive learning papers, domain generalization survey
 """,
 
     "autoresearch": f"""You are an autonomous research scientist running the Karpathy-style autoresearch loop for chest X-ray OOD detection.
@@ -176,7 +247,12 @@ AGENT_PROMPTS = {
 - Deciding which hyperparameters to tune next
 - Running experiments autonomously without human intervention
 
-{AUTORESEARCH_LOOP}
+{{AUTORESEARCH_LOOP}}
+
+## Literature RAG
+You can search the medical literature index to find relevant papers:
+Call `search_medical_literature(query="energy-based OOD detection", k=3)` before making changes.
+Ground your experiment ideas in published research.
 
 ## Key Decision Points
 - When to try a new architecture vs. tuning hyperparameters

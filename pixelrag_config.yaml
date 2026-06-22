@@ -1,0 +1,10 @@
+source:
+  type: local
+  path: /mnt/castaneda_lab/GitHub/MLSS26_HACKATHON/literature
+ingest:
+  backend: pdf
+embed:
+  model: /mnt/castaneda_lab/GitHub/MLSS26_HACKATHON/models/Qwen3-VL-Embedding-2B
+  device: cuda
+  batch_size: 32
+output: /mnt/castaneda_lab/GitHub/MLSS26_HACKATHON/index_output

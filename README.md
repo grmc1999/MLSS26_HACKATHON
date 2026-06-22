@@ -37,14 +37,22 @@ User / Dashboard
        |         | consultation (route_to_agent)
        v         |
 +------------------------------+
-|    8 Specialized Agents     |  ← domain experts
+|    8 Specialized Agents     |  ← domain experts with RAG
 +------------------------------+
-       |
+       |                ↕
+       |         +-------------------+
+       |         |  Medical Lit RAG  |
+       |         |  (FAISS index of  |
+       |         |   28 papers via   |
+       |         |   Qwen3-VL-Embed) |
+       |         +-------------------+
        v
 +------------------------------+
 |   Experiment Pipeline       |  ← scripts/run_medmnist.py
 +------------------------------+
 ```
+
+Agents call `search_medical_literature(query, k=5)` to retrieve relevant papers from the FAISS index before proposing changes to `train.py`. The index contains 525 tile embeddings from 28 medical papers on OOD detection, chest X-rays, and deep learning, embedded with Qwen3-VL-Embedding-2B.
 
 ---
 
