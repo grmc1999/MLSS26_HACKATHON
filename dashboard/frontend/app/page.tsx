@@ -103,14 +103,20 @@ export default function Home() {
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Dashboard Overview</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <StatCard label="Total Experiments" value={status?.total_experiments ?? 0}
                   sub={`${loopExps.length} auto loops`} />
         <StatCard label="Agents" value={status?.total_agents ?? 0} />
-        <StatCard label="Best Test Acc" value={bestTestAcc.toFixed(4)}
-                  color="#10b981" sub="PneumoniaMNIST → ChestMNIST 3-class" />
+        <StatCard label="Best Test Acc (3-class)" value={bestTestAcc.toFixed(4)}
+                  color="#3b82f6" sub="ChestMNIST all 3 classes" />
         <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
                   color="#8b5cf6" sub="Consolidation detection" />
+        <StatCard label="Best ID Test Acc" value={
+          (() => {
+            const ids = recentRuns.map(e => (e.details?.test_acc_id as number) ?? 0).filter(v => v > 0);
+            return ids.length > 0 ? Math.max(...ids).toFixed(4) : 'N/A';
+          })()
+        } color="#10b981" sub="Normal+Pneumonia only" />
         <StatCard label="Improvement" value={
           firstTestAcc > 0 ? `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%` : 'N/A'
         } color="#f59e0b" sub="test acc: first → latest" />
@@ -145,7 +151,9 @@ export default function Home() {
                 <thead>
                   <tr className="border-b border-slate-700">
                     <th className="text-left py-2">ID</th>
-                    <th className="text-right py-2">Test Acc</th>
+                    <th className="text-right py-2">Val Acc</th>
+                    <th className="text-right py-2">ID Test Acc</th>
+                    <th className="text-right py-2">3-class Acc</th>
                     <th className="text-right py-2">OOD F1</th>
                     <th className="text-right py-2">Time</th>
                   </tr>
@@ -159,6 +167,12 @@ export default function Home() {
                           <a href={`/experiments/${exp.id}`} className="text-blue-400 hover:underline font-mono text-xs">
                             {exp.id.slice(0, 12)}
                           </a>
+                        </td>
+                        <td className="py-2 text-right font-mono text-xs text-cyan-400">
+                          {(details.val_acc as number)?.toFixed(4) ?? '—'}
+                        </td>
+                        <td className="py-2 text-right font-mono text-xs text-emerald-400">
+                          {(details.test_acc_id as number)?.toFixed(4) ?? '—'}
                         </td>
                         <td className="py-2 text-right font-mono text-sm">
                           {(details.test_acc as number)?.toFixed(4) ?? '—'}

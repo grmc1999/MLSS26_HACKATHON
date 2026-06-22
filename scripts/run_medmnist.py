@@ -21,7 +21,7 @@ LOG_FILE = LOGS_DIR / "runs.jsonl"
 
 def train_model(args):
     from loader import get_datasets, CLASS_NAMES, OOD_CLASS
-    from train import SimpleCNN, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data
+    from train import SimpleCNN, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data, in_distribution_accuracy
     import torch, torch.nn as nn, numpy as np
     from torch.utils.data import DataLoader
     from tqdm import tqdm
@@ -37,12 +37,12 @@ def train_model(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
-    best_acc, best_epoch = 0, 0
+    best_val_acc, best_epoch = 0, 0
     for epoch in range(args.epochs):
         loss, acc = train_epoch(model, train_loader, optimizer, criterion, device)
         val_acc, _, _ = evaluate(model, val_loader, device)
-        if val_acc > best_acc:
-            best_acc, best_epoch = val_acc, epoch
+        if val_acc > best_val_acc:
+            best_val_acc, best_epoch = val_acc, epoch
             torch.save(model.state_dict(), "medmnist_model.pth")
         if (epoch + 1) % 5 == 0 or epoch == 0:
             print(f"Epoch {epoch+1}/{args.epochs}: acc={acc:.4f}, val={val_acc:.4f}")
@@ -66,6 +66,7 @@ def train_model(args):
     ood_preds = np.array(ood_preds)
     metrics = ood_metrics(labels, ood_preds)
     per_class = per_class_accuracy(labels, ood_preds, num_classes=3)
+    test_acc_id = in_distribution_accuracy(labels, ood_preds, id_classes=(0, 1))
 
     result = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -76,6 +77,8 @@ def train_model(args):
         "params": sum(p.numel() for p in model.parameters()),
         "elapsed_s": round(elapsed, 1),
         "test_acc": round(test_acc, 4),
+        "test_acc_id": round(test_acc_id, 4),
+        "val_acc": round(best_val_acc, 4),
         "ood_f1": round(metrics["f1"], 4),
         "ood_precision": round(metrics["precision"], 4),
         "ood_recall": round(metrics["recall"], 4),
@@ -88,14 +91,16 @@ def train_model(args):
     print(f"\n{'='*50}")
     print(f"  MedMNIST Chest X-ray OOD Results")
     print(f"{'='*50}")
-    print(f"  Test Accuracy:    {test_acc:.4f}")
-    print(f"  OOD F1 Score:     {metrics['f1']:.4f}")
-    print(f"  OOD Precision:    {metrics['precision']:.4f}")
-    print(f"  OOD Recall:       {metrics['recall']:.4f}")
+    print(f"  Val Accuracy (PneumoniaMNIST):  {best_val_acc:.4f}")
+    print(f"  Test ID Acc (Normal+Pneumonia): {test_acc_id:.4f}")
+    print(f"  Test 3-class Accuracy:          {test_acc:.4f}")
+    print(f"  OOD F1 Score:                   {metrics['f1']:.4f}")
+    print(f"  OOD Precision:                  {metrics['precision']:.4f}")
+    print(f"  OOD Recall:                     {metrics['recall']:.4f}")
     for name, acc in per_class.items():
         print(f"  {name:15s} accuracy: {acc:.4f}")
-    print(f"  Params:           {result['params']:,}")
-    print(f"  Time:             {elapsed:.1f}s")
+    print(f"  Params:                         {result['params']:,}")
+    print(f"  Time:                           {elapsed:.1f}s")
     print(f"{'='*50}")
 
     try:

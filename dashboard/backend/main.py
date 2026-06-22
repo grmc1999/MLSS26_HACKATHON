@@ -86,6 +86,8 @@ def parse_runs_jsonl() -> list[dict]:
                         "params": data.get("params", 0),
                         "elapsed_s": data.get("elapsed_s", 0),
                         "test_acc": data.get("test_acc"),
+                        "test_acc_id": data.get("test_acc_id"),
+                        "val_acc": data.get("val_acc"),
                         "ood_f1": data.get("ood_f1"),
                         "ood_precision": data.get("ood_precision"),
                         "ood_recall": data.get("ood_recall"),
@@ -108,7 +110,7 @@ def parse_loop_results() -> list[dict]:
         scores = []
         iterations_data = []
         final_score = None
-        for i, line in enumerate(lines[1:]):
+                    for i, line in enumerate(lines[1:]):
             if not line or line.startswith("#"):
                 continue
             parts = line.split("\t")
@@ -118,9 +120,9 @@ def parse_loop_results() -> list[dict]:
                     commit = parts[1].strip()
                     test_acc = float(parts[2]) if parts[2] else None
                     ood_f1 = float(parts[3]) if parts[3] else None
-                    memory_gb = parts[4].strip()
-                    status = parts[5].strip()
-                    description = parts[6].strip()
+                    memory_gb = parts[4].strip() if len(parts) > 4 else ""
+                    status = parts[5].strip() if len(parts) > 5 else ""
+                    description = parts[6].strip() if len(parts) > 6 else ""
                     metric = test_acc if test_acc is not None else 0.0
                     scores.append({"step": int(iteration), "score": metric})
                     final_score = metric

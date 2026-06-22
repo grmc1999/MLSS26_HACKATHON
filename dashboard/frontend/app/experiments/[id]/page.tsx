@@ -121,6 +121,8 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
   const keptIterations = iterations.filter(i => i.status === 'keep');
   const discardedIterations = iterations.filter(i => i.status === 'discard');
 
+  const runDetails = experiment.source === 'run_exp' ? (experiment.details || {}) : {};
+
   const iterChartData = iterations.map((it, idx) => ({
     iteration: it.iteration,
     test_acc: it.test_acc,
@@ -134,6 +136,8 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
 
   const bestTestAcc = Math.max(...iterChartData.map(d => d.test_acc ?? 0));
   const bestOODF1 = Math.max(...iterChartData.map(d => d.ood_f1 ?? 0));
+  const valAcc = runDetails.val_acc as number | undefined;
+  const idTestAcc = runDetails.test_acc_id as number | undefined;
 
   const accuracyBarData = iterations
     .filter(i => i.test_acc !== null && i.ood_f1 !== null)
@@ -153,18 +157,19 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
         <StatusBadge status={experiment.status} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <StatCard label="Best Test Acc" value={bestTestAcc.toFixed(4)}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <StatCard label="Val Acc (PneumoniaMNIST)" value={valAcc !== undefined ? valAcc.toFixed(4) : '—'}
+                  color="#06b6d4" />
+        <StatCard label="Test ID Acc (Normal+Pneu)" value={idTestAcc !== undefined ? idTestAcc.toFixed(4) : '—'}
                   color="#10b981" />
+        <StatCard label="Best Test 3-class Acc" value={bestTestAcc.toFixed(4)}
+                  color="#3b82f6" />
         <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
                   color="#8b5cf6" />
         <StatCard label="Total Iterations" value={iterations.length} />
         <StatCard label="Kept / Discarded"
                   value={`${keptIterations.length} / ${discardedIterations.length}`}
                   color={keptIterations.length > discardedIterations.length ? '#10b981' : '#f59e0b'} />
-        <StatCard label="Improvement"
-                  value={improvement !== null ? `${(improvement * 100).toFixed(1)}%` : 'N/A'}
-                  color={improvement !== null && improvement > 0 ? '#10b981' : '#ef4444'} />
         <StatCard label="Status" value={experiment.status} />
       </div>
 

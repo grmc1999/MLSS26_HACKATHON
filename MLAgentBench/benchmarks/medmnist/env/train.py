@@ -99,6 +99,16 @@ def per_class_accuracy(all_labels, all_preds, num_classes=3):
     return accs
 
 
+def in_distribution_accuracy(all_labels, all_preds, id_classes=(0, 1)):
+    """Accuracy on in-distribution classes (normal, pneumonia) only."""
+    mask = np.zeros(len(all_labels), dtype=bool)
+    for c in id_classes:
+        mask |= (all_labels == c)
+    if mask.sum() == 0:
+        return 0.0
+    return (all_preds[mask] == all_labels[mask]).sum().item() / mask.sum()
+
+
 def save_viz_data(model, loader, device, out_dir=None):
     """Save PCA embeddings, sample images, and confusion matrix for dashboard."""
     import json, base64, io
