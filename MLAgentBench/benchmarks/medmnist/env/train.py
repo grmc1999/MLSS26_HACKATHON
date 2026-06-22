@@ -13,6 +13,7 @@ from tqdm import tqdm
 import os, sys
 
 sys.path.insert(0, os.path.dirname(__file__))
+from pathlib import Path
 from loader import get_datasets, CLASS_NAMES, OOD_CLASS, N_CLASSES
 
 
@@ -98,6 +99,96 @@ def per_class_accuracy(all_labels, all_preds, num_classes=3):
     return accs
 
 
+def save_viz_data(model, loader, device, out_dir=None):
+    """Save PCA embeddings, sample images, and confusion matrix for dashboard."""
+    import json, base64, io
+    features_list, labels_list, images_list = [], [], []
+    hook_handle = model.fc1.register_forward_hook(lambda m, i, o: features_list.append(i[0].detach().cpu()))
+
+    model.eval()
+    with torch.no_grad():
+        for X, y in loader:
+            X_img = X.cpu()
+            X = X.to(device)
+            logits = model(X)
+            labels_list.extend(y.numpy())
+            images_list.append(X_img)
+    hook_handle.remove()
+    all_features = torch.cat(features_list, dim=0).numpy()
+    all_labels = np.array(labels_list)
+    all_images = torch.cat(images_list, dim=0)
+
+    # PCA
+    mean = all_features.mean(axis=0)
+    centered = all_features - mean
+    cov = centered.T @ centered / (all_features.shape[0] - 1)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    idx = np.argsort(eigvals)[::-1][:2]
+    embedding_2d = centered @ eigvecs[:, idx]
+
+    # Sample images (first 3 per class)
+    sample_images = {}
+    for c in range(3):
+        mask = all_labels == c
+        idxs = np.where(mask)[0][:3]
+        sample_images[CLASS_NAMES[c]] = []
+        for sidx in idxs:
+            img = all_images[sidx].squeeze().numpy()
+            buf = io.BytesIO()
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(2, 2))
+            plt.imshow(img, cmap='gray', vmin=0, vmax=1)
+            plt.axis('off')
+            plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+            plt.close()
+            sample_images[CLASS_NAMES[c]].append(base64.b64encode(buf.getvalue()).decode())
+
+    # Embeddings
+    ood_preds = []
+    with torch.no_grad():
+        for X, _ in loader:
+            X = X.to(device)
+            probs = F.softmax(model(X), dim=1)
+            max_probs = probs.max(1).values
+            ood = (max_probs < 0.7).cpu().numpy().astype(int) * 2
+            ood_preds.extend(ood)
+    ood_preds = np.array(ood_preds)
+
+    embeddings = [{"x": float(embedding_2d[i, 0]), "y": float(embedding_2d[i, 1]),
+                    "label": int(all_labels[i]), "label_name": CLASS_NAMES[int(all_labels[i])],
+                    "pred_raw": 0, "pred_ood": int(ood_preds[i]), "is_ood": bool(ood_preds[i] == 2)}
+                  for i in range(len(all_labels))]
+
+    # Per-class accuracy
+    per_class_acc = {}
+    for c in range(3):
+        mask = all_labels == c
+        if mask.sum() > 0:
+            per_class_acc[CLASS_NAMES[c]] = {"total": int(mask.sum()), "correct": 0, "accuracy": 0.0}
+
+    data = {
+        "per_class_accuracy": per_class_acc,
+        "class_names": CLASS_NAMES,
+        "embeddings": embeddings,
+        "sample_images": sample_images,
+        "pca_explained_variance": [float(eigvals[-1] / eigvals.sum()), float(eigvals[-2] / eigvals.sum())],
+        "total_samples": len(all_labels),
+    }
+    if out_dir is None:
+        # Auto-detect: save to experiments/loop-*/viz/ or ./viz/
+        project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+        exp_dir = project_root / "experiments"
+        loop_dirs = sorted(exp_dir.glob("loop-*/results.tsv"), reverse=True)
+        out_dir = str(loop_dirs[0].parent) if loop_dirs else str(Path.cwd())
+    out_path = Path(out_dir) / "viz" / "data.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"Viz data saved to {out_path}")
+
+
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
@@ -165,3 +256,5 @@ if __name__ == "__main__":
     for name, acc in per_class.items():
         print(f"  {name:15s} accuracy: {acc:.4f}")
     print(f"{'='*50}")
+
+    save_viz_data(model, test_loader, device)

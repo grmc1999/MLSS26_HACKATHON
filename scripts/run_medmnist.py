@@ -21,7 +21,7 @@ LOG_FILE = LOGS_DIR / "runs.jsonl"
 
 def train_model(args):
     from loader import get_datasets, CLASS_NAMES, OOD_CLASS
-    from train import SimpleCNN, train_epoch, evaluate, ood_metrics, per_class_accuracy
+    from train import SimpleCNN, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data
     import torch, torch.nn as nn, numpy as np
     from torch.utils.data import DataLoader
     from tqdm import tqdm
@@ -97,6 +97,12 @@ def train_model(args):
     print(f"  Params:           {result['params']:,}")
     print(f"  Time:             {elapsed:.1f}s")
     print(f"{'='*50}")
+
+    try:
+        save_viz_data(model, test_loader, device)
+    except Exception as e:
+        print(f"Viz data save skipped: {e}")
+
     return result
 
 
