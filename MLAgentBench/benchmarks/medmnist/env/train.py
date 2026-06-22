@@ -91,40 +91,7 @@ def create_pretrained_densenet(num_classes=3):
         nn.Dropout(0.3),
         nn.Linear(256, num_classes),
     )
-    model.mixstyle = MixStyle()
-    orig_features = model.features.forward
-
-    def features_forward(x):
-        x = model.features[0](x)
-        for i in range(1, len(model.features)):
-            x = model.features[i](x)
-            if i == 4:
-                x = model.mixstyle(x)
-        return x
-
-    model.features.forward = features_forward
     return model
-
-
-class MixStyle(nn.Module):
-    def __init__(self, p=0.5, alpha=0.1):
-        super().__init__()
-        self.p = p
-        self.alpha = alpha
-
-    def forward(self, x):
-        if not self.training or torch.rand(1).item() > self.p:
-            return x
-        batch_size = x.size(0)
-        perm = torch.randperm(batch_size, device=x.device)
-        mu = x.mean(dim=[2, 3], keepdim=True)
-        sigma = x.std(dim=[2, 3], keepdim=True)
-        mu_perm = mu[perm]
-        sigma_perm = sigma[perm]
-        lam = self.alpha * torch.rand(batch_size, device=x.device).view(-1, 1, 1, 1)
-        mu_mix = lam * mu + (1 - lam) * mu_perm
-        sigma_mix = lam * sigma + (1 - lam) * sigma_perm
-        return (x - mu) / (sigma + 1e-8) * sigma_mix + mu_mix
 
 
 class SimpleCNN(nn.Module):
