@@ -110,7 +110,7 @@ Available as opencode commands (type `/` in the TUI). Defined in `.opencode/comm
 | `/autoresearch_evals` | Analyze trends across all runs | Q1 |
 | `/autoresearch_regression` | Baseline vs candidate stability gate | Q3 |
 | `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | Q4 |
-| `/autoresearch_pipeline` | 🔄 Multi-expert: research → plan → code → review | Q3 |
+| `/autoresearch_pipeline` | 🔄 Multi-expert pipeline: 8 agents in sequence per iteration — research_literature + medical_expert → llm_expert + autoresearch → cv_expert/dl_expert → robustness_expert + continual_learning | Q3 |
 
 ---
 
