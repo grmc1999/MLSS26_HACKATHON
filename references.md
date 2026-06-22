@@ -47,7 +47,8 @@
 | Raissi, M., Perdikaris, P., & Karniadakis, G.E. — *Physics-Informed Neural Networks* | 2019 | PINNs: PDE residuals as loss functions | [arXiv:1711.10561](https://arxiv.org/abs/1711.10561) |
 | Lu, L., et al. — *DeepXDE: A Deep Learning Library for Solving Differential Equations* | 2021 | PINN library, adjoint support | [arXiv:1907.04502](https://arxiv.org/abs/1907.04502) |
 | Ruthotto, L., et al. — *A Machine Learning Framework for Adjoint-Based Inference* | 2022 | Adjoint methods for neural network training | (SIAM J. Sci. Comput.) |
-| Yıldız, Ç., et al. — *Adjoint Matching for Physics-Consistent Diffusion Fine-Tuning* | 2025 | Core methodology: align denoising with physical gradients | (In preparation) |
+| **Domingo-Enrich, C., et al. — *Adjoint Matching: Fine-tuning Flow and Diffusion Generative Models with Memoryless Stochastic Optimal Control*** | **2024** | **⭐⭐ CORE METHOD: adjoint matching as stochastic optimal control, memoryless noise schedule, regression-based SOC** | **[arXiv:2409.08861](https://arxiv.org/abs/2409.08861)** |
+| **Baldan, G., et al. — *Physics vs Distributions: Pareto Optimal Flow Matching with Physics Constraints*** | **2025** | **⭐⭐ CORE METHOD: conflict-free gradient updates for physics+distribution, Pareto-optimal tradeoff, PBFM** | **[arXiv:2506.08604](https://arxiv.org/abs/2506.08604)** |
 | Wang, S., et al. — *Physics-Guided Deep Learning for Dynamical Systems* | 2023 | Survey: physical constraints in neural models | [arXiv:2301.04400](https://arxiv.org/abs/2301.04400) |
 
 ### 6. Time Series Architectures
