@@ -61,14 +61,6 @@ except ImportError:
     HAS_XRV = False
 
 
-def create_xrv_densenet(num_classes=3):
-    base = xrv.models.DenseNet(weights="densenet121-res224-all")
-    in_features = base.classifier.in_features
-    base.classifier = nn.Linear(in_features, num_classes)
-    base.forward = lambda x: base.classifier(torch.flatten(base.avgpool(base.features(x)), 1))
-    return base
-
-
 def create_pretrained_densenet(num_classes=3):
     """DenseNet-121 with ImageNet weights, adapted for 28x28 grayscale input."""
     weights = DenseNet121_Weights.IMAGENET1K_V1
@@ -91,6 +83,22 @@ def create_pretrained_densenet(num_classes=3):
         nn.Dropout(0.3),
         nn.Linear(256, num_classes),
     )
+    return model
+
+
+def create_xrv_pretrained_densenet(num_classes=3):
+    model = densenet121(weights=None)
+    model.features.conv0 = nn.Conv2d(1, 64, kernel_size=7, stride=1, padding=3, bias=False)
+    model.features.pool0 = nn.Identity()
+    in_features = model.classifier.in_features
+    model.classifier = nn.Sequential(
+        nn.Linear(in_features, 256), nn.ReLU(inplace=True),
+        nn.Dropout(0.3), nn.Linear(256, num_classes),
+    )
+    xrv_model = xrv.models.DenseNet(weights="densenet121-res224-all")
+    xrv_sd = xrv_model.state_dict()
+    adapted_sd = {k: v for k, v in xrv_sd.items() if k not in ("classifier.weight", "classifier.bias")}
+    model.load_state_dict(adapted_sd, strict=False)
     return model
 
 
@@ -315,7 +323,7 @@ def create_model(model_name="SimpleCNN", num_classes=2, pretrained=False):
         model.num_classes = num_classes
         return model
     if model_name == "XRV_DenseNet" and HAS_XRV and pretrained:
-        model = create_xrv_densenet(num_classes=3)
+        model = create_xrv_pretrained_densenet(num_classes=3)
         model.num_classes = num_classes
         return model
     return SimpleCNN(num_classes=num_classes)
