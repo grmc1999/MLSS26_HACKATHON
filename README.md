@@ -85,6 +85,8 @@ Each agent has a role-specific system prompt with integrated domain skills. Defi
 
 Agents are routed via the orchestrator based on the goal keywords. For example, if your goal mentions "ood" or "threshold", the orchestrator routes to `robustness_expert`. If it mentions "architecture" or "augment", it routes to `cv_expert`.
 
+Run `/autoresearch_pipeline` for a **multi-expert workflow** that cycles through all 8 agents in sequence per iteration: research_literature + medical_expert (research phase) → llm_expert + autoresearch (plan phase) → cv_expert or dl_expert (implementation phase) → robustness_expert + continual_learning (review phase). This ensures every change is researched, planned, coded, and validated by the right expert.
+
 ---
 
 ## 15 AutoResearch Slash Commands
@@ -108,6 +110,7 @@ Available as opencode commands (type `/` in the TUI). Defined in `.opencode/comm
 | `/autoresearch_evals` | Analyze trends across all runs | Q1 |
 | `/autoresearch_regression` | Baseline vs candidate stability gate | Q3 |
 | `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | Q4 |
+| `/autoresearch_pipeline` | 🔄 Multi-expert: research → plan → code → review | Q3 |
 
 ---
 
