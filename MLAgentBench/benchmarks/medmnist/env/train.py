@@ -53,6 +53,10 @@ def train_epoch(model, loader, optimizer, criterion, device):
     total_loss, correct, total = 0, 0, 0
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
+        if model.training:
+            if torch.rand(1).item() < 0.5:
+                X = torch.flip(X, [-1])
+            X = X + torch.randn_like(X) * 0.02 * X.std()
         optimizer.zero_grad()
         pred = model(X)
         loss = criterion(pred, y)
