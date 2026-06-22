@@ -136,10 +136,9 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
       : 0,
   }));
 
-  const bestTestAcc = Math.max(...iterChartData.map(d => d.test_acc_id ?? 0));
+  const bestValAcc = Math.max(...iterChartData.map(d => d.val_acc ?? 0), 0);
+  const bestIdTestAcc = Math.max(...iterChartData.map(d => d.test_acc_id ?? 0));
   const bestOODF1 = Math.max(...iterChartData.map(d => d.ood_f1 ?? 0));
-  const valAcc = runDetails.val_acc as number | undefined;
-  const idTestAcc = runDetails.test_acc_id as number | undefined;
 
   const accuracyBarData = iterations
     .filter(i => i.test_acc !== null && i.ood_f1 !== null)
@@ -161,12 +160,10 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        <StatCard label="Val Acc (PneumoniaMNIST)" value={valAcc !== undefined ? valAcc.toFixed(4) : '—'}
+        <StatCard label="Best Val Acc (PneumoniaMNIST)" value={bestValAcc > 0 ? bestValAcc.toFixed(4) : '—'}
                   color="#06b6d4" />
-        <StatCard label="Test ID Acc (Normal+Pneu)" value={idTestAcc !== undefined ? idTestAcc.toFixed(4) : '—'}
+        <StatCard label="Best ID Test Acc (Normal+Pneu)" value={bestIdTestAcc > 0 ? bestIdTestAcc.toFixed(4) : '—'}
                   color="#10b981" />
-        <StatCard label="Best Test 3-class Acc" value={bestTestAcc.toFixed(4)}
-                  color="#3b82f6" />
         <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
                   color="#8b5cf6" />
         <StatCard label="Total Iterations" value={iterations.length} />
