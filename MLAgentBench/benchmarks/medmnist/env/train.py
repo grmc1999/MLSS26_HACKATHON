@@ -16,6 +16,20 @@ sys.path.insert(0, os.path.dirname(__file__))
 from pathlib import Path
 from loader import get_datasets, CLASS_NAMES, OOD_CLASS, N_CLASSES
 
+
+class LabelSmoothingCrossEntropy(nn.Module):
+    def __init__(self, smoothing=0.1):
+        super().__init__()
+        self.smoothing = smoothing
+
+    def forward(self, pred, target):
+        n_classes = pred.size(1)
+        one_hot = torch.zeros_like(pred).scatter(1, target.unsqueeze(1), 1)
+        smooth_labels = one_hot * (1 - self.smoothing) + self.smoothing / n_classes
+        log_probs = F.log_softmax(pred, dim=1)
+        return -(smooth_labels * log_probs).sum(dim=1).mean()
+
+
 try:
     from torchvision.models import densenet121, DenseNet121_Weights
     HAS_TORCHVISION = True
@@ -289,7 +303,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = LabelSmoothingCrossEntropy(smoothing=0.1)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
