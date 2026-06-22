@@ -48,6 +48,15 @@ class SimpleCNN(nn.Module):
         return x
 
 
+def focal_loss(pred, target, gamma=2.0, alpha=None):
+    ce_loss = F.cross_entropy(pred, target, reduction='none')
+    pt = torch.exp(-ce_loss)
+    focal = ((1 - pt) ** gamma) * ce_loss
+    if alpha is not None:
+        alpha_t = alpha[target]
+        focal = alpha_t * focal
+    return focal.mean()
+
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss, correct, total = 0, 0, 0
@@ -55,7 +64,7 @@ def train_epoch(model, loader, optimizer, criterion, device):
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
         pred = model(X)
-        loss = criterion(pred, y)
+        loss = focal_loss(pred, y, gamma=2.0)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
