@@ -1,414 +1,58 @@
-# AGENTS.md — MLSS26_HACKATHON Scientific AI AutoResearch
+# AGENTS.md — MLSS26_HACKATHON
 
-## Overview
+## Setup
 
-This project implements a **unified Scientific AI AutoResearch** system for ML experimentation, forked from [MLAgentBench](https://github.com/snap-stanford/MLAgentBench) with improvements from [MLRC-Bench](https://github.com/yunx-z/MLRC-Bench). The system merges **Karpathy's autoresearch** loop with **8 specialized scientific AI agents** powered by free OpenRouter models.
+- Activate: `source .venv/bin/activate`
+- `OPENROUTER_API_KEY` required (from `.env`) — LLM calls route through `https://openrouter.ai/api/v1`
+- Install: `pip install -e .` (namespace package `MLAgentBench`)
 
-The autonomous experiment loop: modify code → train → evaluate → keep/discard → repeat indefinitely. At each step, the orchestrator can consult specialized agents for domain expertise, then decide whether to keep or discard the change.
+## Entry Points (3)
 
-Domain skills (computer-vision, deep-learning, imaging-algorithms) are integrated directly into the agents' system prompts, giving them access to library-specific code patterns and best practices.
+| Command | Purpose |
+|---------|---------|
+| `python scripts/run_medmnist.py` | Standalone train/eval. **What the orchestrator calls.** Chdirs to env dir internally. |
+| `python -m MLAgentBench.runner --task medmnist --agent-role <role>` | Full ReAct agent loop (MLAgentBench pipeline). |
+| `python -m MLAgentBench.agents.orchestrator --agent <role> --iterations N` | Scientific AutoResearch loop (commit → run → eval → keep/discard). |
+
+## Experiment Loop Protocol
+
+Canonical protocol is **`program.md`** (read it). Key rules:
+- Only modify `MLAgentBench/benchmarks/medmnist/env/train.py`. Do NOT modify eval/encode files.
+- Run: `python scripts/run_medmnist.py > run.log 2>&1` (redirect only, no `tee`)
+- Parse stdout for `Test Accuracy:` and `OOD F1:` lines
+- Log to `experiments/results.tsv` (tab-separated, 6 cols: commit, test_acc, ood_f1, memory_gb, status, description)
+- Time budget: 5 min per experiment. Kill at 10 min. Never stop looping.
+- Baseline: 2-layer CNN (`SimpleCNN`), softmax threshold OOD detection (default `--ood-threshold 0.7`)
 
 ## Architecture
 
-```
-User / Dashboard
-       |
-       v
-+------------------------------+
-|    Scientific AutoResearch   |  ← Unified Loop (modify → run → eval → keep/discard)
-|    Orchestrator              |     + 15 subcommands
-+------------------------------+
-       |         ↑
-       |         | consultation (route_to_agent)
-       v         |
-+------------------------------+
-|    8 Specialized Agents     |  ← Domain experts with skill prompts
-|  (R, A, CV, DL, LLM, MED,  |
-|   CL, ROB)                  |
-+------------------------------+
-       |
-       v
-+------------------------------+
-|   Experiment Pipeline       |  ← train.py → run_medmnist.py → eval.py
-|   (GPU: 2× RTX PRO 6000)   |
-+------------------------------+
-```
+- `MLAgentBench/benchmarks/medmnist/env/train.py` — training code (what gets modified)
+- `MLAgentBench/benchmarks/medmnist/env/loader.py` — data loader (reads PneumoniaMNIST + `data/medmnist_subset/chestmnist_3class.npz`)
+- `scripts/run_medmnist.py` — CLI wrapper (sets `CUDA_VISIBLE_DEVICES=0`, chdirs to env)
+- `MLAgentBench/agents/orchestrator.py` — `ScientificAutoResearch` class: commits changes, runs experiment, parses metric, reverts on failure
+- `MLAgentBench/agents/agent_specialized.py` — 8 agents with role-specific system prompts
+- `MLAgentBench/LLM.py` — routes to OpenRouter; free model IDs in `OPENROUTER_FREE_MODELS` set (line 11)
+- `configs/agents.yaml` — agent→model mappings
+- `configs/models.yaml` — OpenRouter model catalog
 
-### Core Components
+## 8 Agent Roles
 
-| Component | File | Description |
-|-----------|------|-------------|
-| **AutoResearch Orchestrator** | `MLAgentBench/agents/orchestrator.py` | 🆕 Unified loop: consult → modify → commit → run → eval → keep/discard + 15 subcommands |
-| **Specialized Agents** | `MLAgentBench/agents/agent_specialized.py` | 8 role-specific agents extending ResearchAgent |
-| **Continual Learning** | `MLAgentBench/agents/continual_learning.py` | EWC + replay buffer + checkpoint versioning |
-| **Task Protocol** | `program.md` | Task-specific autoresearch instructions |
-| **AutoResearch Skill** | `.opencode/skills/autoresearch/SKILL.md` | 15 subcommands for the autonomous loop |
-| **LLM Router** | `MLAgentBench/LLM.py` | Routes calls to OpenRouter (free models) |
-| **Model Config** | `configs/models.yaml` | 22 free OpenRouter models with metadata |
-| **Agent Config** | `configs/agents.yaml` | Agent → model mappings + system prompts |
-
----
-
-## Agents
-
-### 1. Research Literature Agent (`research_literature`)
-- **Model**: `qwen/qwen3-coder:free` (1M context, strong text)
-- **Upgrade**: `openai/gpt-4o`
-- **Skills**: paper search, citation generation, method summarization, literature review
-- **Focus**: OOD detection literature, chest X-ray classification, MedMNIST benchmarks
-
-### 2. AutoResearch Agent (`autoresearch`)
-- **Model**: `nvidia/nemotron-3-ultra-550b-a55b:free` (1M context, largest free model)
-- **Upgrade**: `anthropic/claude-sonnet-4`
-- **Skills**: experiment planning, hypothesis generation, result analysis, iteration strategy
-- **Focus**: Iterative improvement of OOD detection on chest X-ray data
-
-### 3. Computer Vision Expert (`cv_expert`)
-- **Model**: `google/gemma-4-26b-a4b-it:free` (multimodal: text+image+video)
-- **Upgrade**: `openai/gpt-4o`
-- **Skills**: image preprocessing, data augmentation, architecture design, classification, transfer learning
-- **Focus**: CNN architectures for 28×28 grayscale chest X-ray classification
-
-### 4. Deep Learning Expert (`dl_expert`)
-- **Model**: `nousresearch/hermes-3-llama-3.1-405b:free` (405B params)
-- **Upgrade**: `anthropic/claude-sonnet-4`
-- **Skills**: training loop design, loss function engineering, optimizer config, LR scheduling, regularization, calibration
-- **Focus**: Efficient training, temperature scaling, Mahalanobis distance, ensemble methods
-
-### 5. LLM Expert (`llm_expert`)
-- **Model**: `qwen/qwen3-next-80b-a3b-instruct:free` (strong instruction following)
-- **Upgrade**: `openai/gpt-4o`
-- **Skills**: prompt engineering, multimodal reasoning, agent coordination, few-shot design, chain-of-thought
-- **Focus**: Inter-agent coordination and prompt optimization
-
-### 6. Medical Image Expert (`medical_expert`)
-- **Model**: `google/gemma-4-26b-a4b-it:free` (multimodal: text+image+video)
-- **Upgrade**: `openai/gpt-4o`
-- **Skills**: chest X-ray interpretation, MedMNIST benchmark knowledge, medical image preprocessing, disease classification, OOD detection in clinical settings
-- **Focus**: PneumoniaMNIST training, ChestMNIST OOD detection, calibration for clinical deployment
-
-### 7. Continual Learning Expert (`continual_learning`)
-- **Model**: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` (multimodal + reasoning)
-- **Upgrade**: `anthropic/claude-sonnet-4`
-- **Skills**: catastrophic forgetting prevention, EWC, experience replay, model versioning, checkpoint management, parameter drift monitoring
-- **Focus**: Balancing plasticity and stability across training iterations
-
-### 8. Robustness Expert (`robustness_expert`)
-- **Model**: `nvidia/nemotron-3-super-120b-a12b:free` (1M context, strong math)
-- **Upgrade**: `openai/gpt-4o`
-- **Skills**: OOD detection theory, confidence calibration, Mahalanobis scoring, energy-based OOD, ensemble uncertainty, statistical robustness metrics
-- **Focus**: Accuracy vs OOD F1 trade-off, calibration curves, detection thresholds
-
----
-
-## Autoresearch Scientific Mode (subcommand of `/autoresearch`)
-
-`/autoresearch_scientific` is the **15th subcommand** of the `autoresearch` skill. It merges the autoresearch loop with the 8 specialized agents. Invoke it just like any other subcommand:
-
-```
-/autoresearch_scientific Goal="Improve Test Accuracy" Metric="Test Accuracy" Iterations=25
-```
-
-Or via CLI:
-```bash
-python -m MLAgentBench.agents.orchestrator --agent medical_expert --iterations 25
-bash scripts/run_autoresearch_scientific.sh autoresearch 25
-```
-
-At each iteration:
-1. Routes the current problem to the best agent via keyword matching
-2. Agent proposes a focused code change with scientific reasoning
-3. Experiment runs → metric extracted → keep/discard decision
-4. If improved, commit is kept; if worse/crash, reverted
-5. All logged to TSV + dashboard
-
-## AutoResearch Subcommands (15)
-
-The orchestrator implements 15 subcommands from the autoresearch skill:
-
-| Subcommand | Purpose |
-|------------|---------|
-| `/plan` | Generate next experiment hypothesis from previous results |
-| `/run` | Execute single iteration: modify → commit → run → eval → keep/discard |
-| `/fix` | Debug crashed experiment — read stack trace, repair code |
-| `/analyze` | Deep analysis: learning curves, overfitting, statistical significance |
-| `/ship` | Lock in best model: final eval, export checkpoint, generate submission |
-| `/learn` | Extract lessons from past iterations |
-| `/reason` | Chain-of-thought about experiment trajectory |
-| `/probe` | Deep-dive into model internals (activations, gradients, attention) |
-| `/improve` | Focused improvement on weakest cases |
-| `/debug` | Interactive debugging session |
-| `/evals` | Comprehensive evaluation (accuracy, precision, recall, OOD F1) |
-| `/regression` | Verify changes don't break existing functionality |
-| `/predict` | Predict outcome of proposed change before running |
-| `/scenario` | Run what-if scenarios (different diseases, population shifts, noise levels) |
-| `/autoresearch_scientific` | Scientific AI: autoresearch loop + 8 specialized agents | 25 |
-
----
-
-## Autoresearch Experiment Loop
-
-The loop protocol (from `program.md`):
-
-```
-LOOP FOREVER:
-  1. Consult specialized agent for next hypothesis
-  2. Modify train.py (one focused change)
-  3. git commit
-  4. Run: python scripts/run_medmnist.py
-  5. Extract metric: grep "Test Accuracy" or "OOD F1"
-  6. If improved → KEEP (advance branch)
-  7. If worse/crash → DISCARD (git revert, restore worktree)
-  8. Log to TSV: iteration, commit, metric, delta, status, description
-  9. Repeat — NEVER STOP
-```
-
-Supported via the Scientific AutoResearch CLI:
-```bash
-# Run the automatic loop
-python scripts/run_medmnist.py --epochs 50
-
-# Or for the full agent-driven loop
-python -m MLAgentBench.runner \
-  --task medmnist \
-  --agent-role autoresearch \
-  --log-dir logs/medmnist_run \
-  --agent-max-steps 25
-```
-
----
-
-## OpenRouter Integration
-
-### How It Works
-All LLM calls go through OpenRouter's OpenAI-compatible API:
-```
-POST https://openrouter.ai/api/v1/chat/completions
-Authorization: Bearer $OPENROUTER_API_KEY
-```
-
-The `LLM.py` module checks if a model ID is in `OPENROUTER_FREE_MODELS` or matches a paid prefix, then routes accordingly.
-
-### Free Models Available (22 total)
-
-| Provider | Model ID | Context | Multimodal |
-|----------|----------|---------|------------|
-| Meta | `meta-llama/llama-3.3-70b-instruct:free` | 131K | No |
-| Meta | `meta-llama/llama-3.2-3b-instruct:free` | 131K | No |
-| NVIDIA | `nvidia/nemotron-3-ultra-550b-a55b:free` | 1M | No |
-| NVIDIA | `nvidia/nemotron-3-super-120b-a12b:free` | 1M | No |
-| NVIDIA | `nvidia/nemotron-3-nano-30b-a3b:free` | 256K | No |
-| NVIDIA | `nvidia/nemotron-nano-9b-v2:free` | 128K | No |
-| NVIDIA | `nvidia/nemotron-nano-12b-v2-vl:free` | 128K | **Yes** (text+image+video) |
-| NVIDIA | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` | 256K | **Yes** (text+image+audio+video) |
-| Qwen | `qwen/qwen3-coder:free` | 1M | No |
-| Qwen | `qwen/qwen3-next-80b-a3b-instruct:free` | 262K | No |
-| Google | `google/gemma-4-26b-a4b-it:free` | 262K | **Yes** (text+image+video) |
-| Google | `google/gemma-4-31b-it:free` | 262K | **Yes** (text+image+video) |
-| OpenAI | `openai/gpt-oss-120b:free` | 131K | No |
-| OpenAI | `openai/gpt-oss-20b:free` | 131K | No |
-| Nous | `nousresearch/hermes-3-llama-3.1-405b:free` | 131K | No |
-| Cohere | `cohere/north-mini-code:free` | 256K | No |
-| Liquid | `liquid/lfm-2.5-1.2b-instruct:free` | 32K | No |
-| Poolside | `poolside/laguna-m.1:free` | 262K | No |
-| Poolside | `poolside/laguna-xs.2:free` | 262K | No |
-| Cognitive | `cognitivecomputations/dolphin-mistral-24b-venice-edition:free` | 32K | No |
-| Nex AGI | `nex-agi/nex-n2-pro:free` | 262K | **Yes** (text+image) |
-
-### Swapping Models
-Models can be swapped at runtime via:
-1. **CLI**: `--llm-name "qwen/qwen3-coder:free"`
-2. **Config**: Edit `configs/agents.yaml` → change `model` field
-3. **Dashboard**: Use the Model Swap Panel in the web UI (POST `/agents/{agent}/model`)
-
-### Upgrade Path
-When budget allows, upgrade to premium models:
-- `openai/gpt-4o` — best general reasoning + multimodal
-- `anthropic/claude-sonnet-4` — best code generation
-- `anthropic/claude-3.5-sonnet` — strong analysis
-
----
-
-## Continual Learning Loop
-
-The continual learning system prevents catastrophic forgetting across training iterations:
-
-```
-Iteration N:
-  1. Load best previous checkpoint
-  2. Compute Fisher Information on old data
-  3. Train on new data with EWC penalty: L = L_task + (lambda/2) * sum(F_i * (theta_i - theta*_i)^2)
-  4. Evaluate new score and forgetting measure
-  5. Decision:
-     - If improvement >= 0.01 AND forgetting < 0.05 → commit new version
-     - Otherwise → rollback to best previous version
-  6. Update replay buffer with exemplar samples
-```
-
-### Configuration (`configs/agents.yaml`)
-```yaml
-orchestrator:
-  continual_learning:
-    enabled: true
-    checkpoint_dir: "checkpoints"
-    improvement_threshold: 0.01
-    forgetting_threshold: 0.05
-    ewc_lambda: 100.0
-    replay_buffer_size: 1000
-```
-
----
-
-## Task: Chest X-ray OOD Detection
-
-### Dataset
-- **Source**: MedMNIST (PneumoniaMNIST + ChestMNIST)
-- **Data**: 28×28 grayscale chest X-ray patches
-- **Train**: PneumoniaMNIST (binary: normal vs pneumonia, 5,856 samples)
-- **Test**: ChestMNIST 3-class (normal, pneumonia, consolidation — last class is OOD)
-- **Task**: OOD detection — classify in-distribution (normal, pneumonia) vs OOD (consolidation)
-- **Metrics**: Test Accuracy + OOD F1 (macro F1 across 3 classes)
-- **Baseline**: ~22% test accuracy, ~0.15 OOD F1 (single conv layer)
-
-### Files
-- `MLAgentBench/benchmarks/medmnist/env/train.py` — Starter training script
-- `MLAgentBench/benchmarks/medmnist/env/data_description.txt` — Dataset description
-- `MLAgentBench/benchmarks/medmnist/scripts/eval.py` — Evaluation script
-- `MLAgentBench/benchmarks/medmnist/scripts/prepare.py` — Data download script
-
-### Running the Task
-```bash
-# Activate venv
-source .venv/bin/activate
-
-# Set environment variables
-export OPENROUTER_API_KEY=sk-or-v1-...
-
-# Run with a specific specialized agent
-python -m MLAgentBench.runner \
-  --task medmnist \
-  --device 0 \
-  --log-dir logs/medmnist_run1 \
-  --work-dir workspace \
-  --agent-role medical_expert \
-  --llm-name "google/gemma-4-26b-a4b-it:free" \
-  --fast-llm-name "openai/gpt-oss-20b:free" \
-  --agent-max-steps 50 \
-  --max-time 18000
-```
-
----
+Configured in `configs/agents.yaml`, system prompts in `agent_specialized.py`, routing keywords in `orchestrator.py:43-66`:
+`research_literature`, `autoresearch`, `cv_expert`, `dl_expert`, `llm_expert`, `medical_expert`, `continual_learning`, `robustness_expert`
 
 ## Dashboard
 
-### Backend (FastAPI)
-- **Port**: 8000
-- **Endpoints**:
-  - `GET /experiments` — List all experiment runs
-  - `GET /experiments/{id}` — Detailed run info
-  - `GET /scores` — Score timeline data for charts
-  - `GET /agents` — List all agents and their configs
-  - `POST /agents/{agent}/model` — Swap LLM model per agent
-  - `GET /models` — List available OpenRouter models
-  - `WS /ws` — WebSocket for real-time updates
+- Backend: `uvicorn dashboard.backend.main:app --port 8000`
+- Frontend: `cd dashboard/frontend && npm run dev` (port 3000)
+- Experiment data from `experiments/runs.jsonl` and `experiments/loop-*/results.tsv`
 
-### Frontend (Next.js)
-- **Port**: 3000
-- **Pages**:
-  - `/` — Overview dashboard with live score chart
-  - `/experiments` — Experiment list with filtering
-  - `/experiments/[id]` — Detailed run view with agent activity log
-  - `/agents` — Agent activity timeline
-  - `/config` — Model configuration (swap LLMs per agent)
-  - `/leaderboard` — Ranked comparison of runs
+## Utilities
 
-### Starting the Dashboard
-```bash
-# Backend
-cd dashboard/backend
-source ../../.venv/bin/activate
-uvicorn main:app --reload --port 8000
+- `scripts/setup.sh` — full install from scratch
+- `scripts/run_hackathon.sh <agent_role> medmnist` — launch MLAgentBench.runner
+- `scripts/run_autoresearch_scientific.sh <agent> <iterations>` — launch orchestrator loop
+- `scripts/start_dashboard.sh` — starts both backend + frontend
 
-# Frontend
-cd dashboard/frontend
-npm install
-npm run dev
-```
+## No CI / No tests / No lint / No typecheck
 
----
-
-## Adding New Agents
-
-1. Add agent config to `configs/agents.yaml`:
-```yaml
-agents:
-  my_new_agent:
-    name: "My New Agent"
-    description: "What this agent does"
-    model: "meta-llama/llama-3.3-70b-instruct:free"
-    fast_model: "openai/gpt-oss-20b:free"
-    upgrade_model: "openai/gpt-4o"
-    skills:
-      - "skill1"
-      - "skill2"
-    system_prompt_addon: |
-      You are a specialist in...
-```
-
-2. Add the prompt addon to `AGENT_PROMPTS` in `MLAgentBench/agents/agent_specialized.py`
-
-3. Add routing keywords to `ROUTING_KEYWORDS` in `MLAgentBench/agents/orchestrator.py`
-
-4. Run with `--agent-role my_new_agent`
-
----
-
-## Hardware
-
-- 2× NVIDIA RTX PRO 6000 Blackwell (98GB VRAM each)
-- Python 3.10.12
-- PyTorch 2.6.0+cu124
-- venv at `.venv/`
-
----
-
-## File Structure
-
-```
-MLSS26_HACKATHON/
-├── AGENTS.md                          # This file
-├── .env.example                       # API key template
-├── .env                               # Actual API keys (gitignored)
-├── .gitignore
-├── Project_definition.md              # Research project definition
-├── program.md                         # Task autoresearch protocol
-├── .opencode/
-│   └── skills/
-│       └── autoresearch/
-│           └── SKILL.md               # 15 subcommands skill (base)
-├── configs/
-│   ├── models.yaml                    # OpenRouter model configurations
-│   └── agents.yaml                    # Agent → model mappings
-├── MLAgentBench/                      # Forked codebase
-│   ├── LLM.py                         # LLM API router (OpenRouter support)
-│   ├── runner.py                      # Entry point with --agent-role flag
-│   ├── agents/
-│   │   ├── agent.py                   # Base Agent class
-│   │   ├── agent_research.py          # ResearchAgent (original)
-│   │   ├── agent_specialized.py       # 8 specialized agents + skills
-│   │   ├── continual_learning.py      # EWC + replay + versioning
-│   │   └── orchestrator.py            # 🆕 Unified AutoResearch Orchestrator
-│   ├── benchmarks/
-│   │   └── medmnist/                  # Primary task (chest X-ray OOD)
-│   └── benchmarks_base/               # MLRC-Bench research tasks
-├── experiments/                       # Experiment logs (TSV, JSONL)
-├── dashboard/
-│   ├── backend/                       # FastAPI (port 8000)
-│   └── frontend/                      # Next.js (port 3000)
-├── scripts/
-│   ├── run_medmnist.py                # Standalone experiment CLI
-│   ├── run_hackathon.sh               # Agent launch script
-│   ├── setup.sh                       # Full installation
-│   └── start_dashboard.sh             # Dashboard launcher
-└── .venv/                             # Python virtual environment
-```
+This project has no CI pipeline, test suite, linter, or type checker.
