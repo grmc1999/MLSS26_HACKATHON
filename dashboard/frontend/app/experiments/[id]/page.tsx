@@ -317,8 +317,8 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
                        labelFormatter={(label: string) => ''} />
               <Legend />
               {[0, 1, 2].map(cls => {
-                const testColor = cls === 0 ? '#60a5fa' : cls === 1 ? '#34d399' : '#f87171';
-                const valColor = cls === 0 ? '#93c5fd' : cls === 1 ? '#6ee7b7' : '#fca5a5';
+                const testColor = cls === 0 ? '#3b82f6' : cls === 1 ? '#10b981' : '#ef4444';
+                const valColor = cls === 0 ? '#f59e0b' : cls === 1 ? '#8b5cf6' : '#fca5a5';
                 const testData = vizData.embeddings?.filter(e => e.label === cls && e.dataset === 'ChestMNIST (test)') ?? [];
                 const valData = vizData.embeddings?.filter(e => e.label === cls && e.dataset !== 'ChestMNIST (test)') ?? [];
                 const className = vizData.class_names?.[cls] ?? `Class ${cls}`;
