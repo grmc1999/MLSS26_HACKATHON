@@ -99,7 +99,6 @@ export default function Home() {
   const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc_id : 0;
   const latestOODF1 = allIterations.length > 0 ? allIterations[allIterations.length - 1].ood_f1 : 0;
   const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc_id : 0;
-  const bestOverallValAcc = Math.max(bestValAcc, ...recentRuns.map(e => (e.details?.val_acc as number) ?? 0).filter(v => v > 0));
 
   const recentRuns = useMemo(() =>
     experiments.filter(e => e.source === 'run_exp').slice(0, 8),
