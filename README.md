@@ -70,16 +70,20 @@ Agents call `search_medical_literature(query, k=5)` to retrieve relevant papers 
 
 ## 8 Specialized Agents
 
-| Agent | Role | Focus for this Task |
-|-------|------|---------------------|
-| **CV Expert** | Architecture design | CNN for 28x28, OOD detectors |
-| **DL Expert** | Training optimization | Confidence calibration, thresholds |
-| **LLM Expert** | Agent coordination | Multi-agent research synthesis |
-| **Continual Learning** | Anti-forgetting | Domain adaptation across datasets |
-| **AutoResearch** | Experiment planning | Loop strategy, hypothesis |
-| **Research Literature** | Paper search | OOD detection, medical transfer learning |
-| **Satellite Expert** → **Medical Expert** | Chest X-ray analysis | X-ray modality, pneumonia patterns |
-| **Physics Expert** → **Robustness Expert** | Uncertainty quantification | OOD scoring, Mahalanobis distance |
+Each agent has a role-specific system prompt with integrated domain skills. Defined in `MLAgentBench/agents/agent_specialized.py`.
+
+| Agent | Role | Skill Integration | RAG Access |
+|-------|------|-------------------|------------|
+| **CV Expert** | CNN architecture, augmentation, OOD scoring | Computer Vision skill | ✅ Yes |
+| **DL Expert** | Loss functions, optimizers, calibration | Deep Learning skill | ✅ Yes |
+| **Medical Expert** | Chest X-ray, MedMNIST, pneumonia patterns | Imaging Algorithms skill | ✅ Yes |
+| **Robustness Expert** | OOD theory, uncertainty, confidence calibration | Imaging Algorithms skill | ✅ Yes |
+| **Research Literature** | Paper search, SOTA methods | Literature RAG tool | ✅ Yes |
+| **AutoResearch** | Experiment planning, iteration strategy | Autoresearch loop skill | ✅ Yes |
+| **LLM Expert** | Multi-agent coordination, prompt design | — | ✅ Yes |
+| **Continual Learning** | Anti-forgetting, checkpoint versioning, EWC | — | ✅ Yes |
+
+Agents are routed via the orchestrator based on the goal keywords. For example, if your goal mentions "ood" or "threshold", the orchestrator routes to `robustness_expert`. If it mentions "architecture" or "augment", it routes to `cv_expert`.
 
 ---
 
@@ -87,25 +91,51 @@ Agents call `search_medical_literature(query, k=5)` to retrieve relevant papers 
 
 Available as opencode commands (type `/` in the TUI). Defined in `.opencode/commands/autoresearch_*.md`.
 
-| Command | Purpose |
-|---------|---------|
-| `/autoresearch` | Iterate against metric: modify → verify → keep/discard |
-| `/autoresearch_plan` | Convert goal into experiment config |
-| `/autoresearch_debug` | Hunt bugs via hypothesis testing |
-| `/autoresearch_fix` | Fix errors one-by-one to zero |
-| `/autoresearch_security` | Security audit of pipeline |
-| `/autoresearch_ship` | Lock best model, final eval |
-| `/autoresearch_scenario` | Explore edge cases and sensitivity |
-| `/autoresearch_predict` | 5-expert debate before changing code |
-| `/autoresearch_learn` | Extract cross-iteration lessons |
-| `/autoresearch_reason` | Adversarial debate with blind judges |
-| `/autoresearch_probe` | Surface hidden constraints |
-| `/autoresearch_improve` | Research SOTA methods, generate PRDs |
-| `/autoresearch_evals` | Analyze trends across all runs |
-| `/autoresearch_regression` | Baseline vs candidate stability gate |
-| `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents |
+| Command | Purpose | RAG Toggle |
+|---------|---------|------------|
+| `/autoresearch` | Iterate against metric: modify → verify → keep/discard | ✅ Q3 prompt |
+| `/autoresearch_plan` | Convert goal into experiment config | — |
+| `/autoresearch_debug` | Hunt bugs via hypothesis testing | — |
+| `/autoresearch_fix` | Fix errors one-by-one to zero | — |
+| `/autoresearch_security` | Security audit of pipeline | — |
+| `/autoresearch_ship` | Lock best model, final eval | — |
+| `/autoresearch_scenario` | Explore edge cases and sensitivity | — |
+| `/autoresearch_predict` | 5-expert debate before changing code | — |
+| `/autoresearch_learn` | Extract cross-iteration lessons | — |
+| `/autoresearch_reason` | Adversarial debate with blind judges | — |
+| `/autoresearch_probe` | Surface hidden constraints | — |
+| `/autoresearch_improve` | Research SOTA methods, generate PRDs | — |
+| `/autoresearch_evals` | Analyze trends across all runs | — |
+| `/autoresearch_regression` | Baseline vs candidate stability gate | — |
+| `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | ✅ Q4 prompt |
 
 ---
+
+## Dashboard Features
+
+The dashboard (FastAPI backend + Next.js frontend) provides real-time experiment monitoring:
+
+| Page | Route | What It Shows |
+|------|-------|---------------|
+| **Overview** | `/` | Val Acc / ID Test Acc / OOD F1 timeline, recent runs, auto-loop cards |
+| **Experiments** | `/experiments` | Filterable table with source badges, search, keeep/discard tracking |
+| **Experiment Detail** | `/experiments/[id]` | 3-metric line chart, iteration log with deltas, **PCA embeddings** (test vs val), per-class accuracy bars, OOD confusion matrix, sample images per class |
+| **Agents** | `/agents` | 8 agent cards with model configs and skills |
+| **Config** | `/config` | Live agent-to-model reassignment via dropdowns |
+| **Leaderboard** | `/leaderboard` | Ranked by best ID Test Acc / OOD F1 |
+
+The experiment detail page includes a **PCA embedding scatter plot** showing both PneumoniaMNIST (val, diamonds) and ChestMNIST (test, circles) samples projected into 2D feature space — useful for visualizing domain shift.
+
+---
+
+## Skills
+
+Integrated domain skills (loaded from the skill system) give agents specialized knowledge:
+
+- **Computer Vision** — OpenCV, scikit-image, torchvision operations for image preprocessing, feature detection, thresholding
+- **Deep Learning** — PyTorch training patterns, loss functions (Cross-Entropy, Focal, label smoothing), optimizer config (AdamW, SGD), scheduling (cosine annealing, warmup)
+- **Imaging Algorithms** — Classification metrics (Accuracy, F1, AUROC), OOD metrics (FPR@95, ECE), image preprocessing (normalization, CLAHE, denoising)
+- **Autoresearch Loop** — Karpathy-style autonomous experiment loop: baseline → modify → verify → keep/discard
 
 ## Quick Start
 
@@ -130,12 +160,9 @@ python -m MLAgentBench.agents.orchestrator \
 
 ### 4. Start dashboard
 ```bash
-# Terminal 1
-cd dashboard/backend && uvicorn main:app --port 8000
-
-# Terminal 2
-cd dashboard/frontend && npm run dev
-# → http://localhost:3000
+scripts/start_dashboard.sh
+# → Backend: http://localhost:8000
+# → Frontend: http://localhost:3000
 ```
 
 ---
