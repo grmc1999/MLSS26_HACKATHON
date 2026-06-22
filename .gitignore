@@ -247,3 +247,13 @@ kaggle.json
 experiments/
 
 *.pth
+# Literature papers (downloaded, not source code)
+literature/
+literature_md/
+pixels/
+index_output/
+
+# Large model files (downloaded, not source code)
+models/
+# CIFAR-10 dataset (downloaded)
+MLAgentBench/benchmarks/cifar10/env/data/cifar-10-python.tar.gz
