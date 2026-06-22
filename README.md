@@ -89,25 +89,25 @@ Agents are routed via the orchestrator based on the goal keywords. For example, 
 
 ## 15 AutoResearch Slash Commands
 
-Available as opencode commands (type `/` in the TUI). Defined in `.opencode/commands/autoresearch_*.md`.
+Available as opencode commands (type `/` in the TUI). Defined in `.opencode/commands/autoresearch_*.md`. Each command asks a **RAG question** — answer Yes to search medical literature before each action.
 
-| Command | Purpose | RAG Toggle |
-|---------|---------|------------|
-| `/autoresearch` | Iterate against metric: modify → verify → keep/discard | ✅ Q3 prompt |
-| `/autoresearch_plan` | Convert goal into experiment config | — |
-| `/autoresearch_debug` | Hunt bugs via hypothesis testing | — |
-| `/autoresearch_fix` | Fix errors one-by-one to zero | — |
-| `/autoresearch_security` | Security audit of pipeline | — |
-| `/autoresearch_ship` | Lock best model, final eval | — |
-| `/autoresearch_scenario` | Explore edge cases and sensitivity | — |
-| `/autoresearch_predict` | 5-expert debate before changing code | — |
-| `/autoresearch_learn` | Extract cross-iteration lessons | — |
-| `/autoresearch_reason` | Adversarial debate with blind judges | — |
-| `/autoresearch_probe` | Surface hidden constraints | — |
-| `/autoresearch_improve` | Research SOTA methods, generate PRDs | — |
-| `/autoresearch_evals` | Analyze trends across all runs | — |
-| `/autoresearch_regression` | Baseline vs candidate stability gate | — |
-| `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | ✅ Q4 prompt |
+| Command | Purpose | RAG Question |
+|---------|---------|--------------|
+| `/autoresearch` | Iterate against metric: modify → verify → keep/discard | Q3 |
+| `/autoresearch_plan` | Convert goal into experiment config | Q3 |
+| `/autoresearch_debug` | Hunt bugs via hypothesis testing | Q4 |
+| `/autoresearch_fix` | Fix errors one-by-one to zero | Q3 |
+| `/autoresearch_security` | Security audit of pipeline | Q2 |
+| `/autoresearch_ship` | Lock best model, final eval | Q2 |
+| `/autoresearch_scenario` | Explore edge cases and sensitivity | Q3 |
+| `/autoresearch_predict` | 5-expert debate before changing code | Q2 |
+| `/autoresearch_learn` | Extract cross-iteration lessons | Q2 |
+| `/autoresearch_reason` | Adversarial debate with blind judges | Q2 |
+| `/autoresearch_probe` | Surface hidden constraints | Q2 |
+| `/autoresearch_improve` | Research SOTA methods, generate PRDs | Q3 |
+| `/autoresearch_evals` | Analyze trends across all runs | Q1 |
+| `/autoresearch_regression` | Baseline vs candidate stability gate | Q3 |
+| `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | Q4 |
 
 ---
 
