@@ -120,9 +120,11 @@ def parse_loop_results() -> list[dict]:
                     commit = parts[1].strip()
                     test_acc = float(parts[2]) if parts[2] else None
                     ood_f1 = float(parts[3]) if parts[3] else None
-                    memory_gb = parts[4].strip() if len(parts) > 4 else ""
-                    status = parts[5].strip() if len(parts) > 5 else ""
-                    description = parts[6].strip() if len(parts) > 6 else ""
+                    val_acc = float(parts[4]) if len(parts) > 4 and parts[4] else None
+                    test_acc_id = float(parts[5]) if len(parts) > 5 and parts[5] else None
+                    memory_gb = parts[6].strip() if len(parts) > 6 else ""
+                    status = parts[7].strip() if len(parts) > 7 else ""
+                    description = parts[8].strip() if len(parts) > 8 else ""
                     metric = test_acc if test_acc is not None else 0.0
                     scores.append({"step": int(iteration), "score": metric})
                     final_score = metric
@@ -131,6 +133,8 @@ def parse_loop_results() -> list[dict]:
                         "commit": commit,
                         "test_acc": test_acc,
                         "ood_f1": ood_f1,
+                        "val_acc": val_acc,
+                        "test_acc_id": test_acc_id,
                         "memory_gb": memory_gb,
                         "status": status,
                         "description": description,

@@ -13,6 +13,8 @@ interface Iteration {
   commit: string;
   test_acc: number | null;
   ood_f1: number | null;
+  val_acc?: number | null;
+  test_acc_id?: number | null;
   memory_gb: string;
   status: string;
   description: string;
@@ -143,7 +145,8 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
     .filter(i => i.test_acc !== null && i.ood_f1 !== null)
     .map(i => ({
       name: `#${i.iteration}`,
-      test_acc: i.test_acc,
+      val_acc: i.val_acc ?? 0,
+      test_acc_id: i.test_acc_id ?? 0,
       ood_f1: i.ood_f1,
       status: i.status,
     }));
@@ -197,13 +200,14 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
         <div className="bg-slate-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Per-Iteration Metrics Comparison</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={accuracyBarData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <BarChart data={accuracyBarData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="name" stroke="#94a3b8" />
               <YAxis stroke="#94a3b8" domain={[0, 1]} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
               <Legend />
-              <Bar dataKey="test_acc" fill="#3b82f6" name="Test Accuracy" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="val_acc" fill="#06b6d4" name="Val Acc (PneumoniaMNIST)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="test_acc_id" fill="#10b981" name="ID Test Acc (Normal+Pneu)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="ood_f1" fill="#8b5cf6" name="OOD F1" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -219,9 +223,10 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
                 <tr className="border-b border-slate-700 bg-slate-900/50">
                   <th className="text-left py-2 px-3">#</th>
                   <th className="text-left py-2 px-3">Commit</th>
-                  <th className="text-right py-2 px-3">Test Acc</th>
+                  <th className="text-right py-2 px-3">Val Acc</th>
+                  <th className="text-right py-2 px-3">ID Test Acc</th>
+                  <th className="text-right py-2 px-3">Test 3-class</th>
                   <th className="text-right py-2 px-3">OOD F1</th>
-                  <th className="text-right py-2 px-3">Memory</th>
                   <th className="text-left py-2 px-3">Status</th>
                   <th className="text-left py-2 px-3">Description</th>
                 </tr>
@@ -237,6 +242,12 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
                       <td className="py-2 px-3 font-mono text-xs text-slate-400">
                         {it.commit.length > 12 ? it.commit.slice(0, 12) + '...' : it.commit}
                       </td>
+                      <td className="py-2 px-3 text-right font-mono text-cyan-400">
+                        {it.val_acc !== null && it.val_acc !== undefined ? it.val_acc.toFixed(4) : '—'}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-emerald-400">
+                        {it.test_acc_id !== null && it.test_acc_id !== undefined ? it.test_acc_id.toFixed(4) : '—'}
+                      </td>
                       <td className={`py-2 px-3 text-right font-mono ${testDelta !== null && testDelta > 0 ? 'text-emerald-400' : testDelta !== null && testDelta < 0 ? 'text-red-400' : 'text-white'}`}>
                         {it.test_acc !== null ? it.test_acc.toFixed(4) : '—'}
                         {testDelta !== null && (
@@ -248,7 +259,6 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
                       <td className="py-2 px-3 text-right font-mono text-white">
                         {it.ood_f1 !== null ? it.ood_f1.toFixed(4) : '—'}
                       </td>
-                      <td className="py-2 px-3 text-right text-slate-400">{it.memory_gb}</td>
                       <td className="py-2 px-3">
                         <span className={`text-xs px-2 py-0.5 rounded ${
                           it.status === 'keep' ? 'bg-emerald-900/50 text-emerald-300' :
