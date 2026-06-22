@@ -315,21 +315,21 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
                        formatter={(value: number, name: string) => [value.toFixed(2), name]}
                        labelFormatter={(label: string) => ''} />
-              <Legend formatter={(value: string) => {
-                // Clean up legend: remove dataset prefix for cleaner look
-                return value.replace(/^ChestMNIST /, '').replace(/^PneumoniaMNIST /, '');
-              }} />
+              <Legend />
               {[0, 1, 2].map(cls => {
-                const color = cls === 0 ? '#3b82f6' : cls === 1 ? '#10b981' : '#ef4444';
+                const testColor = cls === 0 ? '#60a5fa' : cls === 1 ? '#34d399' : '#f87171';
+                const valColor = cls === 0 ? '#93c5fd' : cls === 1 ? '#6ee7b7' : '#fca5a5';
                 const testData = vizData.embeddings?.filter(e => e.label === cls && e.dataset === 'ChestMNIST (test)') ?? [];
                 const valData = vizData.embeddings?.filter(e => e.label === cls && e.dataset !== 'ChestMNIST (test)') ?? [];
                 const className = vizData.class_names?.[cls] ?? `Class ${cls}`;
+                const testName = `Test (${className})`;
+                const valName = `Val (${className})`;
                 return [
-                  <Scatter key={`test-${cls}`} name={`ChestMNIST ${className}`} data={testData}
-                           fill={color} shape="circle" fillOpacity={0.9} />,
+                  <Scatter key={`test-${cls}`} name={testName} data={testData}
+                           fill={testColor} shape="circle" fillOpacity={0.85} />,
                   valData.length > 0 ? (
-                    <Scatter key={`val-${cls}`} name={`PneumoniaMNIST ${className}`} data={valData}
-                             fill={color} shape="diamond" fillOpacity={0.4} stroke={color} strokeWidth={1} strokeOpacity={0.6} />
+                    <Scatter key={`val-${cls}`} name={valName} data={valData}
+                             fill={valColor} shape="diamond" fillOpacity={0.5} stroke={valColor} strokeWidth={1} />
                   ) : null,
                 ];
               })}
