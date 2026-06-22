@@ -11,6 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os, sys
+from torch.distributions import Beta
 
 sys.path.insert(0, os.path.dirname(__file__))
 from pathlib import Path
@@ -44,18 +45,27 @@ class SimpleCNN(nn.Module):
         return x
 
 
-def train_epoch(model, loader, optimizer, criterion, device):
+def train_epoch(model, loader, optimizer, criterion, device, mixup_alpha=0.2):
     model.train()
     total_loss, correct, total = 0, 0, 0
+    beta_dist = Beta(mixup_alpha, mixup_alpha)
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
+        lam = beta_dist.sample((X.size(0), 1)).to(device)
+        lam = torch.max(lam, 1 - lam)
+        idx = torch.randperm(X.size(0), device=device)
+        X_mix = lam * X + (1 - lam) * X[idx]
+        y_a, y_b = y, y[idx]
         optimizer.zero_grad()
-        pred = model(X)
-        loss = criterion(pred, y)
+        pred = model(X_mix)
+        loss_a = F.cross_entropy(pred, y_a, reduction='none')
+        loss_b = F.cross_entropy(pred, y_b, reduction='none')
+        loss = (loss_a * lam.squeeze() + loss_b * (1 - lam.squeeze())).mean()
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-        correct += (pred.argmax(1) == y).sum().item()
+        with torch.no_grad():
+            correct += (pred.argmax(1) == y).sum().item()
         total += y.size(0)
     return total_loss / len(loader), correct / total
 
