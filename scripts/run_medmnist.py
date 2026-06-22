@@ -71,7 +71,8 @@ def train_model(args):
     elapsed = time.time() - start
     model.load_state_dict(torch.load("medmnist_model.pth"))
 
-    # Test evaluation — use 3rd logit as OOD score
+    # Test evaluation
+    import torch.nn.functional as F
     test_acc, preds, labels = evaluate(model, test_loader, device)
     model.eval()
     ood_preds = []
@@ -79,8 +80,9 @@ def train_model(args):
         for X, _ in test_loader:
             X = X.to(device)
             logits = model(X)
-            ood_score = logits[:, 2]
-            ood = (ood_score > args.ood_threshold).cpu().numpy().astype(int) * 2
+            probs = F.softmax(logits, dim=1)
+            max_probs, _ = probs.max(1)
+            ood = (max_probs < args.ood_threshold).cpu().numpy().astype(int) * 2
             ood_preds.extend(ood)
     ood_preds = np.array(ood_preds)
     metrics = ood_metrics(labels, ood_preds)
