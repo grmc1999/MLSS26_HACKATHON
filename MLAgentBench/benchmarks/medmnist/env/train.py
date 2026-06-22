@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision import transforms
 from tqdm import tqdm
 import os, sys
 
@@ -245,24 +244,7 @@ if __name__ == "__main__":
     epochs = 20
     lr = 1e-3
 
-    train_aug = transforms.Compose([
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1)),
-    ])
-
-    class AugmentedDataset(torch.utils.data.Dataset):
-        def __init__(self, base_ds, transform):
-            self.base_ds = base_ds
-            self.transform = transform
-        def __len__(self):
-            return len(self.base_ds)
-        def __getitem__(self, idx):
-            img, label = self.base_ds[idx]
-            img = self.transform(img)
-            return img, label
-
-    train_ds_aug = AugmentedDataset(train_ds, train_aug)
-    train_loader = DataLoader(train_ds_aug, batch_size, shuffle=True, num_workers=1)
+    train_loader = DataLoader(train_ds, batch_size, shuffle=True, num_workers=1)
     val_loader = DataLoader(val_ds, batch_size, shuffle=False, num_workers=1)
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
