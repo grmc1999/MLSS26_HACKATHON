@@ -155,10 +155,31 @@ MLSS26_HACKATHON/
 ├── dashboard/
 │   ├── backend/ (FastAPI)
 │   └── frontend/ (Next.js)
+├── models/
+│   ├── Qwen3-VL-Embedding-2B/                  # Visual RAG embedding model (2.1B)
+│   └── Qwen3-VL-Embedding-LoRA/                # LoRA adapters (lora_vit, dora_ls005, hyper3)
 └── .venv/
 ```
 
 ---
+
+## Visual RAG — Medical Literature Retrieval
+
+PixelRAG provides visual retrieval over medical literature screenshots. The embedding model (`Qwen3-VL-Embedding-2B`) and LoRA adapters are at `models/`.
+
+### Pipeline (agentic workflow)
+1. **Render** medical PDFs as screenshot tiles (`pixelshot`)
+2. **Embed** tiles with Qwen3-VL-Embedding-2B
+3. **Index** embeddings in FAISS
+4. **Retrieve** relevant papers before each train.py modification
+
+### Fine-tuning
+```bash
+cd /tmp/PixelRAG/train && uv sync
+# Modify train.py to point to your dataset
+# LoRA on Qwen3-VL-Embedding-2B with torch.compile
+uv run python train.py
+```
 
 ## Dashboard
 
@@ -166,7 +187,7 @@ MLSS26_HACKATHON/
 |------|-------|---------|
 | Overview | `/` | Score chart, experiment stats |
 | Experiments | `/experiments` | List with source badges |
-| Experiment Detail | `/experiments/[id]` | Score + agent log |
+| Experiment Detail | `/experiments/[id]` | Score + agent log, PCA embeddings, per-class accuracy |
 | Agents | `/agents` | Status and models |
 | Config | `/config` | Model swap panel |
 | Leaderboard | `/leaderboard` | Ranked by OOD F1 |

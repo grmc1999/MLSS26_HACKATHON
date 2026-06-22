@@ -53,6 +53,38 @@ Configured in `configs/agents.yaml`, system prompts in `agent_specialized.py`, r
 - `scripts/run_autoresearch_scientific.sh <agent> <iterations>` — launch orchestrator loop
 - `scripts/start_dashboard.sh` — starts both backend + frontend
 
+## PixelRAG — Visual RAG for Medical Literature
+
+Integrated from [`github.com/StarTrail-org/PixelRAG`](https://github.com/StarTrail-org/PixelRAG).
+
+### Model
+
+- **Qwen3-VL-Embedding-2B** — vision-language embedding model (2.1B params)
+- LoRA adapters: `lora_vit` (ViT-only), `dora_ls005` (DoRA), `hyper3` (hypernetwork)
+- Pre-trained LoRA: `Chrisyichuan/wiki-screenshot-embedding-lora`
+- Local path: `models/Qwen3-VL-Embedding-2B/`
+- LoRA adapters path: `models/Qwen3-VL-Embedding-LoRA/`
+
+### Usage
+
+```python
+from transformers import AutoModel, AutoProcessor
+model = AutoModel.from_pretrained("models/Qwen3-VL-Embedding-2B", dtype=torch.float16, device_map="auto")
+processor = AutoProcessor.from_pretrained("models/Qwen3-VL-Embedding-2B")
+```
+
+Fine-tune via `train/` sub-project (separate uv env, LoRA on `Qwen3-VL-Embedding-2B`).
+
+### RAG Pipeline in Agentic Workflow
+
+The PixelRAG model is used to retrieve relevant medical literature (PDF screenshots) during the autoresearch loop:
+1. **Render** — papers are rendered as screenshot tiles via `pixelshot`
+2. **Embed** — tiles are embedded with Qwen3-VL-Embedding-2B
+3. **Index** — embeddings stored in FAISS index
+4. **Retrieve** — agents query the index for relevant papers before modifying train.py
+
+This gives agents visual context from medical literature (tables, charts, radiograph comparisons) during the experiment loop.
+
 ## No CI / No tests / No lint / No typecheck
 
 This project has no CI pipeline, test suite, linter, or type checker.
