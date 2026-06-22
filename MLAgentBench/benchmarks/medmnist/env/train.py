@@ -119,6 +119,9 @@ def train_epoch(model, loader, optimizer, criterion, device):
         optimizer.zero_grad()
         pred = model(X)
         loss = criterion(pred, y)
+        probs = F.softmax(pred, dim=1)
+        entropy = -(probs * (probs + 1e-8).log()).sum(dim=1).mean()
+        loss -= 0.01 * entropy
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
