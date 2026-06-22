@@ -228,6 +228,32 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h2 className="text-xl font-semibold mb-3">About This Project</h2>
+        <div className="text-sm text-slate-300 space-y-2 leading-relaxed">
+          <p>
+            <strong className="text-slate-100">Task:</strong> Train a classifier on <strong className="text-cyan-400">PneumoniaMNIST</strong> (2 classes: normal, pneumonia),
+            then detect whether a chest X-ray from <strong className="text-emerald-400">ChestMNIST</strong> is normal, pneumonia, or an <strong className="text-purple-400">unseen OOD class</strong> (consolidation).
+            This simulates a real-world medical scenario where a model must flag novel diseases it was never trained on.
+          </p>
+          <p>
+            <strong className="text-slate-100">Metrics:</strong>
+          </p>
+          <ul className="list-disc list-inside space-y-1 pl-2">
+            <li><span className="text-cyan-400 font-mono">Val Acc</span> — accuracy on PneumoniaMNIST validation (same distribution as training). Shows how well the model learns the training classes.</li>
+            <li><span className="text-emerald-400 font-mono">ID Test Acc</span> — accuracy on ChestMNIST normal + pneumonia only (domain-shifted but same classes). Reveals generalization gap across datasets.</li>
+            <li><span className="text-purple-400 font-mono">OOD F1</span> — F1 score for detecting consolidation as out-of-distribution. Measures how well the model flags unseen classes.</li>
+          </ul>
+          <p>
+            <strong className="text-slate-100">Architecture:</strong> SimpleCNN (2 conv layers + 2 fc layers) with 3-class output, LeakyReLU, and dropout.
+            The OOD detection uses a softmax confidence threshold (default 0.7): if max probability is below threshold, the sample is labeled as OOD.
+          </p>
+          <p className="text-slate-500 text-xs pt-1">
+            MLSS26_HACKATHON — Scientific AutoResearch loop for chest X-ray OOD detection.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
