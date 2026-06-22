@@ -4,8 +4,8 @@
 
 set -e
 
-AGENT_ROLE=${1:-cv_expert}
-TASK_NAME=${2:-identify-contrails}
+AGENT_ROLE=${1:-medical_expert}
+TASK_NAME=${2:-medmnist}
 DEVICE=${3:-0}
 
 echo "====================================="
@@ -25,7 +25,6 @@ fi
 
 # Set defaults (override with .env or environment variables)
 export OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-""}
-export KAGGLE_CONFIG_DIR=${KAGGLE_CONFIG_DIR:-".kaggle"}
 
 # Create log directory
 LOG_DIR="logs/${TASK_NAME}_$(date +%Y%m%d_%H%M%S)"

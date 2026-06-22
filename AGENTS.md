@@ -23,13 +23,13 @@ User / Dashboard
        v         |
 +------------------------------+
 |    8 Specialized Agents     |  ← Domain experts with skill prompts
-|  (R, A, CV, DL, LLM, SAT,  |
-|   CL, PHY)                  |
+|  (R, A, CV, DL, LLM, MED,  |
+|   CL, ROB)                  |
 +------------------------------+
        |
        v
 +------------------------------+
-|   Experiment Pipeline       |  ← train.py → run_exp.py → eval.py
+|   Experiment Pipeline       |  ← train.py → run_medmnist.py → eval.py
 |   (GPU: 2× RTX PRO 6000)   |
 +------------------------------+
 ```
@@ -55,25 +55,25 @@ User / Dashboard
 - **Model**: `qwen/qwen3-coder:free` (1M context, strong text)
 - **Upgrade**: `openai/gpt-4o`
 - **Skills**: paper search, citation generation, method summarization, literature review
-- **Focus**: Contrail detection, satellite image segmentation, U-Net architectures
+- **Focus**: OOD detection literature, chest X-ray classification, MedMNIST benchmarks
 
 ### 2. AutoResearch Agent (`autoresearch`)
 - **Model**: `nvidia/nemotron-3-ultra-550b-a55b:free` (1M context, largest free model)
 - **Upgrade**: `anthropic/claude-sonnet-4`
 - **Skills**: experiment planning, hypothesis generation, result analysis, iteration strategy
-- **Focus**: Iterative improvement of contrail detection models
+- **Focus**: Iterative improvement of OOD detection on chest X-ray data
 
 ### 3. Computer Vision Expert (`cv_expert`)
 - **Model**: `google/gemma-4-26b-a4b-it:free` (multimodal: text+image+video)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: image preprocessing, data augmentation, architecture design, segmentation, transfer learning
-- **Focus**: CNN/transformer architectures for GOES-16 satellite imagery
+- **Skills**: image preprocessing, data augmentation, architecture design, classification, transfer learning
+- **Focus**: CNN architectures for 28×28 grayscale chest X-ray classification
 
 ### 4. Deep Learning Expert (`dl_expert`)
 - **Model**: `nousresearch/hermes-3-llama-3.1-405b:free` (405B params)
 - **Upgrade**: `anthropic/claude-sonnet-4`
-- **Skills**: training loop design, loss function engineering, optimizer config, LR scheduling, regularization, diffusion models
-- **Focus**: Efficient training with mixed precision, Dice/Focal/Tversky losses
+- **Skills**: training loop design, loss function engineering, optimizer config, LR scheduling, regularization, calibration
+- **Focus**: Efficient training, temperature scaling, Mahalanobis distance, ensemble methods
 
 ### 5. LLM Expert (`llm_expert`)
 - **Model**: `qwen/qwen3-next-80b-a3b-instruct:free` (strong instruction following)
@@ -81,11 +81,11 @@ User / Dashboard
 - **Skills**: prompt engineering, multimodal reasoning, agent coordination, few-shot design, chain-of-thought
 - **Focus**: Inter-agent coordination and prompt optimization
 
-### 6. Satellite Image Expert (`satellite_expert`)
-- **Model**: `nvidia/nemotron-nano-12b-v2-vl:free` (multimodal: text+image+video)
+### 6. Medical Image Expert (`medical_expert`)
+- **Model**: `google/gemma-4-26b-a4b-it:free` (multimodal: text+image+video)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: remote sensing, spectral analysis, geospatial transforms, satellite image interpretation, atmospheric correction
-- **Focus**: GOES-16 ABI bands (8-16), false color composites (band 11/14/15), ERA5 data
+- **Skills**: chest X-ray interpretation, MedMNIST benchmark knowledge, medical image preprocessing, disease classification, OOD detection in clinical settings
+- **Focus**: PneumoniaMNIST training, ChestMNIST OOD detection, calibration for clinical deployment
 
 ### 7. Continual Learning Expert (`continual_learning`)
 - **Model**: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` (multimodal + reasoning)
@@ -93,25 +93,25 @@ User / Dashboard
 - **Skills**: catastrophic forgetting prevention, EWC, experience replay, model versioning, checkpoint management, parameter drift monitoring
 - **Focus**: Balancing plasticity and stability across training iterations
 
-### 8. Physics Expert (`physics_expert`)
+### 8. Robustness Expert (`robustness_expert`)
 - **Model**: `nvidia/nemotron-3-super-120b-a12b:free` (1M context, strong math)
 - **Upgrade**: `openai/gpt-4o`
-- **Skills**: PINNs, advection-continuity equations, atmospheric physics, metric computation, physical consistency checks
-- **Focus**: CSI metrics, ERA5 wind fields, physics-informed constraints
+- **Skills**: OOD detection theory, confidence calibration, Mahalanobis scoring, energy-based OOD, ensemble uncertainty, statistical robustness metrics
+- **Focus**: Accuracy vs OOD F1 trade-off, calibration curves, detection thresholds
 
 ---
 
- ## Autoresearch Scientific Mode (subcommand of `/autoresearch`)
+## Autoresearch Scientific Mode (subcommand of `/autoresearch`)
 
 `/autoresearch_scientific` is the **15th subcommand** of the `autoresearch` skill. It merges the autoresearch loop with the 8 specialized agents. Invoke it just like any other subcommand:
 
 ```
-/autoresearch_scientific Goal="Improve Dice Score" Metric="Test Dice" Iterations=25
+/autoresearch_scientific Goal="Improve Test Accuracy" Metric="Test Accuracy" Iterations=25
 ```
 
 Or via CLI:
 ```bash
-python -m MLAgentBench.agents.orchestrator --agent cv_expert --iterations 25
+python -m MLAgentBench.agents.orchestrator --agent medical_expert --iterations 25
 bash scripts/run_autoresearch_scientific.sh autoresearch 25
 ```
 
@@ -138,10 +138,10 @@ The orchestrator implements 15 subcommands from the autoresearch skill:
 | `/probe` | Deep-dive into model internals (activations, gradients, attention) |
 | `/improve` | Focused improvement on weakest cases |
 | `/debug` | Interactive debugging session |
-| `/evals` | Comprehensive evaluation (Dice, IoU, precision, recall) |
+| `/evals` | Comprehensive evaluation (accuracy, precision, recall, OOD F1) |
 | `/regression` | Verify changes don't break existing functionality |
 | `/predict` | Predict outcome of proposed change before running |
-| `/scenario` | Run what-if scenarios (different weather, time, geography) |
+| `/scenario` | Run what-if scenarios (different diseases, population shifts, noise levels) |
 | `/autoresearch_scientific` | Scientific AI: autoresearch loop + 8 specialized agents | 25 |
 
 ---
@@ -155,8 +155,8 @@ LOOP FOREVER:
   1. Consult specialized agent for next hypothesis
   2. Modify train.py (one focused change)
   3. git commit
-  4. Run: python train.py or python scripts/run_exp.py
-  5. Extract metric: grep "Validation Dice Score" or "Test Dice"
+  4. Run: python scripts/run_medmnist.py
+  5. Extract metric: grep "Test Accuracy" or "OOD F1"
   6. If improved → KEEP (advance branch)
   7. If worse/crash → DISCARD (git revert, restore worktree)
   8. Log to TSV: iteration, commit, metric, delta, status, description
@@ -166,13 +166,13 @@ LOOP FOREVER:
 Supported via the Scientific AutoResearch CLI:
 ```bash
 # Run the automatic loop
-python scripts/run_exp.py --epochs 50
+python scripts/run_medmnist.py --epochs 50
 
 # Or for the full agent-driven loop
 python -m MLAgentBench.runner \
-  --task identify-contrails \
+  --task medmnist \
   --agent-role autoresearch \
-  --log-dir logs/autoresearch_run \
+  --log-dir logs/medmnist_run \
   --agent-max-steps 25
 ```
 
@@ -259,20 +259,22 @@ orchestrator:
 
 ---
 
-## Task: Identify Contrails
+## Task: Chest X-ray OOD Detection
 
 ### Dataset
-- **Source**: Kaggle competition `google-research-identify-contrails-reduce-global-warming`
-- **Data**: GOES-16 ABI satellite imagery (bands 8-16), 256x256 patches
-- **Task**: Binary segmentation — detect aviation contrails in satellite images
-- **Metric**: Dice Score
-- **Baseline**: `nn.Conv2d(3, 2, 1)` (single conv layer)
+- **Source**: MedMNIST (PneumoniaMNIST + ChestMNIST)
+- **Data**: 28×28 grayscale chest X-ray patches
+- **Train**: PneumoniaMNIST (binary: normal vs pneumonia, 5,856 samples)
+- **Test**: ChestMNIST 3-class (normal, pneumonia, consolidation — last class is OOD)
+- **Task**: OOD detection — classify in-distribution (normal, pneumonia) vs OOD (consolidation)
+- **Metrics**: Test Accuracy + OOD F1 (macro F1 across 3 classes)
+- **Baseline**: ~22% test accuracy, ~0.15 OOD F1 (single conv layer)
 
 ### Files
-- `MLAgentBench/benchmarks/identify-contrails/env/train.py` — Starter training script
-- `MLAgentBench/benchmarks/identify-contrails/env/data_description.txt` — Dataset description
-- `MLAgentBench/benchmarks/identify-contrails/scripts/eval.py` — Evaluation script
-- `MLAgentBench/benchmarks/identify-contrails/scripts/prepare.py` — Data download script
+- `MLAgentBench/benchmarks/medmnist/env/train.py` — Starter training script
+- `MLAgentBench/benchmarks/medmnist/env/data_description.txt` — Dataset description
+- `MLAgentBench/benchmarks/medmnist/scripts/eval.py` — Evaluation script
+- `MLAgentBench/benchmarks/medmnist/scripts/prepare.py` — Data download script
 
 ### Running the Task
 ```bash
@@ -281,36 +283,19 @@ source .venv/bin/activate
 
 # Set environment variables
 export OPENROUTER_API_KEY=sk-or-v1-...
-export KAGGLE_CONFIG_DIR=.kaggle
 
 # Run with a specific specialized agent
 python -m MLAgentBench.runner \
-  --task identify-contrails \
+  --task medmnist \
   --device 0 \
-  --log-dir logs/contrails_run1 \
+  --log-dir logs/medmnist_run1 \
   --work-dir workspace \
-  --agent-role cv_expert \
+  --agent-role medical_expert \
   --llm-name "google/gemma-4-26b-a4b-it:free" \
   --fast-llm-name "openai/gpt-oss-20b:free" \
   --agent-max-steps 50 \
   --max-time 18000
 ```
-
----
-
-## ERA5 Data
-
-Pressure-level data for the Amazon region has been downloaded:
-- **Variables**: Relative humidity, Temperature, U-wind, V-wind
-- **Pressure levels**: 500, 700, 850, 1000 hPa
-- **Region**: 5°N to 20°S, 80°W to 35°W (Amazon basin)
-- **Years**: 2023, 2024
-- **Times**: 00:00, 12:00 UTC (every 12 hours)
-- **Format**: NetCDF4
-
-Files:
-- `30769e617fc7d3011ae57470218bd134/data_stream-oper_stepType-instant.nc` — 2023 data (~209MB)
-- `e20ab2936c0bf78f7b82871c72d77fc/data_stream-oper_stepType-instant.nc` — 2024 data (~207MB)
 
 ---
 
@@ -416,14 +401,14 @@ MLSS26_HACKATHON/
 │   │   ├── continual_learning.py      # EWC + replay + versioning
 │   │   └── orchestrator.py            # 🆕 Unified AutoResearch Orchestrator
 │   ├── benchmarks/
-│   │   └── identify-contrails/        # Primary task (satellite imagery)
+│   │   └── medmnist/                  # Primary task (chest X-ray OOD)
 │   └── benchmarks_base/               # MLRC-Bench research tasks
 ├── experiments/                       # Experiment logs (TSV, JSONL)
 ├── dashboard/
 │   ├── backend/                       # FastAPI (port 8000)
 │   └── frontend/                      # Next.js (port 3000)
 ├── scripts/
-│   ├── run_exp.py                     # Standalone experiment CLI
+│   ├── run_medmnist.py                # Standalone experiment CLI
 │   ├── run_hackathon.sh               # Agent launch script
 │   ├── setup.sh                       # Full installation
 │   └── start_dashboard.sh             # Dashboard launcher

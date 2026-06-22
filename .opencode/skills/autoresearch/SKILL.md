@@ -13,26 +13,26 @@ version: 2.2.0
 
 ## Task-Specific Context (MLSS26_HACKATHON)
 
-This project benchmarks contrail detection on GOES-16 satellite imagery.
+This project benchmarks OOD detection on MedMNIST chest X-ray data.
 
 ### Hardware
 - 2× NVIDIA RTX PRO 6000 Blackwell (98GB VRAM each)
 - GPU 0 = training, GPU 1 = available for LLM serving
 
 ### Data
-- Synthetic: 5 train + 5 test samples (256×256, 9 bands, 8 time steps)
-- Real Kaggle dataset (60GB) available for download
+- Train: PneumoniaMNIST (5,856 samples, 28×28 grayscale, binary: normal vs pneumonia)
+- Test: ChestMNIST 3-class (normal, pneumonia, consolidation — consolidation is OOD)
 
 ### Experiment CLI
-- `python scripts/run_exp.py --epochs N --lr X --base-ch N` trains and evaluates
-- `python scripts/run_exp.py --list` shows past runs
-- Default model: U-Net (depth 4, base_ch 32, ~835K params)
-- Metric: Dice Score (higher is better)
+- `python scripts/run_medmnist.py --epochs N --lr X` trains and evaluates
+- `python scripts/run_medmnist.py --list` shows past runs
+- Default model: Simple CNN (3 conv layers, ~100K params)
+- Metric: Test Accuracy + OOD F1
 
 ### Metrics
-- Dice Score: range [0, 1], higher is better
-- Loss: Cross-Entropy with class weights [0.57, 4.17]
-- Training speed: ~25 it/s on Blackwell (real data: ~10 it/s)
+- Test Accuracy: range [0, 1], higher is better
+- OOD F1: macro F1 across 3 classes (normal, pneumonia, consolidation)
+- Baseline: ~22% test acc, ~0.15 OOD F1
 
 ## Subcommands
 
@@ -66,7 +66,7 @@ This project benchmarks contrail detection on GOES-16 satellite imagery.
 ## Scientific AI Mode (subcommand: `/autoresearch_scientific`)
 
 When invoked, this subcommand activates the full Scientific AI pipeline:
-1. **Route** the problem to the best specialized agent (CV, DL, Satellite, Physics, etc.)
+1. **Route** the problem to the best specialized agent (CV, DL, Medical, Robustness, etc.)
 2. **Consult** the agent for a hypothesis + code change proposal
 3. **Execute** the experiment (modify `train.py` → commit → run → eval)
 4. **Decide** keep (metric improved) or discard (metric worsened/crash)
@@ -75,10 +75,10 @@ When invoked, this subcommand activates the full Scientific AI pipeline:
 
 ### Agent Routing
 Keywords map problems to agents automatically:
-- `image`, `unet`, `augment`, `architecture` → **cv_expert**
-- `loss`, `optimizer`, `train`, `learning rate` → **dl_expert**
-- `satellite`, `band`, `goes`, `contrail`, `era5` → **satellite_expert**
-- `physics`, `advection`, `csi`, `pde` → **physics_expert**
+- `image`, `cnn`, `architecture`, `augment`, `classification` → **cv_expert**
+- `loss`, `optimizer`, `train`, `learning rate`, `calibration` → **dl_expert**
+- `pneumonia`, `chest`, `xray`, `medical`, `medmnist` → **medical_expert**
+- `ood`, `robustness`, `detection`, `threshold`, `confidence` → **robustness_expert**
 - `paper`, `sota`, `literature`, `arxiv` → **research_literature**
 - `forget`, `checkpoint`, `ewc`, `version` → **continual_learning**
 - `prompt`, `multi-agent`, `coordinate` → **llm_expert**
@@ -87,7 +87,7 @@ Keywords map problems to agents automatically:
 ### CLI
 ```bash
 bash scripts/run_autoresearch_scientific.sh [agent] [iterations]
-python -m MLAgentBench.agents.orchestrator --agent cv_expert --iterations 25
+python -m MLAgentBench.agents.orchestrator --agent medical_expert --iterations 25
 ```
 
 ---

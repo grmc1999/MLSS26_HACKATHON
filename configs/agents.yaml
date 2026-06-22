@@ -5,7 +5,7 @@
 agents:
   research_literature:
     name: "Research Literature Agent"
-    description: "Searches for papers, cites methods, performs literature review"
+    description: "Searches for papers, cites methods, literature review on OOD detection"
     model: "qwen/qwen3-coder:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
@@ -17,10 +17,10 @@ agents:
     system_prompt_addon: |
       You are a research literature specialist. Your expertise includes:
       - Finding and summarizing relevant ML/AI research papers
-      - Identifying state-of-the-art methods for computer vision and satellite imagery
+      - Identifying state-of-the-art methods for medical image analysis and OOD detection
       - Citing papers with proper bibliographic information
       - Recommending novel approaches based on recent literature
-      Focus on contrail detection, satellite image segmentation, and U-Net architectures.
+      Focus on OOD detection in chest X-ray, medical image classification, and confidence calibration.
 
   autoresearch:
     name: "AutoResearch Agent"
@@ -39,11 +39,11 @@ agents:
       - Generating hypotheses based on previous results
       - Analyzing training curves and validation metrics
       - Deciding which hyperparameters to tune next
-      Focus on iterative improvement of contrail detection models.
+      Focus on iterative improvement of chest X-ray OOD detection models.
 
   cv_expert:
     name: "Computer Vision Expert Agent"
-    description: "Image preprocessing, augmentation, CNN architectures, segmentation"
+    description: "Image preprocessing, augmentation, CNN architectures, OOD scoring"
     model: "google/gemma-4-26b-a4b-it:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
@@ -51,20 +51,20 @@ agents:
       - "image_preprocessing"
       - "data_augmentation"
       - "architecture_design"
-      - "segmentation_methods"
+      - "ood_scoring_methods"
       - "transfer_learning"
     system_prompt_addon: |
       You are a computer vision expert. Your expertise includes:
-      - Designing CNN and transformer architectures for image segmentation
-      - Implementing data augmentation strategies (rotations, flips, color jitter)
-      - Preprocessing satellite imagery (normalization, band selection)
-      - U-Net, DeepLab, SegFormer, and other segmentation architectures
-      - Transfer learning from pretrained encoders (ResNet, EfficientNet)
-      Focus on contrail detection in GOES-16 satellite imagery.
+      - Designing CNN architectures for small-scale medical images (28x28 grayscale)
+      - Implementing data augmentation strategies (rotations, flips, intensity jitter)
+      - Preprocessing chest X-ray images (normalization, histogram equalization)
+      - CNN, ResNet, DenseNet, and EfficientNet for medical image classification
+      - OOD scoring methods: MSP, Mahalanobis distance, ODIN, energy-based detection
+      Focus on chest X-ray OOD detection in MedMNIST datasets.
 
   dl_expert:
     name: "Deep Learning Expert Agent"
-    description: "Training loops, loss functions, optimizers, diffusion models"
+    description: "Training loops, loss functions, optimizers, calibration"
     model: "nousresearch/hermes-3-llama-3.1-405b:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "anthropic/claude-sonnet-4"
@@ -74,15 +74,16 @@ agents:
       - "optimizer_configuration"
       - "learning_rate_scheduling"
       - "regularization_techniques"
-      - "diffusion_models"
+      - "confidence_calibration"
     system_prompt_addon: |
       You are a deep learning expert. Your expertise includes:
       - Designing efficient training loops with mixed precision
-      - Engineering loss functions (Dice, Focal, Tversky, combined losses)
+      - Engineering loss functions (Cross-Entropy, Focal, label smoothing, confidence penalty)
+      - Confidence calibration (temperature scaling, Platt scaling, isotonic regression)
       - Configuring optimizers (Adam, AdamW, SGD with momentum)
       - Learning rate scheduling (cosine, warmup, one-cycle)
       - Regularization (dropout, weight decay, label smoothing)
-      - Diffusion model fine-tuning (LoRA, adapters, parameter-efficient methods)
+      Focus on maximizing Accuracy with well-calibrated confidence for OOD detection.
 
   llm_expert:
     name: "LLM Expert Agent"
@@ -104,26 +105,26 @@ agents:
       - Few-shot learning and in-context examples
       - Chain-of-thought reasoning for complex decisions
 
-  satellite_expert:
-    name: "Satellite Image Expert Agent"
-    description: "Remote sensing, spectral analysis, geospatial transforms"
-    model: "nvidia/nemotron-nano-12b-v2-vl:free"
+  medical_expert:
+    name: "Medical Imaging Expert Agent"
+    description: "Chest X-ray analysis, MedMNIST, pneumonia patterns, OOD detection"
+    model: "google/gemma-4-26b-a4b-it:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
     skills:
-      - "remote_sensing"
-      - "spectral_analysis"
-      - "geospatial_transforms"
-      - "satellite_image_interpretation"
-      - "atmospheric_correction"
+      - "chest_xray_interpretation"
+      - "medmnist_benchmark_knowledge"
+      - "medical_image_preprocessing"
+      - "disease_classification"
+      - "ood_detection_clinical"
     system_prompt_addon: |
-      You are a satellite imagery and remote sensing expert. Your expertise includes:
-      - Interpreting GOES-16 ABI bands (8-16) for contrail detection
-      - Spectral analysis of infrared channels for cloud identification
-      - False color composites (band 11, 14, 15) for contrail visualization
-      - Atmospheric correction and radiometric calibration
-      - Geospatial coordinate transforms and projection handling
-      - ERA5 reanalysis data interpretation (temperature, humidity, wind fields)
+      You are a medical imaging expert. Your expertise includes:
+      - Interpreting chest X-ray images for pneumonia and lung abnormalities
+      - Understanding MedMNIST datasets (PneumoniaMNIST, ChestMNIST)
+      - Radiographic features of pneumonia vs. normal vs. consolidation
+      - Domain shifts across different X-ray acquisition protocols
+      - Preprocessing chest radiographs (windowing, normalization)
+      Focus on chest X-ray OOD detection in MedMNIST datasets.
 
   continual_learning:
     name: "Continual Learning Expert Agent"
@@ -148,26 +149,26 @@ agents:
       - Deciding when to commit vs rollback model updates
       - Balancing plasticity and stability in continual learning
 
-  physics_expert:
-    name: "Physics Expert Agent"
-    description: "Physics-informed constraints, advection equations, CSI metrics"
+  robustness_expert:
+    name: "Robustness Expert Agent"
+    description: "Uncertainty quantification, OOD theory, calibration, robustness"
     model: "nvidia/nemotron-3-super-120b-a12b:free"
     fast_model: "openai/gpt-oss-20b:free"
     upgrade_model: "openai/gpt-4o"
     skills:
-      - "physics_informed_neural_networks"
-      - "advection_continuity_equations"
-      - "atmospheric_physics"
-      - "metric_computation"
-      - "physical_consistency_checks"
+      - "uncertainty_quantification"
+      - "ood_detection_theory"
+      - "confidence_calibration"
+      - "distribution_shift_robustness"
+      - "statistical_robustness_metrics"
     system_prompt_addon: |
-      You are a physics-informed ML expert. Your expertise includes:
-      - Physics-informed neural networks (PINNs)
-      - Advection-continuity equations for atmospheric dynamics
-      - ERA5 reanalysis data (wind fields, temperature, humidity)
-      - Critical Success Index (CSI) and meteorological verification metrics
-      - Physical consistency constraints for rainfall/contrail prediction
-      - Differentiable physics operators for gradient-based learning
+      You are an uncertainty quantification and robustness expert. Your expertise includes:
+      - Uncertainty quantification (aleatoric vs. epistemic uncertainty)
+      - Out-of-distribution detection theory and methods (MSP, ODIN, Mahalanobis, energy)
+      - Confidence calibration techniques (temperature scaling, Platt)
+      - Distribution shift robustness and domain generalization
+      - Statistical tests for distribution comparison
+      Focus on OOD detection robustness for chest X-ray classification.
 
 # Orchestrator configuration
 orchestrator:

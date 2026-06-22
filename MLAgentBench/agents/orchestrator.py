@@ -32,7 +32,7 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIGS_DIR = PROJECT_ROOT / "configs"
-ENV_DIR = PROJECT_ROOT / "MLAgentBench" / "benchmarks" / "identify-contrails" / "env"
+ENV_DIR = PROJECT_ROOT / "MLAgentBench" / "benchmarks" / "medmnist" / "env"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 
@@ -42,24 +42,27 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 ROUTING_KEYWORDS = {
     "research_literature": ["paper", "cite", "literature", "reference", "survey", "arxiv",
-                           "related work", "state-of-the-art", "sota", "publication"],
+                           "related work", "state-of-the-art", "sota", "publication",
+                           "ood detection"],
     "autoresearch": ["experiment", "hypothesis", "plan", "iterate", "strategy",
                     "next step", "analyze result", "baseline", "improve", "compare"],
-    "cv_expert": ["image", "augment", "preprocess", "segment", "conv", "resnet",
-                 "unet", "u-net", "architecture", "encoder", "decoder", "deeplab",
-                 "segformer", "attention", "skip connection"],
+    "cv_expert": ["image", "augment", "preprocess", "conv", "resnet",
+                 "architecture", "encoder", "cnn", "attention", "pooling",
+                 "mahalanobis", "odim", "msp", "energy score"],
     "dl_expert": ["train", "loss", "optimizer", "learning rate", "epoch", "batch",
                  "gradient", "adam", "scheduler", "regularization", "dropout",
-                 "normalization", "mixed precision", "focal", "dice loss"],
+                 "normalization", "mixed precision", "calibration", "temperature",
+                 "confidence", "focal", "label smoothing"],
     "llm_expert": ["prompt", "in-context", "few-shot", "chain-of-thought",
                    "reasoning", "coordinate", "instruction"],
-    "satellite_expert": ["satellite", "remote sensing", "spectral", "band", "goes",
-                        "abi", "infrared", "geospatial", "era5", "atmospheric",
-                        "contrail", "false color", "cloud"],
+    "medical_expert": ["chest", "xray", "x-ray", "x ray", "pneumonia", "lung",
+                      "medmnist", "pneumoniamnist", "chestmnist", "consolidation",
+                      "radiograph", "medical image", "opacity"],
     "continual_learning": ["forget", "remember", "version", "checkpoint", "ewc",
                           "replay", "rollback", "commit", "drift", "fisher"],
-    "physics_expert": ["physics", "advection", "continuity", "csi", "critical success",
-                      "physical", "residual", "constraint", "pde", "wind", "atmosphere"],
+    "robustness_expert": ["uncertainty", "ood", "out-of-distribution", "robust",
+                         "confidence", "calibration", "ece", "auroc", "threshold",
+                         "distribution shift", "domain shift", "generalization"],
 }
 
 
@@ -99,7 +102,7 @@ AUTORESEARCH_SUBCOMMANDS = {
                "compute statistical significance of improvements.",
 
     "ship": "Lock in the current best model. Run final evaluation, export checkpoints, "
-            "generate submission.csv, and register in the leaderboard.",
+            "generate submission, and register in the leaderboard.",
 
     "learn": "Extract learning from past iterations. Summarize what architectural choices, "
              "hyperparameters, and data strategies were most effective.",
@@ -116,8 +119,8 @@ AUTORESEARCH_SUBCOMMANDS = {
     "debug": "Interactive debugging session. Step through the training loop, inspect "
              "tensors, and find bugs or performance bottlenecks.",
 
-    "evals": "Run a comprehensive evaluation suite: compute Dice, IoU, precision, recall, "
-             "F1, and per-class metrics on the test set.",
+    "evals": "Run a comprehensive evaluation suite: compute Accuracy, F1, precision, "
+             "recall, OOD F1, AUROC, and calibration metrics on the test set.",
 
     "regression": "Regression testing: verify that new changes don't break existing "
                   "functionality by comparing against known-good checkpoints.",
@@ -126,7 +129,7 @@ AUTORESEARCH_SUBCOMMANDS = {
                "Estimate the expected improvement based on prior experiments.",
 
     "scenario": "Run what-if scenarios: test the model under different conditions "
-                "(e.g., different weather, time of day, geographic regions).",
+                "(e.g., different disease prevalence, population shifts, noise levels).",
 }
 
 
@@ -185,16 +188,16 @@ class ExperimentManager:
         try:
             entry = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "model": "unet",
+                "model": "cnn",
                 "base_ch": 32,
                 "epochs": 50,
-                "lr": 0.0001,
-                "batch": 2,
+                "lr": 0.001,
+                "batch": 128,
                 "params": 0,
                 "elapsed_s": 0,
-                "best_val_dice": metric,
+                "best_val_acc": metric,
                 "best_epoch": 0,
-                "test_dice": metric,
+                "test_accuracy": metric,
                 "description": description,
             }
             PROJECT_ROOT.joinpath("experiments").mkdir(exist_ok=True)
@@ -219,7 +222,7 @@ class ExperimentManager:
         """Commit current changes and return the commit hash."""
         try:
             subprocess.run(["git", "add", "-f", str(ENV_DIR / "train.py"),
-                          str(SCRIPTS_DIR / "run_exp.py")],
+                          str(SCRIPTS_DIR / "run_medmnist.py")],
                          cwd=PROJECT_ROOT, capture_output=True)
             result = subprocess.run(
                 ["git", "commit", "-m", f"experiment: {description[:100]}"],
@@ -248,7 +251,7 @@ class ExperimentManager:
         try:
             # Restore train.py from HEAD if it was deleted by revert
             result = subprocess.run(
-                ["git", "show", "HEAD:MLAgentBench/benchmarks/identify-contrails/env/train.py"],
+                ["git", "show", "HEAD:MLAgentBench/benchmarks/medmnist/env/train.py"],
                 cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0 and result.stdout:
@@ -267,20 +270,27 @@ class ExperimentManager:
             result = subprocess.run(cmd, shell=True, capture_output=True,
                                    text=True, timeout=600)
             elapsed = time.time() - start
-            # Parse the Validation Dice Score from output
-            dice_match = re.search(r"Validation Dice Score:\s*([\d.]+)", result.stdout)
+            # Parse Test Accuracy from output
+            acc_match = re.search(r"Test Accuracy:\s*([\d.]+)", result.stdout)
+            # Fallback: try OOD F1
+            ood_match = re.search(r"OOD F1:\s*([\d.]+)", result.stdout)
             print(f"[RUN] Completed in {elapsed:.1f}s")
+            metric = None
+            if acc_match:
+                metric = float(acc_match.group(1))
+            elif ood_match:
+                metric = float(ood_match.group(1))
             return {
                 "success": True,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
                 "elapsed": elapsed,
-                "dice": float(dice_match.group(1)) if dice_match else None,
+                "metric": metric,
             }
         except subprocess.TimeoutExpired:
-            return {"success": False, "error": "timeout", "dice": None}
+            return {"success": False, "error": "timeout", "metric": None}
         except Exception as e:
-            return {"success": False, "error": str(e), "dice": None}
+            return {"success": False, "error": str(e), "metric": None}
 
 
 class ScientificAutoResearch:
@@ -365,9 +375,9 @@ class ScientificAutoResearch:
         result = self.experiment.run_experiment(cmd)
 
         # Extract metric
-        if result["success"] and result["dice"] is not None:
-            metric = result["dice"]
-            print(f"[ITER {self.current_iteration}] Dice Score: {metric:.6f}")
+        if result["success"] and result["metric"] is not None:
+            metric = result["metric"]
+            print(f"[ITER {self.current_iteration}] Metric: {metric:.6f}")
         else:
             metric = 0.0
             print(f"[ITER {self.current_iteration}] Experiment failed: {result.get('error', 'unknown')}")
@@ -501,7 +511,7 @@ class ScientificAutoResearch:
         print("[SHIP] Running final evaluation on best model...")
         result = self.experiment.run_experiment(cmd="cd {ENV_DIR} && python train.py > ship.log 2>&1")
         # Export checkpoint
-        checkpoint_src = ENV_DIR / "u-net.pth"
+        checkpoint_src = ENV_DIR / "best_model.pth"
         if checkpoint_src.exists():
             import shutil
             ship_dir = self.log_dir / "shipped"
@@ -560,7 +570,7 @@ Examples:
   python -m MLAgentBench.agents.orchestrator --iterations 25 --agent cv_expert
 
   # Run with specific verify command
-  python -m MLAgentBench.agents.orchestrator --iterations 5 --verify "python scripts/run_exp.py --epochs 50"
+  python -m MLAgentBench.agents.orchestrator --iterations 5 --verify "python scripts/run_medmnist.py --epochs 50"
 
   # Quick eval mode
   python -m MLAgentBench.agents.orchestrator --subcommand evals
@@ -574,7 +584,7 @@ Examples:
                        help="Primary agent role")
     parser.add_argument("--subcommand", choices=list(AUTORESEARCH_SUBCOMMANDS.keys()),
                        help="Run a single subcommand instead of the full loop")
-    parser.add_argument("--verify", default="python scripts/run_exp.py --epochs 50",
+    parser.add_argument("--verify", default="python scripts/run_medmnist.py --epochs 50",
                        help="Verify command that outputs the metric")
     parser.add_argument("--log-dir", default=None, help="Log directory")
     args = parser.parse_args()

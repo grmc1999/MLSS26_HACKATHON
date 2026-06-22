@@ -9,7 +9,7 @@
 # Examples:
 #   bash scripts/run_autoresearch_scientific.sh                    # default, 25 iters
 #   bash scripts/run_autoresearch_scientific.sh cv_expert 10      # CV expert, 10 iters
-#   bash scripts/run_autoresearch_scientific.sh satellite_expert 5 # Satellite expert
+#   bash scripts/run_autoresearch_scientific.sh medical_expert 5  # Medical expert
 # ============================================================================
 
 set -euo pipefail
@@ -41,7 +41,7 @@ python -m MLAgentBench.agents.orchestrator \
     --agent "$AGENT_ROLE" \
     --iterations "$ITERATIONS" \
     --log-dir "$LOG_DIR" \
-    --verify "python scripts/run_exp.py --epochs 50" 2>&1 | tee "$LOG_DIR/loop.log"
+    --verify "python scripts/run_medmnist.py --epochs 50" 2>&1 | tee "$LOG_DIR/loop.log"
 
 # Print summary
 echo ""

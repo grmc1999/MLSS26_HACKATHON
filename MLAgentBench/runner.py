@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     # general agent configs
     parser.add_argument("--agent-type", type=str, default="ResearchAgent", help="agent type")
-    parser.add_argument("--agent-role", type=str, default=None, help="specialized agent role (research_literature, autoresearch, cv_expert, dl_expert, llm_expert, satellite_expert, continual_learning, physics_expert)")
+    parser.add_argument("--agent-role", type=str, default=None, help="specialized agent role (research_literature, autoresearch, cv_expert, dl_expert, llm_expert, medical_expert, continual_learning, robustness_expert)")
     parser.add_argument("--llm-name", type=str, default="nvidia/nemotron-3-super-120b-a12b:free", help="llm name")
     parser.add_argument("--fast-llm-name", type=str, default="nvidia/nemotron-3-nano-30b-a3b:free", help="llm name")
     parser.add_argument("--feedback-llm-name", type=str, default="nvidia/nemotron-3-super-120b-a12b:free", help="llm name")

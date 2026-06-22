@@ -6,7 +6,7 @@ version: 2.2.0
 
 # Autoresearch Scientific — Autonomous Scientific AI Experimentation
 
-Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agents**. At each iteration, the orchestrator can consult domain experts (CV, DL, Satellite, Physics, etc.) before deciding what to modify and whether to keep or discard.
+Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agents**. At each iteration, the orchestrator can consult domain experts (CV, DL, Medical, Robustness, etc.) before deciding what to modify and whether to keep or discard.
 
 ## Safety Invariants
 - Bounded by default. Override with `Iterations: unlimited`.
@@ -18,11 +18,11 @@ Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agent
 
 | Agent | Role | When to Consult |
 |-------|------|----------------|
-| **Research Literature** | Paper search, SOTA methods | Before trying new architecture |
-| **CV Expert** | CNN/transformer architecture, augmentation | When modifying model or data pipeline |
-| **DL Expert** | Loss functions, optimizers, schedulers | When tuning training hyperparameters |
-| **Satellite Expert** | GOES-16 bands, false color, ERA5 | When working with satellite data |
-| **Physics Expert** | PINNs, advection, CSI metrics | When adding physical constraints |
+| **Research Literature** | Paper search, SOTA methods | Before trying new architecture or OOD method |
+| **CV Expert** | CNN architecture, augmentation | When modifying model or data pipeline |
+| **DL Expert** | Loss functions, optimizers, schedulers, calibration | When tuning training or temperature scaling |
+| **Medical Expert** | Chest X-ray pathology, MedMNIST benchmarks | When working with medical image data |
+| **Robustness Expert** | OOD detection, confidence calibration, Mahalanobis | When adding OOD detection or uncertainty estimation |
 | **Continual Learning** | EWC, replay, checkpoints | When managing model versions across iterations |
 | **LLM Expert** | Multi-agent coordination | When synthesizing advice from multiple agents |
 | **AutoResearch** | Experiment planning, strategy | Default — orchestrates the loop itself |
@@ -37,13 +37,13 @@ Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agent
 | `/autoresearch_scientific_fix` | Diagnose crash with agent help, repair code | 15 |
 | `/autoresearch_scientific_analyze` | Deep analysis with statistical rigor | N/A |
 | `/autoresearch_scientific_ship` | Lock best model: final eval, export, submission | N/A |
-| `/autoresearch_scientific_evals` | Full metric suite: Dice, IoU, precision, recall | N/A |
+| `/autoresearch_scientific_evals` | Full metric suite: accuracy, precision, recall, OOD F1 | N/A |
 | `/autoresearch_scientific_probe` | Model internals: activations, gradients, attention | N/A |
 | `/autoresearch_scientific_improve` | Targeted improvement on weakest cases | 10 |
 | `/autoresearch_scientific_debug` | Interactive debugging with agent support | 10 |
 | `/autoresearch_scientific_learn` | Extract cross-iteration lessons | N/A |
 | `/autoresearch_scientific_reason` | Chain-of-thought trajectory analysis | N/A |
-| `/autoresearch_scientific_scenario` | What-if across weather, time, geography | 10 |
+| `/autoresearch_scientific_scenario` | What-if across disease types, noise levels, population shifts | 10 |
 | `/autoresearch_scientific_regression` | Verify no regression vs best checkpoint | N/A |
 
 ## Context (MLSS26_HACKATHON)
@@ -53,17 +53,17 @@ Merges **Karpathy's autoresearch loop** with **8 specialized scientific AI agent
 - GPU 0 = training
 
 ### Experiment CLI
-- `python scripts/run_exp.py --epochs N --lr X --base-ch N --batch N`
-- `python scripts/run_exp.py --list` — past runs
-- Metric: **Test Dice** (range [0,1], higher is better)
+- `python scripts/run_medmnist.py --epochs N --lr X --batch N`
+- `python scripts/run_medmnist.py --list` — past runs
+- Metric: **Test Accuracy** (range [0,1], higher is better) + **OOD F1**
 
 ### Data
-- GOES-16 ABI bands 11, 14, 15 (false color composite)
-- 256×256 patches, binary contrail masks
-- Class imbalance: contrails are <1% of pixels
+- PneumoniaMNIST: 5,856 train samples, 28×28 grayscale
+- ChestMNIST: 3-class test set (normal, pneumonia, consolidation)
+- Consolidation is the OOD class (absent during training)
 
 ### Current Best
-- Test Dice: **0.6000** (class weights [0.1, 15.0], U-Net base_ch=32)
+- Test Accuracy: **0.2200** | OOD F1: **0.1500** (single conv layer baseline)
 
 ## Orchestrator Loop
 
@@ -73,8 +73,8 @@ LOOP FOREVER (bounded):
   2. Agent proposes hypothesis + code change
   3. Modify train.py with one focused change
   4. git commit
-  5. Run: python scripts/run_exp.py --epochs 50
-  6. Extract metric: grep "Test Dice" from output
+  5. Run: python scripts/run_medmnist.py --epochs 50
+  6. Extract metric: grep "Test Accuracy" / "OOD F1" from output
   7. If improved → KEEP (advance branch, update best)
   8. If worse/crash → DISCARD (git revert, restore worktree)
   9. Log iteration to TSV + JSONL

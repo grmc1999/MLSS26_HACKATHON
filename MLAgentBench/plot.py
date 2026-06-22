@@ -8,12 +8,12 @@ import matplotlib.pyplot as plt
 
 task_name_mapping = {
     "cifar10_training" : "cifar10",
-    "google-research-identify-contrails-reduce-global-warming" : "identify-contrails",
+    "chestmnist_3class" : "medmnist",
 }
 
 HUMAN_PERFORMANCE = {
     "cifar10": 0.9,
-    "identify-contrails": 0.6,
+    "medmnist": 0.6,
 }
 
 lower_the_better_tasks = []
@@ -25,7 +25,7 @@ print_labels = {
 
 print_task_labels = {
     "cifar10_training" : "cifar10",
-    "google-research-identify-contrails-reduce-global-warming" : "identify-contrails",
+    "chestmnist_3class" : "medmnist",
 }
 
 
