@@ -69,7 +69,7 @@ export default function Home() {
           if (it.test_acc !== null && it.ood_f1 !== null) {
             data.push({
               iteration: it.iteration,
-              test_acc: it.test_acc,
+              test_acc_id: it.test_acc_id ?? 0,
               ood_f1: it.ood_f1 ?? 0,
               loop: exp.id,
             });
@@ -81,7 +81,7 @@ export default function Home() {
   }, [loopExps]);
 
   const bestTestAcc = useMemo(() =>
-    Math.max(...allIterations.map(d => d.test_acc), 0),
+    Math.max(...allIterations.map(d => d.test_acc_id), 0),
     [allIterations]
   );
 
@@ -90,9 +90,9 @@ export default function Home() {
     [allIterations]
   );
 
-  const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc : 0;
+  const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc_id : 0;
   const latestOODF1 = allIterations.length > 0 ? allIterations[allIterations.length - 1].ood_f1 : 0;
-  const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc : 0;
+  const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc_id : 0;
 
   const recentRuns = useMemo(() =>
     experiments.filter(e => e.source === 'run_exp').slice(0, 8),
@@ -107,19 +107,19 @@ export default function Home() {
         <StatCard label="Total Experiments" value={status?.total_experiments ?? 0}
                   sub={`${loopExps.length} auto loops`} />
         <StatCard label="Agents" value={status?.total_agents ?? 0} />
-        <StatCard label="Best Test Acc (3-class)" value={bestTestAcc.toFixed(4)}
-                  color="#3b82f6" sub="ChestMNIST all 3 classes" />
+        <StatCard label="Best ID Test Acc" value={bestTestAcc.toFixed(4)}
+                  color="#10b981" sub="ChestMNIST Normal+Pneumonia" />
         <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
                   color="#8b5cf6" sub="Consolidation detection" />
-        <StatCard label="Best ID Test Acc" value={
+        <StatCard label="Best Val Acc" value={
           (() => {
-            const ids = recentRuns.map(e => (e.details?.test_acc_id as number) ?? 0).filter(v => v > 0);
-            return ids.length > 0 ? Math.max(...ids).toFixed(4) : 'N/A';
+            const vals = loopExps.flatMap(e => (e.iterations || []).map(i => i.val_acc ?? 0)).filter(v => v > 0);
+            return vals.length > 0 ? Math.max(...vals).toFixed(4) : 'N/A';
           })()
-        } color="#10b981" sub="Normal+Pneumonia only" />
+        } color="#06b6d4" sub="PneumoniaMNIST validation" />
         <StatCard label="Improvement" value={
           firstTestAcc > 0 ? `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%` : 'N/A'
-        } color="#f59e0b" sub="test acc: first → latest" />
+        } color="#f59e0b" sub="ID test acc: first → latest" />
       </div>
 
       {allIterations.length > 1 && (
@@ -133,8 +133,8 @@ export default function Home() {
               <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 1]} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="test_acc" stroke="#3b82f6" strokeWidth={3}
-                    dot={{ r: 6, fill: '#3b82f6' }} name="Test Accuracy" connectNulls />
+              <Line yAxisId="left" type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={3}
+                    dot={{ r: 6, fill: '#10b981' }} name="ID Test Acc" connectNulls />
               <Line yAxisId="right" type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={3}
                     dot={{ r: 6, fill: '#8b5cf6' }} name="OOD F1" connectNulls />
             </LineChart>
@@ -153,7 +153,6 @@ export default function Home() {
                     <th className="text-left py-2">ID</th>
                     <th className="text-right py-2">Val Acc</th>
                     <th className="text-right py-2">ID Test Acc</th>
-                    <th className="text-right py-2">3-class Acc</th>
                     <th className="text-right py-2">OOD F1</th>
                     <th className="text-right py-2">Time</th>
                   </tr>
@@ -173,9 +172,6 @@ export default function Home() {
                         </td>
                         <td className="py-2 text-right font-mono text-xs text-emerald-400">
                           {(details.test_acc_id as number)?.toFixed(4) ?? '—'}
-                        </td>
-                        <td className="py-2 text-right font-mono text-sm">
-                          {(details.test_acc as number)?.toFixed(4) ?? '—'}
                         </td>
                         <td className="py-2 text-right font-mono text-sm">
                           {(details.ood_f1 as number)?.toFixed(4) ?? '—'}

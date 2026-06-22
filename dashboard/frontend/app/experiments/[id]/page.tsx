@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
-import { StatCard, SourceBadge, StatusBadge, ScoreChart } from '../../../src/components/StatCard';
+import { StatCard, SourceBadge, StatusBadge } from '../../../src/components/StatCard';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell, ScatterChart, Scatter, ZAxis,
@@ -115,7 +115,6 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const scores = experiment.scores || [];
   const steps = experiment.steps || [];
   const iterations = experiment.iterations || [];
   const improvement = scores.length >= 2 ? ((scores[scores.length - 1].score - scores[0].score)) : null;
@@ -127,16 +126,17 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
 
   const iterChartData = iterations.map((it, idx) => ({
     iteration: it.iteration,
-    test_acc: it.test_acc,
+    val_acc: it.val_acc,
+    test_acc_id: it.test_acc_id,
     ood_f1: it.ood_f1,
     status: it.status,
-    delta: idx > 0 && iterations[idx - 1].test_acc
-      ? it.test_acc !== null && iterations[idx - 1].test_acc !== null
-        ? (it.test_acc - iterations[idx - 1].test_acc) : 0
+    delta: idx > 0 && iterations[idx - 1].test_acc_id
+      ? it.test_acc_id !== null && iterations[idx - 1].test_acc_id !== null
+        ? (it.test_acc_id - iterations[idx - 1].test_acc_id) : 0
       : 0,
   }));
 
-  const bestTestAcc = Math.max(...iterChartData.map(d => d.test_acc ?? 0));
+  const bestTestAcc = Math.max(...iterChartData.map(d => d.test_acc_id ?? 0));
   const bestOODF1 = Math.max(...iterChartData.map(d => d.ood_f1 ?? 0));
   const valAcc = runDetails.val_acc as number | undefined;
   const idTestAcc = runDetails.test_acc_id as number | undefined;
@@ -178,18 +178,19 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
 
       {iterChartData.length > 1 && (
         <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Test Accuracy & OOD F1 Over Iterations</h2>
+          <h2 className="text-lg font-semibold mb-4">Metrics Over Iterations</h2>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={iterChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
-              <YAxis yAxisId="left" stroke="#3b82f6" domain={[0, 1]} />
-              <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 1]} />
+              <YAxis stroke="#94a3b8" domain={[0, 1]} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="test_acc" stroke="#3b82f6" strokeWidth={2.5}
-                    dot={{ r: 5 }} name="Test Accuracy" connectNulls />
-              <Line yAxisId="right" type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
+              <Line type="monotone" dataKey="val_acc" stroke="#06b6d4" strokeWidth={2}
+                    dot={{ r: 4 }} name="Val Acc (PneumoniaMNIST)" connectNulls />
+              <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
+                    dot={{ r: 5 }} name="ID Test Acc (ChestMNIST)" connectNulls />
+              <Line type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
                     dot={{ r: 5 }} name="OOD F1" connectNulls />
             </LineChart>
           </ResponsiveContainer>
@@ -396,11 +397,6 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
       )}
-
-      <div className="bg-slate-800 rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Score Progression</h2>
-        <ScoreChart scores={scores} color="#3b82f6" height={300} />
-      </div>
 
       {experiment.source === 'run_exp' && experiment.details && (
         <div className="bg-slate-800 rounded-lg p-6">
