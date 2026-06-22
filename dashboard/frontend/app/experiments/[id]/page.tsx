@@ -117,7 +117,7 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
 
   const steps = experiment.steps || [];
   const iterations = experiment.iterations || [];
-  const improvement = scores.length >= 2 ? ((scores[scores.length - 1].score - scores[0].score)) : null;
+  const improvement = iterations.length >= 2 ? ((iterations[iterations.length - 1].test_acc_id ?? 0) - (iterations[0].test_acc_id ?? 0)) : null;
 
   const keptIterations = iterations.filter(i => i.status === 'keep');
   const discardedIterations = iterations.filter(i => i.status === 'discard');
