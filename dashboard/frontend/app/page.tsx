@@ -17,7 +17,7 @@ interface Experiment {
   scores?: { step: number; score: number }[];
   steps?: { step: number }[];
   details?: Record<string, unknown>;
-  iterations?: { iteration: number; test_acc: number | null; ood_f1: number | null; status: string }[];
+  iterations?: { iteration: number; val_acc?: number | null; test_acc_id?: number | null; test_acc: number | null; ood_f1: number | null; status: string }[];
 }
 
 interface ScoreData { step: number; score: number; }
@@ -62,13 +62,14 @@ export default function Home() {
   );
 
   const allIterations = useMemo(() => {
-    const data: { iteration: number; test_acc: number; ood_f1: number; loop: string }[] = [];
+    const data: { iteration: number; val_acc: number; test_acc_id: number; ood_f1: number; loop: string }[] = [];
     loopExps.forEach(exp => {
       if (exp.iterations) {
         exp.iterations.forEach(it => {
-          if (it.test_acc !== null && it.ood_f1 !== null) {
+          if (it.test_acc_id !== null && it.ood_f1 !== null) {
             data.push({
               iteration: it.iteration,
+              val_acc: it.val_acc ?? 0,
               test_acc_id: it.test_acc_id ?? 0,
               ood_f1: it.ood_f1 ?? 0,
               loop: exp.id,
@@ -79,6 +80,11 @@ export default function Home() {
     });
     return data.sort((a, b) => a.iteration - b.iteration);
   }, [loopExps]);
+
+  const bestValAcc = useMemo(() =>
+    Math.max(...allIterations.map(d => d.val_acc), 0),
+    [allIterations]
+  );
 
   const bestTestAcc = useMemo(() =>
     Math.max(...allIterations.map(d => d.test_acc_id), 0),
@@ -93,6 +99,7 @@ export default function Home() {
   const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc_id : 0;
   const latestOODF1 = allIterations.length > 0 ? allIterations[allIterations.length - 1].ood_f1 : 0;
   const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc_id : 0;
+  const bestOverallValAcc = Math.max(bestValAcc, ...recentRuns.map(e => (e.details?.val_acc as number) ?? 0).filter(v => v > 0));
 
   const recentRuns = useMemo(() =>
     experiments.filter(e => e.source === 'run_exp').slice(0, 8),
@@ -111,12 +118,8 @@ export default function Home() {
                   color="#10b981" sub="ChestMNIST Normal+Pneumonia" />
         <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
                   color="#8b5cf6" sub="Consolidation detection" />
-        <StatCard label="Best Val Acc" value={
-          (() => {
-            const vals = loopExps.flatMap(e => (e.iterations || []).map(i => i.val_acc ?? 0)).filter(v => v > 0);
-            return vals.length > 0 ? Math.max(...vals).toFixed(4) : 'N/A';
-          })()
-        } color="#06b6d4" sub="PneumoniaMNIST validation" />
+        <StatCard label="Best Val Acc" value={bestValAcc > 0 ? bestValAcc.toFixed(4) : 'N/A'}
+                  color="#06b6d4" sub="PneumoniaMNIST validation" />
         <StatCard label="Improvement" value={
           firstTestAcc > 0 ? `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%` : 'N/A'
         } color="#f59e0b" sub="ID test acc: first → latest" />
@@ -124,19 +127,20 @@ export default function Home() {
 
       {allIterations.length > 1 && (
         <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Test Accuracy & OOD F1 Over All Iterations</h2>
+          <h2 className="text-xl font-semibold mb-4">Metrics Over All Iterations</h2>
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={allIterations} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
-              <YAxis yAxisId="left" stroke="#3b82f6" domain={[0, 1]} />
-              <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 1]} />
+              <YAxis stroke="#94a3b8" domain={[0, 1]} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={3}
-                    dot={{ r: 6, fill: '#10b981' }} name="ID Test Acc" connectNulls />
-              <Line yAxisId="right" type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={3}
-                    dot={{ r: 6, fill: '#8b5cf6' }} name="OOD F1" connectNulls />
+              <Line type="monotone" dataKey="val_acc" stroke="#06b6d4" strokeWidth={2}
+                    dot={{ r: 5 }} name="Val Acc" connectNulls />
+              <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
+                    dot={{ r: 5 }} name="ID Test Acc" connectNulls />
+              <Line type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
+                    dot={{ r: 5 }} name="OOD F1" connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -198,7 +202,7 @@ export default function Home() {
                 const iterCount = loop.iterations?.length ?? 0;
                 const keptCount = loop.iterations?.filter(i => i.status === 'keep').length ?? 0;
                 const bestAcc = loop.iterations
-                  ? Math.max(...loop.iterations.map(i => i.test_acc ?? 0))
+                  ? Math.max(...loop.iterations.map(i => i.test_acc_id ?? 0))
                   : 0;
                 return (
                   <div key={loop.id} className="bg-slate-900 rounded p-4 border border-slate-700">
