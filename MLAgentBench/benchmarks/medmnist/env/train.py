@@ -111,26 +111,35 @@ def in_distribution_accuracy(all_labels, all_preds, id_classes=(0, 1)):
     return (all_preds[mask] == all_labels[mask]).sum().item() / mask.sum()
 
 
-def save_viz_data(model, loader, device, out_dir=None):
+def save_viz_data(model, loader, device, val_loader=None, out_dir=None):
     """Save PCA embeddings, sample images, and confusion matrix for dashboard."""
     import json, base64, io
-    features_list, labels_list, images_list = [], [], []
+    features_list, labels_list, images_list, source_list = [], [], [], []
     hook_handle = model.fc1.register_forward_hook(lambda m, i, o: features_list.append(i[0].detach().cpu()))
 
     model.eval()
-    with torch.no_grad():
-        for X, y in loader:
-            X_img = X.cpu()
-            X = X.to(device)
-            logits = model(X)
-            labels_list.extend(y.numpy())
-            images_list.append(X_img)
+
+    def extract(loader, source_name):
+        with torch.no_grad():
+            for X, y in loader:
+                X_img = X.cpu()
+                X = X.to(device)
+                model(X)
+                labels_list.extend(y.numpy())
+                images_list.append(X_img)
+                source_list.extend([source_name] * len(y))
+
+    extract(loader, "ChestMNIST (test)")
+    if val_loader is not None:
+        extract(val_loader, "PneumoniaMNIST (val)")
+
     hook_handle.remove()
     all_features = torch.cat(features_list, dim=0).numpy()
     all_labels = np.array(labels_list)
     all_images = torch.cat(images_list, dim=0)
+    all_sources = np.array(source_list)
 
-    # PCA
+    # PCA on combined features so both datasets share the same space
     mean = all_features.mean(axis=0)
     centered = all_features - mean
     cov = centered.T @ centered / (all_features.shape[0] - 1)
@@ -138,10 +147,10 @@ def save_viz_data(model, loader, device, out_dir=None):
     idx = np.argsort(eigvals)[::-1][:2]
     embedding_2d = centered @ eigvecs[:, idx]
 
-    # Sample images (first 3 per class)
+    # Sample images from test set only (first 3 per class)
     sample_images = {}
     for c in range(3):
-        mask = all_labels == c
+        mask = (all_labels == c) & (all_sources == "ChestMNIST (test)")
         idxs = np.where(mask)[0][:3]
         sample_images[CLASS_NAMES[c]] = []
         for sidx in idxs:
@@ -157,7 +166,7 @@ def save_viz_data(model, loader, device, out_dir=None):
             plt.close()
             sample_images[CLASS_NAMES[c]].append(base64.b64encode(buf.getvalue()).decode())
 
-    # Embeddings
+    # OOD predictions on test set only
     ood_preds = []
     with torch.no_grad():
         for X, _ in loader:
@@ -168,15 +177,27 @@ def save_viz_data(model, loader, device, out_dir=None):
             ood_preds.extend(ood)
     ood_preds = np.array(ood_preds)
 
-    embeddings = [{"x": float(embedding_2d[i, 0]), "y": float(embedding_2d[i, 1]),
-                    "label": int(all_labels[i]), "label_name": CLASS_NAMES[int(all_labels[i])],
-                    "pred_raw": 0, "pred_ood": int(ood_preds[i]), "is_ood": bool(ood_preds[i] == 2)}
-                  for i in range(len(all_labels))]
+    test_mask = all_sources == "ChestMNIST (test)"
+    ood_idx = 0
+    embeddings = []
+    for i in range(len(all_labels)):
+        if test_mask[i]:
+            this_ood = int(ood_preds[ood_idx])
+            ood_idx += 1
+        else:
+            this_ood = 0
+        label_name = CLASS_NAMES[int(all_labels[i])] if int(all_labels[i]) < 3 else "unknown"
+        embeddings.append({
+            "x": float(embedding_2d[i, 0]), "y": float(embedding_2d[i, 1]),
+            "label": int(all_labels[i]), "label_name": label_name,
+            "dataset": str(all_sources[i]),
+            "pred_ood": this_ood, "is_ood": bool(this_ood == 2),
+        })
 
     # Per-class accuracy
     per_class_acc = {}
     for c in range(3):
-        mask = all_labels == c
+        mask = test_mask & (all_labels == c)
         if mask.sum() > 0:
             per_class_acc[CLASS_NAMES[c]] = {"total": int(mask.sum()), "correct": 0, "accuracy": 0.0}
 

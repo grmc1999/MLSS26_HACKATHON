@@ -25,7 +25,7 @@ interface Embedding {
   y: number;
   label: number;
   label_name: string;
-  pred_raw: number;
+  dataset: string;
   pred_ood: number;
   is_ood: boolean;
 }
@@ -303,7 +303,8 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
           <h2 className="text-lg font-semibold mb-2">Feature Embeddings (PCA)</h2>
           <p className="text-xs text-slate-400 mb-4">
             Penultimate layer features projected to 2D via PCA.
-            Each point is a test sample colored by ground truth class.
+            Circles = ChestMNIST (test), Diamonds = PneumoniaMNIST (val).
+            Colored by ground truth class. Helps visualize domain shift.
           </p>
           <ResponsiveContainer width="100%" height={400}>
             <ScatterChart margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -314,12 +315,25 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
                        formatter={(value: number, name: string) => [value.toFixed(2), name]}
                        labelFormatter={(label: string) => ''} />
-              <Legend />
+              <Legend formatter={(value: string) => {
+                // Clean up legend: remove dataset prefix for cleaner look
+                return value.replace(/^ChestMNIST /, '').replace(/^PneumoniaMNIST /, '');
+              }} />
               {[0, 1, 2].map(cls => {
                 const color = cls === 0 ? '#3b82f6' : cls === 1 ? '#10b981' : '#ef4444';
-                const name = vizData.class_names?.[cls] ?? `Class ${cls}`;
-                const data = vizData.embeddings?.filter(e => e.label === cls) ?? [];
-                return <Scatter key={cls} name={name} data={data} fill={color} shape="circle" />;
+                const testData = vizData.embeddings?.filter(e => e.label === cls && e.dataset === 'ChestMNIST (test)') ?? [];
+                const valData = vizData.embeddings?.filter(e => e.label === cls && e.dataset !== 'ChestMNIST (test)') ?? [];
+                const className = vizData.class_names?.[cls] ?? `Class ${cls}`;
+                return (
+                  <>
+                    <Scatter key={`test-${cls}`} name={`ChestMNIST ${className}`} data={testData}
+                             fill={color} shape="circle" fillOpacity={0.9} />
+                    {valData.length > 0 && (
+                      <Scatter key={`val-${cls}`} name={`PneumoniaMNIST ${className}`} data={valData}
+                               fill={color} shape="diamond" fillOpacity={0.4} stroke={color} strokeWidth={1} strokeOpacity={0.6} />
+                    )}
+                  </>
+                );
               })}
             </ScatterChart>
           </ResponsiveContainer>

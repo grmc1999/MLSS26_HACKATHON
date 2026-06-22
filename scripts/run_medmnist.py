@@ -104,7 +104,7 @@ def train_model(args):
     print(f"{'='*50}")
 
     try:
-        save_viz_data(model, test_loader, device)
+        save_viz_data(model, test_loader, device, val_loader=val_loader)
     except Exception as e:
         print(f"Viz data save skipped: {e}")
 
