@@ -365,7 +365,7 @@ if __name__ == "__main__":
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
     criterion = FocalLoss(gamma=2.0, logit_norm=True)
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
     for epoch in range(epochs):

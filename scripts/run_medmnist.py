@@ -55,7 +55,7 @@ def train_model(args):
 
     model = create_model(model_name=args.model, num_classes=2, pretrained=args.pretrained).to(device)
     criterion = FocalLoss(gamma=2.0, logit_norm=True)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
     best_val_acc, best_epoch = 0, 0
