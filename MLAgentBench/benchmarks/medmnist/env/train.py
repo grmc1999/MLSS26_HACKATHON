@@ -298,7 +298,29 @@ if __name__ == "__main__":
     epochs = 20
     lr = 1e-3
 
-    train_loader = DataLoader(train_ds, batch_size, shuffle=True, num_workers=1)
+    from torchvision import transforms
+    train_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomAffine(degrees=10, translate=(0.05, 0.05), scale=(0.95, 1.05)),
+    ])
+
+    class AugmentedDataset(torch.utils.data.Dataset):
+        def __init__(self, base_ds, transform):
+            self.base_ds = base_ds
+            self.transform = transform
+        def __len__(self):
+            return len(self.base_ds)
+        def __getitem__(self, idx):
+            img, label = self.base_ds[idx]
+            img_np = img.numpy().squeeze()
+            from PIL import Image
+            img_pil = Image.fromarray((img_np * 255).astype(np.uint8), mode='L')
+            img_pil = self.transform(img_pil)
+            img = torch.from_numpy(np.array(img_pil).astype(np.float32) / 255.0).unsqueeze(0)
+            return img, label
+
+    train_aug = AugmentedDataset(train_ds, train_transform)
+    train_loader = DataLoader(train_aug, batch_size, shuffle=True, num_workers=1)
     val_loader = DataLoader(val_ds, batch_size, shuffle=False, num_workers=1)
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 

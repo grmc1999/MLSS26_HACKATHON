@@ -25,10 +25,31 @@ def train_model(args):
     import torch, torch.nn as nn, numpy as np
     from torch.utils.data import DataLoader
     from tqdm import tqdm
+    from torchvision import transforms
+    from PIL import Image
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_ds, val_ds, test_ds = get_datasets()
-    train_loader = DataLoader(train_ds, args.batch, shuffle=True, num_workers=1)
+    train_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomAffine(degrees=10, translate=(0.05, 0.05), scale=(0.95, 1.05)),
+    ])
+
+    class AugmentedDataset(torch.utils.data.Dataset):
+        def __init__(self, base_ds, transform):
+            self.base_ds = base_ds
+            self.transform = transform
+        def __len__(self):
+            return len(self.base_ds)
+        def __getitem__(self, idx):
+            img, label = self.base_ds[idx]
+            img_np = img.numpy().squeeze()
+            img_pil = Image.fromarray((img_np * 255).astype(np.uint8), mode='L')
+            img_pil = self.transform(img_pil)
+            img = torch.from_numpy(np.array(img_pil).astype(np.float32) / 255.0).unsqueeze(0)
+            return img, label
+
+    train_loader = DataLoader(AugmentedDataset(train_ds, train_transform), args.batch, shuffle=True, num_workers=1)
     val_loader = DataLoader(val_ds, args.batch, shuffle=False, num_workers=1)
     test_loader = DataLoader(test_ds, args.batch, shuffle=False, num_workers=1)
 
