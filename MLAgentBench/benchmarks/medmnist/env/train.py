@@ -24,11 +24,13 @@ class SimpleCNN(nn.Module):
         super().__init__()
         import torchvision.models as models
         d = models.densenet121(weights=models.DenseNet121_Weights.IMAGENET1K_V1)
-        self.features = d.features
-        avg_weight = d.features.conv0.weight.mean(1, keepdim=True)
-        self.features.conv0 = nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False)
-        self.features.conv0.weight = nn.Parameter(avg_weight)
-        in_features = d.classifier.in_features
+        children = list(d.features.children())
+        self.stem = nn.Sequential(*children[:4])
+        avg_weight = self.stem[0].weight.mean(1, keepdim=True)
+        self.stem[0] = nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False)
+        self.stem[0].weight = nn.Parameter(avg_weight)
+        self.blocks = nn.Sequential(*children[4:9])
+        in_features = 1024
         self.classifier = nn.Sequential(
             nn.Linear(in_features, 256),
             nn.ReLU(),
@@ -38,7 +40,8 @@ class SimpleCNN(nn.Module):
         self.num_classes = num_classes
 
     def forward(self, x):
-        x = self.features(x)
+        x = self.stem(x)
+        x = self.blocks(x)
         x = F.relu(x, inplace=True)
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = torch.flatten(x, 1)
