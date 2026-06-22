@@ -71,19 +71,26 @@ def train_model(args):
     elapsed = time.time() - start
     model.load_state_dict(torch.load("medmnist_model.pth"))
 
-    # Test evaluation
+    # Test evaluation with ODIN: temperature scaling + input perturbation
     import torch.nn.functional as F
     test_acc, preds, labels = evaluate(model, test_loader, device)
     model.eval()
+    temperature = 2.0
+    epsilon = 0.001
     ood_preds = []
-    with torch.no_grad():
-        for X, _ in test_loader:
-            X = X.to(device)
-            logits = model(X)
-            probs = F.softmax(logits, dim=1)
-            max_probs, _ = probs.max(1)
-            ood = (max_probs < args.ood_threshold).cpu().numpy().astype(int) * 2
-            ood_preds.extend(ood)
+    for X, _ in test_loader:
+        X = X.to(device).requires_grad_(True)
+        logits = model(X)
+        max_logit = logits.max(1).values
+        grad = torch.autograd.grad(max_logit.sum(), X, create_graph=False)[0]
+        X_adv = X - epsilon * grad.sign()
+        with torch.no_grad():
+            logits_adv = model(X_adv)
+            probs = F.softmax(logits_adv / temperature, dim=1)
+            max_probs = probs.max(1).values
+        ood = (max_probs < args.ood_threshold).cpu().numpy().astype(int) * 2
+        ood_preds.extend(ood)
+        X.detach_()
     ood_preds = np.array(ood_preds)
     metrics = ood_metrics(labels, ood_preds)
     per_class = per_class_accuracy(labels, ood_preds, num_classes=3)
