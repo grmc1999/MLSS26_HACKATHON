@@ -1,7 +1,7 @@
 ---
 name: autoresearch_scientific
 description: "Scientific AI mode: autoresearch loop with 8 specialized agents for chest X-ray OOD detection"
-argument-hint: "[Goal: <text>] [Agent: <role>] [Iterations: N] [--evals]"
+argument-hint: "[Goal: <text>] [Agent: <role>] [Iterations: N] [RAG: yes|no] [--evals]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -34,6 +34,7 @@ question (single batch):
   Q1 (Goal): "What do you want to improve?" — Test Accuracy, OOD F1, both, architecture
   Q2 (Agent): "Primary agent?" — autoresearch (default), cv_expert, dl_expert, medical_expert, robustness_expert
   Q3 (Iterations): "Iterations?" — default 25
+  Q4 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Routing Logic
 
@@ -65,6 +66,7 @@ For each iteration (1 to max_iterations):
 
 ### Phase 1: Consult Agent
 - Route the current problem to the best agent
+- **If RAG is enabled**: first query the medical literature index, then share search results with the agent
 - Agent provides: hypothesis + specific code change proposal
 - Agent response includes scientific reasoning
 
