@@ -30,6 +30,24 @@ class LabelSmoothingCrossEntropy(nn.Module):
         return -(smooth_labels * log_probs).sum(dim=1).mean()
 
 
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=2.0, alpha=None):
+        super().__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+
+    def forward(self, pred, target):
+        log_probs = F.log_softmax(pred, dim=1)
+        probs = log_probs.exp()
+        one_hot = torch.zeros_like(pred).scatter(1, target.unsqueeze(1), 1)
+        pt = (one_hot * probs).sum(dim=1)
+        focal_weight = (1 - pt) ** self.gamma
+        if self.alpha is not None:
+            alpha_t = self.alpha[target]
+            focal_weight = focal_weight * alpha_t
+        return -(focal_weight * log_probs.gather(1, target.unsqueeze(1)).squeeze()).mean()
+
+
 try:
     from torchvision.models import densenet121, DenseNet121_Weights
     HAS_TORCHVISION = True
@@ -325,7 +343,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=1)
 
     model = create_model(model_name="SimpleCNN", num_classes=2).to(device)
-    criterion = LabelSmoothingCrossEntropy(smoothing=0.1)
+    criterion = FocalLoss(gamma=2.0)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_acc = 0
