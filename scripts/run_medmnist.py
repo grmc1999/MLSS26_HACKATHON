@@ -71,7 +71,7 @@ def train_model(args):
     elapsed = time.time() - start
     model.load_state_dict(torch.load("medmnist_model.pth"))
 
-    # Test evaluation with TTA (horizontal flip averaging)
+    # Test evaluation
     import torch.nn.functional as F
     test_acc, preds, labels = evaluate(model, test_loader, device)
     model.eval()
@@ -81,11 +81,7 @@ def train_model(args):
             X = X.to(device)
             logits = model(X)
             probs = F.softmax(logits, dim=1)
-            X_flip = X.flip(-1)
-            logits_flip = model(X_flip)
-            probs += F.softmax(logits_flip, dim=1)
-            probs /= 2
-            max_probs = probs.max(1).values
+            max_probs, _ = probs.max(1)
             ood = (max_probs < args.ood_threshold).cpu().numpy().astype(int) * 2
             ood_preds.extend(ood)
     ood_preds = np.array(ood_preds)

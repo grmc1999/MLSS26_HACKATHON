@@ -360,8 +360,9 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("medmnist_model.pth"))
     test_acc, preds, labels = evaluate(model, test_loader, device)
 
-    # Predictions: model outputs 2 classes. Map OOD detection with TTA:
-    # Test-time horizontal flip averaging for more robust OOD scoring.
+    # Predictions: model outputs 2 classes. Map OOD detection:
+    # If model predicts class 0 or 1 with low confidence → mark as OOD.
+    # Simple approach: use softmax threshold for OOD detection.
     model.eval()
     ood_preds = []
     with torch.no_grad():
@@ -369,12 +370,9 @@ if __name__ == "__main__":
             X = X.to(device)
             logits = model(X)
             probs = F.softmax(logits, dim=1)
-            X_flip = X.flip(-1)
-            logits_flip = model(X_flip)
-            probs += F.softmax(logits_flip, dim=1)
-            probs /= 2
-            max_probs = probs.max(1).values
-            threshold = 0.6
+            max_probs, hard_preds = probs.max(1)
+            # If max probability < threshold, label as OOD (class 2)
+            threshold = 0.7
             ood = (max_probs < threshold).cpu().numpy().astype(int) * 2
             ood_preds.extend(ood)
 
