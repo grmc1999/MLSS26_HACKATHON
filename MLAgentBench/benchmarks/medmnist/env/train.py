@@ -47,12 +47,6 @@ def train_epoch(model, loader, optimizer, criterion, device):
     total_loss, correct, total = 0, 0, 0
     for X, y in tqdm(loader, desc="Train", leave=False):
         X, y = X.to(device), y.to(device)
-        # Data augmentation: random horizontal flip + Gaussian noise
-        if model.training:
-            flip_mask = torch.rand(X.size(0), 1, 1, 1, device=device) > 0.5
-            X = torch.where(flip_mask, X.flip(-1), X)
-            noise = torch.randn_like(X) * 0.02
-            X = X + noise
         optimizer.zero_grad()
         pred = model(X)
         loss = criterion(pred, y)
