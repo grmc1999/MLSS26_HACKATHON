@@ -21,7 +21,7 @@ LOG_FILE = LOGS_DIR / "runs.jsonl"
 
 def train_model(args):
     from loader import get_datasets, CLASS_NAMES, OOD_CLASS
-    from train import create_model, FocalLoss, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data, in_distribution_accuracy
+    from train import create_model, SmoothFocalLoss, train_epoch, evaluate, ood_metrics, per_class_accuracy, save_viz_data, in_distribution_accuracy
     import torch, torch.nn as nn, numpy as np
     from torch.utils.data import DataLoader
     from tqdm import tqdm
@@ -54,7 +54,7 @@ def train_model(args):
     test_loader = DataLoader(test_ds, args.batch, shuffle=False, num_workers=1)
 
     model = create_model(model_name=args.model, num_classes=2, pretrained=args.pretrained).to(device)
-    criterion = FocalLoss(gamma=2.0)
+    criterion = SmoothFocalLoss(gamma=2.0, smoothing=0.05)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
