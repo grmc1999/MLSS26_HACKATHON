@@ -110,7 +110,7 @@ def parse_loop_results() -> list[dict]:
         scores = []
         iterations_data = []
         final_score = None
-                    for i, line in enumerate(lines[1:]):
+        for i, line in enumerate(lines[1:]):
             if not line or line.startswith("#"):
                 continue
             parts = line.split("\t")
