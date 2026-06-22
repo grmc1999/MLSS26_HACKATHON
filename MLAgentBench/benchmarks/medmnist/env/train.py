@@ -65,7 +65,7 @@ def create_xrv_densenet(num_classes=3):
     base = xrv.models.DenseNet(weights="densenet121-res224-all")
     in_features = base.classifier.in_features
     base.classifier = nn.Linear(in_features, num_classes)
-    base.forward = lambda x: base.classifier(torch.flatten(base.avgpool(base.features(x)), 1))
+    base.forward = lambda x: base.classifier(base.features(x).mean(dim=[2, 3]))
     return base
 
 
