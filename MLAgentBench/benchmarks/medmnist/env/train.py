@@ -34,7 +34,6 @@ class SimpleCNN(nn.Module):
         self.dropout3 = nn.Dropout(0.25)
         self.fc1 = nn.Linear(128 * 3 * 3, 256)
         self.fc2 = nn.Linear(256, 3)
-        self.temperature = nn.Parameter(torch.tensor(2.0))
         self.num_classes = num_classes
 
     def forward(self, x):
@@ -45,7 +44,7 @@ class SimpleCNN(nn.Module):
         x = self.dropout(x)
         x = F.leaky_relu(self.fc1(x), 0.1)
         x = self.dropout2(x)
-        x = self.fc2(x) / self.temperature
+        x = self.fc2(x)
         return x
 
 
