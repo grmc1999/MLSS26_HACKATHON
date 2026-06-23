@@ -23,15 +23,28 @@ from MLAgentBench.agents.agent import Agent, SimpleActionAgent, ReasoningActionA
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 INDEX_DIR = PROJECT_ROOT / "index_output"
+FLU_INDEX_DIR = PROJECT_ROOT / "index_output_flu"
 
 _literature_model = None
 _literature_processor = None
 _literature_index = None
 _literature_articles = None
+_flu_index = None
+_flu_articles = None
 
 
-def _ensure_literature_loaded():
+def _ensure_literature_loaded(task="medmnist"):
     global _literature_model, _literature_processor, _literature_index, _literature_articles
+    global _flu_index, _flu_articles
+
+    if task == "flu":
+        idx_path = FLU_INDEX_DIR / "index.faiss"
+        art_path = FLU_INDEX_DIR / "articles.json"
+        if idx_path.exists() and art_path.exists() and _flu_index is None:
+            _flu_index = faiss.read_index(str(idx_path))
+            _flu_articles = json.loads(art_path.read_text())
+        return
+
     if _literature_index is None:
         idx_path = INDEX_DIR / "index.faiss"
         art_path = INDEX_DIR / "articles.json"
@@ -49,12 +62,21 @@ def _ensure_literature_loaded():
             _literature_model.eval()
 
 
-def search_medical_literature(query: str, k: int = 5) -> list[dict]:
-    """Search the medical literature FAISS index by text query.
-    
-    Returns top-k relevant paper titles with similarity scores.
-    """
-    _ensure_literature_loaded()
+def search_medical_literature(query: str, k: int = 5, task: str = "medmnist") -> list[dict]:
+    _ensure_literature_loaded(task)
+    if task == "flu":
+        if _flu_index is None:
+            return [{"error": "Flu index not found. Run scripts/build_flu_rag.py first."}]
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        emb = model.encode([query])
+        emb = emb / np.linalg.norm(emb, axis=-1, keepdims=True)
+        dist, idx = _flu_index.search(emb.astype(np.float32), k)
+        results = []
+        for d, i in zip(dist[0], idx[0]):
+            if i < len(_flu_articles):
+                results.append({"title": _flu_articles[i].get("file", str(i)), "score": float(d)})
+        return results
     if _literature_index is None:
         return [{"error": "Literature index not found. Run scripts/build_rag_index.py first."}]
     device = next(_literature_model.parameters()).device
