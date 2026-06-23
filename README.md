@@ -1,8 +1,15 @@
-# MLSS26 Hackathon — Scientific AI AutoResearch (Chest X-ray OOD)
+# MLSS26 Hackathon — Scientific AI AutoResearch (Multi-Task)
 
-An autonomous **Scientific AI AutoResearch** system for medical chest X-ray classification with **Out-of-Distribution (OOD) detection**. Trains on PneumoniaMNIST (2 classes: normal, pneumonia), evaluates on ChestMNIST (3 classes: normal, pneumonia, **consolidation — an unseen OOD class**).
+An autonomous **Scientific AI AutoResearch** system supporting multiple ML tasks. Each task has its own training script, metrics, and environment — all share the same 8-agent pipeline, code jury, and keep/discard loop.
 
-Uses **free OpenRouter models** to power 8 specialized agents that collaborate to improve the OOD detection model.
+## Available Tasks
+
+| Task | Domain | Runner | Primary Metric | Best Result |
+|------|--------|--------|----------------|-------------|
+| **medmnist** | Chest X-ray OOD detection | `scripts/run_medmnist.py` | OOD F1 / ID Test Acc | OOD F1: 0.3234 |
+| **flu** | ILI forecasting (CDC + WHO) | `scripts/run_exp.py` | Test MAE | 0.802 (baseline) |
+
+Pass `Task: medmnist` or `Task: flu` when invoking `/autoresearch_pipeline`.
 
 ---
 
@@ -109,7 +116,7 @@ Run `/autoresearch_pipeline` for a **multi-expert workflow** that cycles through
 
 ---
 
-## 16 AutoResearch Slash Commands
+## 14 AutoResearch Slash Commands
 
 Available as opencode commands (type `/` in the TUI). Defined in `.opencode/commands/autoresearch_*.md`. Each command asks setup questions — **RAG** (search medical literature) and/or **Pretrained** (finetune pretrained models).
 
@@ -119,8 +126,6 @@ Available as opencode commands (type `/` in the TUI). Defined in `.opencode/comm
 | `/autoresearch_plan` | Convert goal into experiment config | Q3 | — |
 | `/autoresearch_debug` | Hunt bugs via hypothesis testing | Q4 | — |
 | `/autoresearch_fix` | Fix errors one-by-one to zero | Q3 | — |
-| `/autoresearch_security` | Security audit of pipeline | Q2 | — |
-| `/autoresearch_ship` | Lock best model, final eval | Q2 | — |
 | `/autoresearch_scenario` | Explore edge cases and sensitivity | Q3 | — |
 | `/autoresearch_predict` | 5-expert debate before changing code | Q2 | — |
 | `/autoresearch_learn` | Extract cross-iteration lessons | Q2 | — |
@@ -130,7 +135,7 @@ Available as opencode commands (type `/` in the TUI). Defined in `.opencode/comm
 | `/autoresearch_evals` | Analyze trends across all runs | Q1 | — |
 | `/autoresearch_regression` | Baseline vs candidate stability gate | Q3 | — |
 | `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | Q4 | Q5 |
-| `/autoresearch_pipeline` | 🔄 Multi-expert pipeline: 8 agents in sequence per iteration — research_literature + medical_expert → llm_expert + autoresearch → cv_expert/dl_expert → robustness_expert + continual_learning | Q3 | Q4 |
+| `/autoresearch_pipeline` | 🔄 Multi-expert pipeline: 8 agents + code jury per iteration — research → plan → code → jury → review → commit → run → decide → log. Supports `Task: medmnist` or `Task: flu` | Q3 | Q4 |
 
 ---
 
@@ -208,7 +213,11 @@ MLSS26_HACKATHON/
 ├── README.md
 ├── program.md
 ├── .opencode/skills/autoresearch/SKILL.md     # 15 subcommands
-├── configs/agents.yaml                         # Agents config
+├── env/                                          # 🆕 Flu forecasting task
+│   ├── data.py                                   # CDC + WHO data loaders
+│   ├── train.py                                  # Forecasting models (LSTM, GRU, TCN, Transformer)
+│   └── eval.py                                   # Evaluation metrics
+├── configs/agents.yaml                           # Agents config
 ├── configs/models.yaml                         # OpenRouter models
 ├── MLAgentBench/agents/
 │   ├── orchestrator.py                         # Unified loop
@@ -219,8 +228,10 @@ MLSS26_HACKATHON/
 │   └── env/loader.py                           # Data loader
 ├── data/medmnist_subset/                       # ChestMNIST 3-class subset
 ├── scripts/
-│   ├── run_medmnist.py                         # 🆕 Experiment CLI
-│   └── run_autoresearch_scientific.sh          # Scientific AI launcher
+│   ├── run_medmnist.py                           # MedMNIST experiment CLI
+│   ├── run_exp.py                                # 🆕 Flu forecasting CLI
+│   ├── run_flu_pipeline.py                       # 🆕 Full flu pipeline
+│   └── run_autoresearch_scientific.sh            # Scientific AI launcher
 ├── experiments/                                # Results
 ├── dashboard/
 │   ├── backend/ (FastAPI)
