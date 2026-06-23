@@ -13,20 +13,6 @@ version: 2.2.0
 | Command | Purpose |
 |---------|---------|
 | `/autoresearch` | Iterate against metric: modify train.py → verify → keep/discard |
-| `/autoresearch_plan` | Convert a goal into validated Scope, Metric, Verify config |
-| `/autoresearch_debug` | Hunt bugs: hypothesize → test → falsify → repeat |
-| `/autoresearch_fix` | Crush errors one-by-one until zero remain |
-| `/autoresearch_security` | STRIDE + OWASP audit with red-team personas |
-| `/autoresearch_ship` | Lock best model: final eval, export checkpoint |
-| `/autoresearch_scenario` | Explore edge cases: imbalance, noise, domain shift |
-| `/autoresearch_predict` | 5 expert personas debate before implementation |
-| `/autoresearch_learn` | Extract lessons from past iterations |
-| `/autoresearch_reason` | Adversarial debate with blind judge convergence |
-| `/autoresearch_probe` | 8 personas interrogate requirements |
-| `/autoresearch_improve` | Research SOTA methods, discover improvements |
-| `/autoresearch_evals` | Analyze iteration results: trends, plateaus |
-| `/autoresearch_regression` | Stability gate: baseline vs candidate |
-| `/autoresearch_scientific` | Full loop + 8 specialized agents for chest X-ray OOD |
 | `/autoresearch_pipeline` | Multi-expert pipeline: 8 agents in sequence per iteration — research → plan → code → review |
 
 ## Context
