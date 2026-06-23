@@ -290,7 +290,8 @@ def get_finetune_loss_fn(variant, beta, gamma):
 
 def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
-        return LSTMSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
+        # Use TinyTransformer — better at capturing seasonal patterns
+        return TinyTransformer(input_dim, hidden_dim=64, num_layers=num_layers, forecast_steps=forecast_steps)
     if model_type == "gru":
         return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "tcn":
@@ -339,7 +340,7 @@ def build_run_record(model_name, hidden_dim, num_layers, epochs, lr, batch, mode
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_loader, val_loader, test_loader = load_pretrain_data(batch_size=64)
-    model = create_model("lstm", hidden_dim=128, num_layers=2).to(device)
+    model = create_model("lstm", hidden_dim=64, num_layers=2).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     best_mae = float("inf")
     for _epoch in range(20):
