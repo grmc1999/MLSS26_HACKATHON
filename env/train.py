@@ -290,7 +290,7 @@ def get_finetune_loss_fn(variant, beta, gamma):
 
 def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
-        return GRUSeq2Seq(input_dim, hidden_dim, 3, forecast_steps)
+        return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "gru":
         return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "tcn":
@@ -316,9 +316,6 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
             loss = F.l1_loss(model(x), y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        for p in model.parameters():
-            if p.grad is not None and p.ndim >= 2:
-                p.grad.data.sub_(p.grad.data.mean(dim=tuple(range(1, p.ndim)), keepdim=True))
         optimizer.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
