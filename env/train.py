@@ -302,7 +302,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
-def train_epoch(model, loader, optimizer, device, loss_fn=None):
+def train_epoch(model, loader, optimizer, device, loss_fn=None, mixup_alpha=0.2):
     model.train()
     total_loss, n = 0.0, 0
     for pg in optimizer.param_groups:
@@ -313,7 +313,14 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
         else:
-            loss = F.l1_loss(model(x), y)
+            if mixup_alpha > 0:
+                lam = torch.distributions.Beta(mixup_alpha, mixup_alpha).sample().to(device)
+                idx = torch.randperm(x.shape[0], device=device)
+                x_mix = lam * x + (1 - lam) * x[idx]
+                y_mix = lam * y + (1 - lam) * y[idx]
+                loss = F.l1_loss(model(x_mix), y_mix)
+            else:
+                loss = F.l1_loss(model(x), y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
