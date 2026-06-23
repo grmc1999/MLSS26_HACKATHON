@@ -274,6 +274,9 @@ def main():
 History: {str([(h['iter'], round(h['metric'], 3), h['status']) for h in history[-5:]])}
 RAG: {rag_ctx}
 
+Last run log (tail):
+{run_log_tail[-500:] if run_log_tail else 'N/A'}
+
 WHAT WORKED (build on these):
 {"\n".join(f"  - {s}" for s in memory.get("successes", [])[-3:])}
 
@@ -318,6 +321,9 @@ RISK: <low/med/high>""")
         print(f"\n  Phase 5-6 — Commit + Run")
         result = subprocess.run(f"cd {ROOT} && {cfg['runner']} > run.log 2>&1", shell=True, timeout=600)
         log_txt = Path("run.log").read_text() if Path("run.log").exists() else ""
+        # Extract last 20 lines for context
+        run_log_lines = log_txt.strip().split("\n")
+        run_log_tail = "\n".join(run_log_lines[-20:]) if len(run_log_lines) > 20 else log_txt
 
         m = re.search(cfg["metric_pattern"], log_txt)
         s = re.search(cfg["secondary_pattern"], log_txt)
