@@ -56,11 +56,13 @@ class GRUSeq2Seq(nn.Module):
     def __init__(self, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
         super().__init__()
         self.forecast_steps = forecast_steps
+        self.inst_norm = nn.InstanceNorm1d(input_dim, affine=True)
         self.encoder = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.decoder = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.out_proj = nn.Linear(hidden_dim, input_dim)
 
     def forward(self, x):
+        x = self.inst_norm(x.transpose(1, 2)).transpose(1, 2)
         _, h = self.encoder(x)
         dec_input = x[:, -1:, :]
         outputs = []
@@ -288,7 +290,7 @@ def get_finetune_loss_fn(variant, beta, gamma):
 # --------------------------------------------------------------------------
 
 
-def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast_steps=FORECAST_STEPS):
+def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
         return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "gru":
@@ -342,7 +344,7 @@ def build_run_record(model_name, hidden_dim, num_layers, epochs, lr, batch, mode
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_loader, val_loader, test_loader = load_pretrain_data(batch_size=64)
-    model = create_model("lstm", hidden_dim=128, num_layers=3).to(device)
+    model = create_model("lstm", hidden_dim=128, num_layers=2).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     best_mae = float("inf")
     for _epoch in range(20):
