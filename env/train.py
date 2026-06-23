@@ -313,7 +313,7 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
         else:
-            loss = F.smooth_l1_loss(model(x), y)
+            loss = F.l1_loss(model(x), y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
