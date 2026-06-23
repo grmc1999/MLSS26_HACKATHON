@@ -316,6 +316,9 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
             loss = F.l1_loss(model(x), y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        for p in model.parameters():
+            if p.grad is not None and p.ndim >= 2:
+                p.grad.data.sub_(p.grad.data.mean(dim=tuple(range(1, p.ndim)), keepdim=True))
         optimizer.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
