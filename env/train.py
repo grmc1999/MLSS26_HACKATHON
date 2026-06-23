@@ -305,18 +305,14 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
 def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
-    for x, y, S, N, naive in loader:
-        x, y, S, N, naive = x.to(device), y.to(device), S.to(device), N.to(device), naive.to(device)
+    for x, y, S, N, _naive in loader:
+        x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
         optimizer.zero_grad()
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
         else:
-            pred = model(x)
-            model_mae = F.l1_loss(pred, y)
-            naive_mae = F.l1_loss(naive, y)
-            loss = model_mae + 0.1 * F.relu(model_mae - naive_mae)
+            loss = F.l1_loss(model(x), y)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
