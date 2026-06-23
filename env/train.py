@@ -53,19 +53,22 @@ class LSTMSeq2Seq(nn.Module):
 
 
 class GRUSeq2Seq(nn.Module):
-    def __init__(self, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
+    def __init__(self, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS, dropout=0.2):
         super().__init__()
         self.forecast_steps = forecast_steps
+        self.dropout = nn.Dropout(dropout)
         self.encoder = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.decoder = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.out_proj = nn.Linear(hidden_dim, input_dim)
 
     def forward(self, x):
         _, h = self.encoder(x)
+        h = self.dropout(h)
         dec_input = x[:, -1:, :]
         outputs = []
         for _ in range(self.forecast_steps):
             out, h = self.decoder(dec_input, h)
+            out = self.dropout(out)
             pred = self.out_proj(out)
             outputs.append(pred)
             dec_input = pred
