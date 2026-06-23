@@ -235,6 +235,7 @@ def log_to_file(log_file, prompt, completion, model, max_tokens_to_sample, num_p
 
     LOG_DIR = os.getenv("LOG_DIR", "logs/")
     cost_file = os.path.join(LOG_DIR, "env_log/", "api_cost.json")
+    os.makedirs(os.path.dirname(cost_file), exist_ok=True)
     content = dict()
     if os.path.exists(cost_file):
         with open(cost_file, 'r') as reader:

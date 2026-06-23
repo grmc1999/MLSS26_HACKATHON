@@ -8,6 +8,7 @@ Agent configurations are loaded from configs/agents.yaml.
 """
 import os
 import json
+import re
 import yaml
 import faiss
 import numpy as np
@@ -133,6 +134,104 @@ def search_medical_literature(query: str, k: int = 5, task: str = "medmnist") ->
             if len(results) >= k:
                 break
     return results
+
+
+# ---------------------------------------------------------------------------
+# Flu Literature Context RAG -- hybrid vector (FAISS, above) + knowledge graph
+# (FalkorDB) retrieval. The graph is built offline by scripts/build_flu_graph.py
+# and answers relational questions (model x country x method x metric) that
+# the vector index alone can't.
+#
+# Uses the official `falkordb` client directly with keyword-matched Cypher --
+# not LangChain's GraphCypherQAChain (which asks the LLM to write Cypher) or
+# FalkorDBGraph wrapper. Both depend on reliable function-calling support that
+# free OpenRouter models don't consistently provide, and both live in the
+# upstream-deprecated langchain-community / langchain-experimental packages.
+# See AGENTS.md for the full pipeline.
+# ---------------------------------------------------------------------------
+
+_flu_graph = None
+_flu_graph_unavailable = False
+
+_FLU_GRAPH_STOPWORDS = {
+    "the", "a", "an", "of", "to", "for", "and", "or", "in", "on", "with", "is", "are",
+    "was", "were", "how", "what", "did", "do", "does", "improve", "forecasting", "results",
+    "this", "that", "from", "by", "as", "at", "be", "it", "its",
+}
+
+
+def _ensure_flu_graph_loaded():
+    """Lazily connect to the FalkorDB graph. Sets _flu_graph_unavailable instead
+    of raising if FalkorDB isn't reachable, so callers degrade to vector-only."""
+    global _flu_graph, _flu_graph_unavailable
+    if _flu_graph is not None or _flu_graph_unavailable:
+        return
+    try:
+        from falkordb import FalkorDB
+
+        db = FalkorDB(
+            host=os.getenv("FALKORDB_HOST", "localhost"),
+            port=int(os.getenv("FALKORDB_PORT", "6379")),
+        )
+        graph = db.select_graph(os.getenv("FALKORDB_GRAPH_NAME", "flu_literature"))
+        graph.query("RETURN 1")  # connectivity check
+        _flu_graph = graph
+    except Exception as e:
+        print(f"[WARN] Flu literature graph unavailable, falling back to vector-only search: {e}")
+        _flu_graph_unavailable = True
+
+
+def _query_flu_graph(query: str, limit: int = 10) -> str:
+    tokens = [
+        t for t in re.findall(r"[a-zA-Z0-9\-]+", query.lower())
+        if len(t) > 2 and t not in _FLU_GRAPH_STOPWORDS
+    ]
+    if not tokens:
+        return ""
+    result = _flu_graph.query(
+        "MATCH (n) WHERE any(tok IN $tokens WHERE toLower(n.name) CONTAINS tok) "
+        "OPTIONAL MATCH (n)-[r]-(m) "
+        "RETURN DISTINCT n.name AS entity, labels(n)[0] AS entity_type, "
+        "type(r) AS rel, m.name AS related, labels(m)[0] AS related_type LIMIT $limit",
+        {"tokens": tokens, "limit": limit},
+    )
+    lines = []
+    for entity, etype, rel, related, rtype in result.result_set:
+        if rel and related:
+            lines.append(f"({etype}) {entity} -[{rel}]-> ({rtype}) {related}")
+        else:
+            lines.append(f"({etype}) {entity}")
+    return "\n".join(lines)
+
+
+def search_flu_context_rag(query: str, k: int = 5) -> dict:
+    """Hybrid retrieval for the flu literature: vector hits (FAISS, same as
+    search_medical_literature) plus relational context from the FalkorDB
+    knowledge graph. Degrades to vector-only if FalkorDB is unreachable --
+    never raises, so it's safe to call from an unattended research loop.
+    """
+    vector_hits = search_medical_literature(query, k=k, task="flu")
+
+    _ensure_flu_graph_loaded()
+    graph_context = ""
+    if not _flu_graph_unavailable:
+        try:
+            graph_context = _query_flu_graph(query)
+        except Exception as e:
+            graph_context = f"(graph query failed: {e})"
+
+    vector_block = "\n".join(
+        f"- {r.get('title', r.get('file', '?'))} (score: {r.get('score', 0):.3f})"
+        for r in vector_hits if "error" not in r
+    )
+    combined_parts = [p for p in (vector_block, graph_context) if p]
+    combined_context = "\n\n".join(combined_parts)
+
+    return {
+        "vector_hits": vector_hits,
+        "graph_context": graph_context,
+        "combined_context": combined_context,
+    }
 
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "configs", "agents.yaml")
@@ -479,6 +578,13 @@ Where:
 - Target countries: FRA, MEX, AUS, ZAF
 - Current best: GRU hidden_dim=64, 3 layers, Test MAE=0.5835
 - Challenge: domain shift between US pretrain and target countries
+
+## Flu Literature Context RAG
+Call `search_flu_context_rag(query="your search terms", k=5)` to retrieve relevant flu/forecasting
+papers before proposing changes. This returns both semantically similar passages (vector search)
+and relational context from a knowledge graph (which model was evaluated on which country with
+which method, and what metric it achieved) -- use the graph context to ground comparisons like
+"how did adjoint-matched diffusion do on FRA vs. a from-scratch GRU".
 """,
 
     "robustness_expert": f"""You are an uncertainty quantification and robustness expert for OOD detection.

@@ -42,9 +42,6 @@ kaggle
 openai
 anthropic
 langchain
-langchain-community
-langchain-experimental
-langchain-openai
 sentencepiece
 spacy
 nltk
