@@ -31,13 +31,19 @@ interface StatusData {
 export default function Home() {
   const [status, setStatus] = useState<StatusData | null>(null);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [task, setTask] = useState<string>("medmnist");
+
+  const taskConfig: Record<string, {primary: string; secondary: string; tertiary: string; color: string}> = {
+    medmnist: {primary: "OOD F1", secondary: "ID Test Acc", tertiary: "Val Acc", color: "#8b5cf6"},
+    flu: {primary: "Test MAE", secondary: "Val MAE", tertiary: "Params", color: "#f59e0b"},
+  };
 
   useEffect(() => {
     async function fetchData() {
       try {
         const [statusRes, expRes] = await Promise.all([
           fetch('/api/status'),
-          fetch('/api/experiments'),
+          fetch(`/api/experiments?task=${task}`),
         ]);
         setStatus(await statusRes.json());
         const expData = await expRes.json();
@@ -49,7 +55,9 @@ export default function Home() {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [task]);
+
+  const tc = taskConfig[task];
 
   const loopExps = useMemo(() =>
     experiments.filter(e => e.source === 'auto_loop'),
@@ -57,7 +65,7 @@ export default function Home() {
   );
 
   const recentExps = useMemo(() =>
-    experiments.filter(e => e.source === 'run_exp').slice(0, 12),
+    experiments.filter(e => e.source === 'run_exp' && e.task === task).slice(0, 12),
     [experiments]
   );
 
@@ -107,18 +115,30 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+        <div className="flex gap-2">
+          {["medmnist", "flu"].map(t => (
+            <button key={t} onClick={() => setTask(t)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                task === t ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+              }`}>
+              {t === "medmnist" ? "🫁 MedMNIST" : "🤒 Flu"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <StatCard label="Total Experiments" value={status?.total_experiments ?? 0}
                   sub={`${loopExps.length} auto loops`} />
         <StatCard label="Agents" value={status?.total_agents ?? 0} />
-        <StatCard label="Best ID Test Acc" value={bestTestAcc.toFixed(4)}
-                  color="#10b981" sub="ChestMNIST Normal+Pneumonia" />
-        <StatCard label="Best OOD F1" value={bestOODF1.toFixed(4)}
-                  color="#8b5cf6" sub="Consolidation detection" />
-        <StatCard label="Best Val Acc" value={bestValAcc > 0 ? bestValAcc.toFixed(4) : 'N/A'}
-                  color="#06b6d4" sub="PneumoniaMNIST validation" />
+        <StatCard label={`Best ${tc.secondary}`} value={bestTestAcc.toFixed(4)}
+                  color="#10b981" sub={task === "medmnist" ? "ChestMNIST Normal+Pneumonia" : "In-distribution"} />
+        <StatCard label={`Best ${tc.primary}`} value={bestOODF1.toFixed(4)}
+                  color={tc.color} sub={task === "medmnist" ? "Consolidation detection" : "Forecast error"} />
+        <StatCard label={`Best ${tc.tertiary}`} value={bestValAcc > 0 ? bestValAcc.toFixed(4) : 'N/A'}
+                  color="#06b6d4" sub={task === "medmnist" ? "PneumoniaMNIST validation" : "Validation set"} />
         <StatCard label="Improvement" value={
           firstTestAcc > 0 ? `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%` : 'N/A'
         } color="#f59e0b" sub="ID test acc: first → latest" />

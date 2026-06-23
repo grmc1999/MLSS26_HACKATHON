@@ -58,6 +58,28 @@ def get_agents_config():
 
 EXPERIMENTS_RUNS = PROJECT_ROOT / "experiments" / "runs.jsonl"
 
+def infer_task(exp: dict) -> str:
+    details = exp.get("details", {})
+    model = str(details.get("model", "")).lower()
+    if any(k in model for k in ["lstm", "gru", "tcn", "transformer", "diffusion"]):
+        return "flu"
+    if "val_mae" in details or "test_mae" in details:
+        return "flu"
+    return "medmnist"
+
+
+TASK_METRICS = {
+    "medmnist": {
+        "primary": "OOD F1", "secondary": "ID Test Acc",
+        "tertiary": "Val Acc", "color": "#8b5cf6",
+    },
+    "flu": {
+        "primary": "Test MAE", "secondary": "Val MAE",
+        "tertiary": "Params", "color": "#f59e0b",
+    },
+}
+
+
 def parse_runs_jsonl() -> list[dict]:
     experiments = []
     if not EXPERIMENTS_RUNS.exists():
@@ -69,17 +91,20 @@ def parse_runs_jsonl() -> list[dict]:
                 continue
             try:
                 data = json.loads(line)
+                model = data.get("model", "SimpleCNN")
+                is_flu = any(k in model.lower() for k in ["lstm", "gru", "tcn", "transformer", "diffusion"])
                 exp = {
                     "id": str(hash(line))[-8:],
                     "path": str(EXPERIMENTS_RUNS),
                     "timestamp": data.get("timestamp", ""),
                     "steps": [],
                     "scores": [],
-                    "final_score": data.get("test_acc"),
+                    "final_score": data.get("test_acc") or data.get("test_mae"),
                     "status": "completed",
                     "source": "run_exp",
+                    "task": "flu" if is_flu else "medmnist",
                     "details": {
-                        "model": data.get("model", "SimpleCNN"),
+                        "model": model,
                         "epochs": data.get("epochs", 20),
                         "lr": data.get("lr", 0.001),
                         "batch": data.get("batch", 64),
@@ -91,6 +116,8 @@ def parse_runs_jsonl() -> list[dict]:
                         "ood_f1": data.get("ood_f1"),
                         "ood_precision": data.get("ood_precision"),
                         "ood_recall": data.get("ood_recall"),
+                        "test_mae": data.get("test_mae"),
+                        "val_mae": data.get("val_mae"),
                     },
                 }
                 experiments.append(exp)
@@ -110,6 +137,7 @@ def parse_loop_results() -> list[dict]:
         scores = []
         iterations_data = []
         final_score = None
+        has_mae = False
         for i, line in enumerate(lines[1:]):
             if not line or line.startswith("#"):
                 continue
@@ -125,6 +153,8 @@ def parse_loop_results() -> list[dict]:
                     memory_gb = parts[6].strip() if len(parts) > 6 else ""
                     status = parts[7].strip() if len(parts) > 7 else ""
                     description = parts[8].strip() if len(parts) > 8 else ""
+                    if description and "mae" in description.lower():
+                        has_mae = True
                     metric = test_acc if test_acc is not None else 0.0
                     scores.append({"step": int(iteration), "score": metric})
                     final_score = metric
@@ -150,6 +180,7 @@ def parse_loop_results() -> list[dict]:
             "final_score": final_score,
             "status": "completed" if scores else "unknown",
             "source": "auto_loop",
+            "task": "flu" if has_mae else "medmnist",
             "details": {
                 "iterations": iterations_data,
                 "total_iterations": len(iterations_data),
@@ -213,14 +244,20 @@ def parse_experiment(log_dir: Path) -> dict:
     return experiment
 
 
-def get_all_experiments():
+def get_all_experiments(task: str = None):
     experiments = []
     if LOGS_DIR.exists():
         for log_dir in sorted(LOGS_DIR.iterdir(), reverse=True):
             if log_dir.is_dir():
-                experiments.append(parse_experiment(log_dir))
-    experiments.extend(parse_runs_jsonl())
-    experiments.extend(parse_loop_results())
+                exp = parse_experiment(log_dir)
+                if task is None or exp.get("task") == task:
+                    experiments.append(exp)
+    for exp in parse_runs_jsonl():
+        if task is None or exp.get("task") == task:
+            experiments.append(exp)
+    for exp in parse_loop_results():
+        if task is None or exp.get("task") == task:
+            experiments.append(exp)
     experiments.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
     return experiments
 
@@ -271,8 +308,13 @@ async def root():
 
 
 @app.get("/experiments")
-async def list_experiments():
-    return {"experiments": get_all_experiments()}
+async def list_experiments(task: Optional[str] = None):
+    return {"experiments": get_all_experiments(task)}
+
+
+@app.get("/tasks")
+async def list_tasks():
+    return {"tasks": TASK_METRICS}
 
 
 @app.get("/experiments/{experiment_id}")
