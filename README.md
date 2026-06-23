@@ -82,7 +82,7 @@ User / Dashboard
 |  | code_expert (Coder-7B) | |  15 GB
 |  | math_expert (Math-7B)  | |  15 GB
 |  | medical_expert (BioM)  | |  14 GB
-|  | time_series (Chronos) | |  89 MB |
+|  | time_series (Chronos)  | |  89 MB
 |  +------------------------+ |
 |      ~51 GB / 98 GB VRAM   |
 +------------------------------+
@@ -91,6 +91,9 @@ User / Dashboard
        |         |  Literature RAG (task)    |
        |         |  medmnist: index_output/  |
        |         |  flu:      index_output_flu/ |
+       |         |  Adaptive: refresh every  |
+       |         |  20 iterations (prune +   |
+       |         |  discover + ingest)       |
        |         +---------------------------+
        v
 +------------------------------+
@@ -99,7 +102,15 @@ User / Dashboard
 +------------------------------+
 ```
 
-Agents call `search_medical_literature(query, k=5, task="{TASK}")` to retrieve relevant papers before proposing changes. The medmnist index (`index_output/`) contains 525 visual tile embeddings from 28 medical papers on OOD detection and chest X-rays, embedded with Qwen3-VL-Embedding-2B. The flu index (`index_output_flu/`) contains 475 text chunks from 22 papers on forecasting and diffusion models, embedded with all-MiniLM-L6-v2.
+### Adaptive RAG (every 20 iterations)
+The RAG index self-improves every 20 iterations:
+1. **Score** each paper by usefulness (kept vs discarded suggestions)
+2. **Prune** bottom 30% least useful papers
+3. **Discover** new papers via arXiv/GitHub web search
+4. **Ingest** new PDFs → markdown → rebuild FAISS index
+
+### Research Reset (every 40 iterations)
+If metric plateaus for 10+ iterations, forces a paradigm shift — switches to a different technique family (loss tuning → architecture, or RNNs → diffusion). Prevents local optima like epsilon-greedy in RL.
 
 ---
 

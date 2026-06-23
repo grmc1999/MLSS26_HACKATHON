@@ -156,3 +156,23 @@ If bounded: current_iteration >= max_iterations → exit loop, print summary.
 
 ## Summary
 Print: total iterations, kept/discarded counts, starting → final metric, improvement %, most consulted agents.
+
+### Adaptive RAG Refresh (every 20 iterations)
+When iteration % 20 == 0:
+
+1. **Score existing papers**: for each paper in the literature corpus, count times consulted (from RAG logs), times a suggested change was KEPT vs DISCARDED. Score = kept_count - discarded_count.
+2. **Prune**: remove bottom 30% lowest-scoring papers from corpus and index.
+3. **Discover new papers**: search arXiv / GitHub / PapersWithCode for recent work on the current task. Use WebFetch with keywords from successful iterations. Download new PDFs to `literature/` or `literature_flu/`.
+4. **Ingest**: convert new PDFs to markdown (`literature_md/` or `literature_flu_md/`), rebuild FAISS index (`index_output/` or `index_output_flu/`).
+5. Replace old index with refreshed one.
+
+### Research Reset (every 40 iterations)
+When iteration % 40 == 0 AND metric hasn't improved in last 10 iterations:
+
+1. **Diagnose plateau**: identify what technique family has been tried (loss, architecture, data, OOD scoring).
+2. **Force paradigm shift**: switch to a completely different approach. For medmnist: losses → architecture, or architecture → OOD scoring. For flu: RNNs → diffusion/Transformer, or hyperparameters → data preprocessing.
+3. **Reset short-term memory**: treat as new research phase. Commit history and best metric preserved, exploration strategy resets.
+4. Prevents local optima — like epsilon-greedy in RL, when exploitation plateaus, force exploration.
+
+## Iteration Bound
+- `Iterations: unlimited` → never stop. Only manual interrupt (Ctrl+C). Ignore any ceiling.
