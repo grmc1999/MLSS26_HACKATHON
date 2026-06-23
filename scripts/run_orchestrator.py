@@ -119,7 +119,7 @@ def main():
     orch.eval()
     print("[BOOT] Ready.\n")
 
-    results_file.write_text("iteration\tcommit\tmetric\tsecondary\tjury\tstatus\tdescription\n")
+    results_file.write_text("iteration\tcommit\ttest_acc\tood_f1\tval_acc\ttest_id_acc\tmemory_gb\tstatus\tdescription\n")
     iteration = 0
     best_metric = float("inf") if cfg["direction"] == "lower" else 0.0
     best_desc = "baseline"
@@ -142,7 +142,7 @@ def main():
         # ── Phase 2: Plan ──
         print(f"\n  Phase 2 — Plan")
         plan = ask(orch, orch_tok, f"""Task: {args.task}. Best: {best_metric:.4f} ({best_desc}).
-History: {[f'{h[\"iter\"]}={h[\"metric\"]:.3f}({h[\"status\"]})' for h in history[-5:]]}
+History: {str([(h["iter"], round(h["metric"], 3), h["status"]) for h in history[-5:]])}
 RAG: {rag_ctx}
 
 Propose ONE change to {cfg['train_py']} to improve the metric.
@@ -186,7 +186,7 @@ CODE: <exact change>""")
 
         if p_val is None:
             print(f"  CRASH\n{log_txt[-300:]}")
-            results_file.write_text(results_file.read_text() + f"{iteration}\t-\t-\t-\t{jury_s}\tcrash\n")
+            results_file.write_text(results_file.read_text() + f"{iteration}\t-\t-\t-\t-\t-\t0.5\tcrash\t{desc[:80]}\n")
             if iteration >= max_iter: break
             continue
 
@@ -207,7 +207,7 @@ CODE: <exact change>""")
 
         # ── Phase 8: Log ──
         desc = plan[:120].replace("\t", " ").replace("\n", " ")
-        results_file.write_text(results_file.read_text() + f"{iteration}\t{commit}\t{p_val}\t{s_val or ''}\t{jury_s}\t{status}\t{desc}\n")
+        results_file.write_text(results_file.read_text() + f"{iteration}\t{commit}\t{p_val or '-'}\t{s_val or '-'}\t-\t-\t0.5\t{status}\t{desc[:80]}\n")
         history.append({"iter": iteration, "metric": p_val, "status": status})
         print(f"  Phase 8 — Logged")
 
