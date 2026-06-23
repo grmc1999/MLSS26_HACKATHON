@@ -60,7 +60,7 @@ If Pretrained=no, skip directly to Establish Baseline.
 
 1. Run: `{VERIFY_CMD} > run.log 2>&1`
 2. Extract: `{METRIC_CMD}`
-3. Record as iteration 0 in `experiments/results.tsv`
+3. Record as iteration 0 in `experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv`
 4. Base metric from chosen Metric
 
 ## Iteration Loop (Multi-Expert Pipeline)
@@ -139,9 +139,9 @@ If all pass → **PASS**, safe to commit.
 
 ### Phase 8: Log
 
-Append to results.tsv (tab-separated):
+Append to `experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv` (tab-separated):
   iteration, commit, test_metric, secondary_metric, val_metric, extra, memory_gb, status, description
-DO NOT commit results.tsv.
+DO NOT commit results.tsv. Dashboard reads from `experiments/loop-*/results.tsv` for auto-loop visualization.
 
 ### Eval Checkpoint
 If --evals: check if current_iteration % interval == 0 → run checkpoint analysis.
