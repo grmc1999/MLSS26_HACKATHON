@@ -155,6 +155,10 @@ env/
 !MLAgentBench/benchmarks/identify-contrails/env/
 venv/
 ENV/
+!/env/
+/env/data_cache/
+/env/checkpoints/
+/env/*.pth
 env.bak/
 venv.bak/
 
@@ -239,6 +243,7 @@ e20ab2936c0bf78f7b82871c72d77fc/
 # API key files (never commit these)
 openai_api_key.txt
 claude_api_key.txt
+.claude/
 crfm_api_key.txt
 kaggle.json
 .env
