@@ -290,7 +290,7 @@ def get_finetune_loss_fn(variant, beta, gamma):
 
 def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
-        return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
+        return TinyTransformer(input_dim, hidden_dim=64, num_layers=2, forecast_steps=forecast_steps)
     if model_type == "gru":
         return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "tcn":
