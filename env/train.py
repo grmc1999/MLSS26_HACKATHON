@@ -290,9 +290,9 @@ def get_finetune_loss_fn(variant, beta, gamma):
 
 def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
-        return DiffusionForecaster(input_dim, hidden_dim=64, forecast_steps=forecast_steps, num_diffusion_steps=30)
+        return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "gru":
-        return DiffusionForecaster(input_dim, hidden_dim=64, forecast_steps=forecast_steps, num_diffusion_steps=30)
+        return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "tcn":
         return TCNForecaster(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "transformer":
@@ -305,7 +305,6 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast
 def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
-    use_diffusion = hasattr(model, "denoiser") and hasattr(model, "q_sample")
     for pg in optimizer.param_groups:
         pg.setdefault("weight_decay", 1e-4)
     for x, y, S, N, _naive in loader:
@@ -313,9 +312,6 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         optimizer.zero_grad()
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
-        elif use_diffusion:
-            from train import diffusion_loss
-            loss = diffusion_loss(model, y, x, device)
         else:
             loss = F.l1_loss(model(x), y)
         loss.backward()
