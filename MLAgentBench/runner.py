@@ -8,7 +8,6 @@ import os
 from dotenv import load_dotenv
 
 # Load .env from project root (parent of MLAgentBench package)
-# override=True is critical: if OPENROUTER_API_KEY is already set as empty in the
 # shell environment, load_dotenv won't replace it without this flag
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_PROJECT_ROOT, ".env"), override=True)

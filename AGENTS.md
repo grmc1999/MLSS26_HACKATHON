@@ -3,7 +3,6 @@
 ## Setup
 
 - Activate: `source .venv/bin/activate`
-- `OPENROUTER_API_KEY` required (from `.env`) — all LLM calls route through `https://openrouter.ai/api/v1`
 - Install: `pip install -e .` (namespace package `MLAgentBench`)
 
 ## Entry Points
@@ -32,7 +31,7 @@ Canonical protocol is **`autoresearch_pipeline.md`** (`.opencode/commands/autore
 - `scripts/run_orchestrator.py` — autonomous pipeline: 8 phases per iteration
 - `MLAgentBench/agents/orchestrator.py` — `ScientificAutoResearch` + `ExperimentManager`
 - `MLAgentBench/agents/agent_specialized.py` — agent prompts + RAG functions
-- `MLAgentBench/LLM.py` — OpenRouter routing; free model IDs in `OPENROUTER_FREE_MODELS`
+- `MLAgentBench/LLM.py` — LLM interface (all calls handled by opencode)
 
 ## 2 RAG Systems
 

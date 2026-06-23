@@ -24,7 +24,6 @@ if [ -f "$(dirname "$0")/../.env" ]; then
 fi
 
 # Set defaults (override with .env or environment variables)
-export OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-""}
 
 # Create log directory
 LOG_DIR="logs/${TASK_NAME}_$(date +%Y%m%d_%H%M%S)"
@@ -41,7 +40,7 @@ python -u -m MLAgentBench.runner \
     --work-dir workspace \
     --agent-role "$AGENT_ROLE" \
     --llm-name "google/gemma-4-26b-a4b-it:free" \
-    --fast-llm-name "openai/gpt-oss-20b:free" \
+    --fast-llm-name "opencode" \
     --edit-script-llm-name "qwen/qwen3-coder:free" \
     --agent-max-steps 50 \
     --max-time 18000 \

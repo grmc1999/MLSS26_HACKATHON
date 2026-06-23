@@ -15,7 +15,6 @@ Pass `Task: medmnist` or `Task: flu` when invoking `/autoresearch_pipeline`.
 
 ```bash
 source .venv/bin/activate
-export OPENROUTER_API_KEY=sk-or-v1-...
 
 # Run a standalone experiment
 python scripts/run_medmnist.py --epochs 25   # medmnist
@@ -113,11 +112,11 @@ MLSS26_HACKATHON/
 
 ## FalkorDB (Flu Knowledge Graph)
 
-Populate once (requires `openai/gpt-4o-mini` or similar for entity extraction):
+Populate once (uses local Qwen2.5-Coder-7B for entity extraction):
 
 ```bash
 bash scripts/start_falkordb.sh
-python scripts/build_flu_graph.py --model openai/gpt-4o-mini
+python scripts/build_flu_graph.py
 ```
 
 Querying uses keyword-matched Cypher — no LLM needed at retrieval time:
