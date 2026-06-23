@@ -49,23 +49,38 @@ Defined in `.opencode/commands/`:
 
 ## Architecture
 
+The system follows **`autoresearch_pipeline.md`** (`.opencode/commands/autoresearch_pipeline.md`), an 8-phase iteration loop driven by opencode:
+
 ```
 User
   │
   v
-┌────────────────────────────────────┐
-│ run_orchestrator.py / slash cmd    │
-│ 8 phases per iteration             │
-│ (Qwen2.5-7B-Instruct orchestrator) │
-└────────────────────────────────────┘
-  ├──→ Research:  RAG (task-aware FAISS + optional FalkorDB graph)
-  ├──→ Plan:      Orchestrator LLM proposes experiment
-  ├──→ Implement: Modify {ENV_DIR}/train.py
-  ├──→ Jury:      Syntax + forward + backward checks
-  ├──→ Commit:    git commit
-  ├──→ Run:       {runner} > run.log
-  ├──→ Decide:    keep (metric improved) or discard (git revert)
-  └──→ Log:       Append to results.tsv
+┌───────────────────────────────────────────┐
+│  Phase 1: Research                        │
+│   - Search task-specific RAG (FAISS)      │
+│   - Optional FalkorDB graph query (flu)   │
+├───────────────────────────────────────────┤
+│  Phase 2: Plan                            │
+│   - Consult opencode for experiment plan  │
+├───────────────────────────────────────────┤
+│  Phase 3: Implement                       │
+│   - Modify {ENV_DIR}/train.py             │
+├───────────────────────────────────────────┤
+│  Phase 4: Code Jury                       │
+│   - Syntax + forward + backward checks    │
+├───────────────────────────────────────────┤
+│  Phase 5: Commit                          │
+│   - git commit                            │
+├───────────────────────────────────────────┤
+│  Phase 6: Run                             │
+│   - {VERIFY_CMD} > run.log                │
+├───────────────────────────────────────────┤
+│  Phase 7: Decide                          │
+│   - Keep (metric improved) or discard     │
+├───────────────────────────────────────────┤
+│  Phase 8: Log                             │
+│   - Append to experiments/loop-*/results  │
+└───────────────────────────────────────────┘
 ```
 
 ## Experiment Protocol
@@ -96,7 +111,7 @@ MLSS26_HACKATHON/
 ├── MLAgentBench/agents/
 │   ├── orchestrator.py            # ScientificAutoResearch + ExperimentManager
 │   └── agent_specialized.py       # Agent prompts + RAG functions
-├── MLAgentBench/LLM.py            # OpenRouter routing
+├── MLAgentBench/LLM.py            # LLM interface (handled by opencode)
 ├── scripts/
 │   ├── run_medmnist.py            # MedMNIST CLI wrapper
 │   ├── run_exp.py                 # Flu CLI wrapper
@@ -112,7 +127,7 @@ MLSS26_HACKATHON/
 
 ## FalkorDB (Flu Knowledge Graph)
 
-Populate once (uses local Qwen2.5-Coder-7B for entity extraction):
+Populate once (uses an LLM for entity extraction via `scripts/build_flu_graph.py`):
 
 ```bash
 bash scripts/start_falkordb.sh
