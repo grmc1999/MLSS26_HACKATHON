@@ -8,26 +8,11 @@ Loader batches are 5-tuples: (x, y, S, N, naive) -- see env/data.py.
 import copy
 import functools
 import math
-import random
 import time
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-set_seed()
-
-_epoch_counter = 0
-_initial_lrs = {}
 from peft import LoraConfig, get_peft_model
 
 try:  # cwd=env/ (scripts/run_exp.py inserts env/ onto sys.path directly)
@@ -303,7 +288,7 @@ def get_finetune_loss_fn(variant, beta, gamma):
 # --------------------------------------------------------------------------
 
 
-def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
+def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
         return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "gru":
@@ -318,19 +303,10 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
 
 
 def train_epoch(model, loader, optimizer, device, loss_fn=None):
-    global _epoch_counter, _initial_lrs
     model.train()
     total_loss, n = 0.0, 0
-    if not _initial_lrs:
-        for i, pg in enumerate(optimizer.param_groups):
-            _initial_lrs[i] = pg["lr"]
-    warmup_epochs = 5
     for pg in optimizer.param_groups:
         pg.setdefault("weight_decay", 1e-4)
-    if _epoch_counter < warmup_epochs:
-        for i, pg in enumerate(optimizer.param_groups):
-            pg["lr"] = _initial_lrs.get(i, 1e-3) * (_epoch_counter + 1) / warmup_epochs
-    _epoch_counter += 1
     for x, y, S, N, _naive in loader:
         x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
         optimizer.zero_grad()
@@ -366,7 +342,7 @@ def build_run_record(model_name, hidden_dim, num_layers, epochs, lr, batch, mode
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_loader, val_loader, test_loader = load_pretrain_data(batch_size=64)
-    model = create_model("lstm", hidden_dim=128, num_layers=2).to(device)
+    model = create_model("lstm", hidden_dim=128, num_layers=3).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     best_mae = float("inf")
     for _epoch in range(20):
