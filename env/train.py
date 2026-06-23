@@ -52,63 +52,15 @@ class LSTMSeq2Seq(nn.Module):
         return torch.cat(outputs, dim=1)
 
 
-class RevIN(nn.Module):
-    """Reversible Instance Normalization (Kim et al., ICLR 2022).
-    Normalizes each instance independently, removing instance-specific mean/var,
-    then reverses on output. Helps with distribution shift across domains."""
-
-    def __init__(self, num_features: int, eps=1e-5, affine=True):
-        super().__init__()
-        self.num_features = num_features
-        self.eps = eps
-        self.affine = affine
-        if affine:
-            self.affine_weight = nn.Parameter(torch.ones(num_features))
-            self.affine_bias = nn.Parameter(torch.zeros(num_features))
-
-    def forward(self, x, mode: str):
-        if mode == 'norm':
-            self._get_statistics(x)
-            x = self._normalize(x)
-            return x
-        elif mode == 'denorm':
-            x = self._denormalize(x)
-            return x
-        else:
-            raise NotImplementedError
-
-    def _get_statistics(self, x):
-        dim2reduce = tuple(range(1, x.ndim - 1))
-        self.mean = torch.mean(x, dim=dim2reduce, keepdim=True).detach()
-        self.stdev = torch.sqrt(torch.var(x, dim=dim2reduce, keepdim=True, unbiased=False) + self.eps).detach()
-
-    def _normalize(self, x):
-        x = x - self.mean
-        x = x / self.stdev
-        if self.affine:
-            x = x * self.affine_weight + self.affine_bias
-        return x
-
-    def _denormalize(self, x):
-        if self.affine:
-            x = x - self.affine_bias
-            x = x / (self.affine_weight + self.eps)
-        x = x * self.stdev
-        x = x + self.mean
-        return x
-
-
 class GRUSeq2Seq(nn.Module):
     def __init__(self, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
         super().__init__()
         self.forecast_steps = forecast_steps
-        self.revin = RevIN(input_dim)
         self.encoder = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.decoder = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
         self.out_proj = nn.Linear(hidden_dim, input_dim)
 
     def forward(self, x):
-        x = self.revin(x, 'norm')
         _, h = self.encoder(x)
         dec_input = x[:, -1:, :]
         outputs = []
@@ -117,9 +69,7 @@ class GRUSeq2Seq(nn.Module):
             pred = self.out_proj(out)
             outputs.append(pred)
             dec_input = pred
-        out = torch.cat(outputs, dim=1)
-        out = self.revin(out, 'denorm')
-        return out
+        return torch.cat(outputs, dim=1)
 
 
 class TCNForecaster(nn.Module):
