@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 
-from MLAgentBench.agents.agent_specialized import search_medical_literature, load_expert
+from MLAgentBench.agents.agent_specialized import search_medical_literature, search_flu_context_rag, load_expert
 
 TASKS = {
     "medmnist": {
@@ -261,8 +261,12 @@ def main():
         rag_ctx = ""
         if iteration % 5 == 1:
             try:
-                rag = search_medical_literature(f"improve {args.task} forecasting", k=3, task=args.task)
-                rag_ctx = "\n".join(f"  [{r['score']:.3f}] {r.get('title','?')}" for r in rag)
+                if args.task == "flu":
+                    rag = search_flu_context_rag(f"improve {args.task} forecasting", k=3)
+                    rag_ctx = rag["combined_context"]
+                else:
+                    rag = search_medical_literature(f"improve {args.task} forecasting", k=3, task=args.task)
+                    rag_ctx = "\n".join(f"  [{r['score']:.3f}] {r.get('title','?')}" for r in rag)
             except Exception as e:
                 rag_ctx = f"  (RAG: {e})"
             print(f"[RAG]\n{rag_ctx}")

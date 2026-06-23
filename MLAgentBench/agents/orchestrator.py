@@ -270,10 +270,11 @@ class ExperimentManager:
             result = subprocess.run(cmd, shell=True, capture_output=True,
                                    text=True, timeout=600)
             elapsed = time.time() - start
-            # Parse Test Accuracy from output
-            acc_match = re.search(r"Test Accuracy:\s*([\d.]+)", result.stdout)
-            # Fallback: try OOD F1
-            ood_match = re.search(r"OOD F1:\s*([\d.]+)", result.stdout)
+            # Parse accuracy from output (train.py prints "Standard accuracy:",
+            # run_medmnist.py prints "Test 3-class Accuracy:")
+            acc_match = re.search(r"(?:Standard accuracy|Test 3-class Accuracy):\s*([\d.]+)", result.stdout)
+            # Fallback: try OOD F1 (train.py: "OOD Detection F1:", run_medmnist.py: "OOD F1 Score:")
+            ood_match = re.search(r"(?:OOD Detection F1|OOD F1 Score):\s*([\d.]+)", result.stdout)
             print(f"[RUN] Completed in {elapsed:.1f}s")
             metric = None
             if acc_match:
