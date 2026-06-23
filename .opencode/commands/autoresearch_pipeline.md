@@ -29,7 +29,7 @@ Extract from $ARGUMENTS:
 | `METRIC_CMD` | `grep "Test ID Acc" run.log \| awk '{print $NF}'` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
 | `DIRECTION` | higher_is_better | lower_is_better |
 | `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_exp.py --epochs 50` |
-| `EXPERT` | medical_expert (chest X-ray) | satellite_expert (flu/ILI) |
+| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu, Chronos-T5) |
 | `INPUT_SHAPE` | `(4, 1, 28, 28)` → `(4, 3)` | `(4, 5, 1)` → `(4, 10)` |
 | `LOG_COLS` | test_acc, ood_f1, val_acc, test_acc_id | test_mae, val_mae, params |
 
@@ -73,7 +73,7 @@ For each iteration (1 to max_iterations):
 
 - **If RAG is enabled**: run `search_medical_literature(query, k=5)` using task-specific keywords
 - **research_literature**: what does the literature say about improving this metric?
-- **task_expert**: consult via `orchestrator.consult_agent("medical_expert", question)` (loads BioMistral-7B on GPU 1). For flu, use `orchestrator.consult_agent("time_series_expert", question)` (loads Qwen2.5-Math-7B on GPU 1).
+- **task_expert**: consult via `orchestrator.consult_agent("medical_expert", question)` (loads BioMistral-7B on GPU 1). For flu, use `orchestrator.consult_agent("time_series_expert", question)` (loads Chronos-T5 on GPU 1).
 - Output: research brief (2-4 sentences) with paper citations
 
 ### Phase 2: Plan (autoresearch + llm_expert)
@@ -92,7 +92,7 @@ For each iteration (1 to max_iterations):
 - Route to **cv_expert** if change involves: model architecture, data augmentation, preprocessing, attention, pooling
 - Route to **dl_expert** if change involves: loss function, optimizer, learning rate, scheduler, regularization, dropout, batch size, calibration
 - Consult `orchestrator.consult_agent("code_expert", question)` for implementation advice (loads Qwen2.5-Coder-7B on GPU 1)
-- Or consult `orchestrator.consult_agent("time_series_expert", question)` for mathematical/statistical reasoning
+- Or consult `orchestrator.consult_agent("math_expert", question)` for mathematical/statistical reasoning
 - Make ONE focused change to `{TRAIN_PY}`
 - Allowed: model architecture, optimizer, hyperparams, loss, augmentation, calibration
 - NOT allowed: modify eval code, data loading code, install packages
@@ -102,7 +102,7 @@ For each iteration (1 to max_iterations):
 
 **Goal**: Validate the change before running.
 
-- **robustness_expert**: assess impact on the target metric via `orchestrator.consult_agent("time_series_expert", question)`. Check for known failure modes, overfitting risk, calibration impact
+- **robustness_expert: assess impact on the target metric via `orchestrator.consult_agent("math_expert", question)`. Check for known failure modes, overfitting risk, calibration impact
 - **continual_learning**: is this safe to keep? Will it cause forgetting? What's the rollback plan? Consult `orchestrator.consult_agent("code_expert", question)` for versioning advice
 - Output: go/no-go recommendation + risk assessment
 
