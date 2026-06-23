@@ -337,13 +337,10 @@ class ScientificAutoResearch:
                 try:
                     model = loaded["model"]
                     tokenizer = loaded["tokenizer"]
-                    messages = [
-                        {"role": "system", "content": prompt},
-                        {"role": "user", "content": question},
-                    ]
+                    messages = [{"role": "user", "content": f"{prompt}\n\n{question}"}]
                     text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
                     inputs = tokenizer([text], return_tensors="pt").to(model.device)
-                    out = model.generate(**inputs, max_new_tokens=512, do_sample=False, temperature=0.3)
+                    out = model.generate(**inputs, max_new_tokens=512, do_sample=False)
                     response = tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
                     return response.strip()
                 except Exception as e:

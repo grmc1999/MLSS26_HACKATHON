@@ -27,7 +27,7 @@ FLU_INDEX_DIR = PROJECT_ROOT / "index_output_flu"
 MODELS_DIR = PROJECT_ROOT / "models"
 
 LOCAL_EXPERTS = {
-    "cv_expert": {"path": str(MODELS_DIR / "Qwen2.5-VL-3B"), "model": None, "tokenizer": None},
+    "cv_expert": {"path": str(MODELS_DIR / "Qwen_2.5_3B_nothink"), "model": None, "tokenizer": None},
     "code_expert": {"path": str(MODELS_DIR / "Qwen2.5-Coder-7B-Instruct"), "model": None, "tokenizer": None},
     "math_expert": {"path": str(MODELS_DIR / "Qwen2.5-Math-7B-Instruct"), "model": None, "tokenizer": None},
     "medical_expert": {"path": str(MODELS_DIR / "BioMistral-7B"), "model": None, "tokenizer": None},
