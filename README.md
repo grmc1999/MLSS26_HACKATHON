@@ -244,22 +244,31 @@ MLSS26_HACKATHON/
 
 ---
 
-## Visual RAG — Medical Literature Retrieval
+## Literature RAG (Task-Aware)
 
-PixelRAG provides visual retrieval over medical literature screenshots. The embedding model (`Qwen3-VL-Embedding-2B`) and LoRA adapters are at `models/`.
+Each task has its own FAISS index for retrieving relevant papers during the research phase.
 
-### Pipeline (agentic workflow)
-1. **Render** medical PDFs as screenshot tiles (`pixelshot`)
-2. **Embed** tiles with Qwen3-VL-Embedding-2B
-3. **Index** embeddings in FAISS
-4. **Retrieve** relevant papers before each train.py modification
+| Task | Papers | Index | Embedding Model | Chunks |
+|------|--------|-------|-----------------|--------|
+| **medmnist** | 28 medical (PDF) | `index_output/` | Qwen3-VL-Embedding-2B (2.1B, vision) | 525 tiles |
+| **flu** | 22 forecasting (PDF) | `index_output_flu/` | all-MiniLM-L6-v2 (text) | 475 chunks |
 
-### Fine-tuning
+The pipeline automatically selects the correct index based on `Task: medmnist` or `Task: flu`:
+
+```python
+# Called in Phase 1 (Research) of the pipeline:
+search_medical_literature(query, k=5, task="medmnist")  # → index_output/
+search_medical_literature(query, k=5, task="flu")        # → index_output_flu/
+```
+
+### medmnist RAG (Visual)
+Rendered PDF tiles embedded with Qwen3-VL-Embedding-2B (vision-language). Best for understanding medical images, OOD detection, and chest X-ray patterns.
+
+### flu RAG (Text)
+Text chunks from 22 papers on diffusion models, Neural ODEs, epidemiology, time series forecasting, and physics-informed methods. Embedded with sentence-transformers (MiniLM). Built via:
+
 ```bash
-cd /tmp/PixelRAG/train && uv sync
-# Modify train.py to point to your dataset
-# LoRA on Qwen3-VL-Embedding-2B with torch.compile
-uv run python train.py
+python scripts/build_flu_rag.py
 ```
 
 ## Dashboard
