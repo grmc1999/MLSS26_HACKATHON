@@ -31,6 +31,7 @@ LOCAL_EXPERTS = {
     "code_expert": {"path": str(MODELS_DIR / "Qwen2.5-Coder-7B-Instruct"), "model": None, "tokenizer": None},
     "math_expert": {"path": str(MODELS_DIR / "Qwen2.5-Math-7B-Instruct"), "model": None, "tokenizer": None},
     "medical_expert": {"path": str(MODELS_DIR / "BioMistral-7B"), "model": None, "tokenizer": None},
+    "time_series_expert": {"path": str(MODELS_DIR / "chronos-t5-small"), "model": None, "tokenizer": None},
 }
 
 
@@ -44,8 +45,10 @@ def load_expert(role):
     if not torch.cuda.is_available():
         device = "cpu"
     print(f"[LOAD] Loading {role} on {device}...")
+    is_ts = role == "time_series_expert"
+    loader = AutoModel if is_ts else AutoModelForCausalLM
     expert["tokenizer"] = AutoTokenizer.from_pretrained(expert["path"], trust_remote_code=True)
-    expert["model"] = AutoModelForCausalLM.from_pretrained(
+    expert["model"] = loader.from_pretrained(
         expert["path"], torch_dtype=torch.bfloat16, device_map=device, trust_remote_code=True,
     )
     expert["model"].eval()
@@ -458,6 +461,26 @@ Where:
 - Checkpoints stored in `checkpoints/model_v{N}.pth`
 - Registry in `checkpoints/model_registry.json` tracks all versions
 - Best version is automatically loaded at start of each iteration
+""",
+
+    "time_series_expert": """You are a time series forecasting expert specializing in epidemiological prediction.
+
+## Your Expertise
+- Time series forecasting with LSTMs, GRUs, Transformers, TCNs
+- Seasonal decomposition (STL, X-13ARIMA-SEAT)
+- ARIMA, SARIMA, and exponential smoothing baselines
+- Diffusion models for probabilistic time series forecasting
+- Neural ODEs and continuous-time dynamics
+- Compartmental models (SIR, SEIR) for epidemic forecasting
+- Evaluation metrics: MAE, RMSE, sMAPE, CRPS, quantile loss
+- Uncertainty quantification in forecasts
+
+## Flu Forecasting Context
+- Input: 5 past epiweeks of %ILI → forecast 10 future epiweeks
+- Data sources: CDC ILINet (US) + WHO FluID (global)
+- Target countries: FRA, MEX, AUS, ZAF
+- Current best: GRU hidden_dim=64, 3 layers, Test MAE=0.5835
+- Challenge: domain shift between US pretrain and target countries
 """,
 
     "robustness_expert": f"""You are an uncertainty quantification and robustness expert for OOD detection.
