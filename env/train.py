@@ -305,6 +305,8 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
 def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
+    for pg in optimizer.param_groups:
+        pg.setdefault("weight_decay", 1e-4)
     for x, y, S, N, _naive in loader:
         x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
         optimizer.zero_grad()
@@ -313,6 +315,7 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         else:
             loss = F.l1_loss(model(x), y)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
