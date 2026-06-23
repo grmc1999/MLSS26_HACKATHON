@@ -302,7 +302,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
-def train_epoch(model, loader, optimizer, device, loss_fn=None, noise_std=0.02):
+def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
     for pg in optimizer.param_groups:
@@ -313,8 +313,7 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None, noise_std=0.02):
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
         else:
-            x_aug = x + noise_std * torch.randn_like(x) if noise_std > 0 else x
-            loss = F.smooth_l1_loss(model(x_aug), y)
+            loss = F.l1_loss(model(x), y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
