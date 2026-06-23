@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 
-from MLAgentBench.agents.agent_specialized import search_medical_literature, load_expert
+from MLAgentBench.agents.agent_specialized import search_medical_literature, search_flu_context_rag, load_expert
 
 TASKS = {
     "medmnist": {
@@ -76,9 +76,16 @@ def main():
         print(f"\n{'='*50}\n  Iteration {iteration}\n{'='*50}")
 
         if iteration % 5 == 1:
+            query = f"improve {cfg['direction']} {args.task} forecasting"
             try:
-                rag = search_medical_literature(f"improve {cfg['direction']} {args.task} forecasting", k=3, task=args.task)
-                rag_ctx = "\n".join(f"- {r.get('title','?')}" for r in rag)
+                if args.task == "flu":
+                    # Hybrid: vector hits + FalkorDB relational context (model x
+                    # country x method x metric). Degrades to vector-only if
+                    # FalkorDB is unreachable -- never raises.
+                    rag_ctx = search_flu_context_rag(query, k=3)["combined_context"]
+                else:
+                    rag = search_medical_literature(query, k=3, task=args.task)
+                    rag_ctx = "\n".join(f"- {r.get('title','?')}" for r in rag)
             except: rag_ctx = ""
         else:
             rag_ctx = ""

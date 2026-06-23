@@ -45,7 +45,7 @@ If Pretrained=no, skip directly to Establish Baseline (train SimpleCNN from scra
 ## Establish Baseline (Iteration 0)
 
 1. Run: `python scripts/run_medmnist.py > run.log 2>&1`
-2. Extract: `grep "Test Accuracy" run.log | awk '{print $NF}'` and `grep "OOD F1" run.log | awk '{print $NF}'`
+2. Extract: `grep "Test 3-class Accuracy" run.log | awk '{print $NF}'` and `grep "OOD F1 Score" run.log | awk '{print $NF}'`
 3. Record as iteration 0 in results.tsv: commit, test_acc, ood_f1, memory_gb, status, description
 4. Base metric from chosen Metric: Test Accuracy or OOD F1
 
@@ -64,12 +64,16 @@ For each iteration (1 to max_iterations):
 - Allowed: model architecture, optimizer, hyperparams, loss, augmentation, calibration, OOD strategy
 - NOT allowed: modify eval code, install packages, modify loader.py
 
+### Phase 2b: Code Jury
+- Run `pytest tests/test_train_unit.py -q` from the project root.
+- Fails → fix the change before committing (catches crashes in seconds instead of after a 5min run).
+
 ### Phase 3: Commit
 - `git add -f MLAgentBench/benchmarks/medmnist/env/train.py && git commit -m "experiment: {description}"`
 
 ### Phase 4: Run
 - `python scripts/run_medmnist.py > run.log 2>&1`
-- Extract: `grep "Test Accuracy" run.log | awk '{print $NF}'` and `grep "OOD F1" run.log | awk '{print $NF}'`
+- Extract: `grep "Test 3-class Accuracy" run.log | awk '{print $NF}'` and `grep "OOD F1 Score" run.log | awk '{print $NF}'`
 - Record peak memory from `nvidia-smi`
 
 ### Phase 5: Decide

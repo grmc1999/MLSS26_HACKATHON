@@ -52,6 +52,8 @@ Configured in `configs/agents.yaml`, system prompts in `agent_specialized.py`, r
 - `scripts/run_hackathon.sh <agent_role> medmnist` — launch MLAgentBench.runner
 - `scripts/run_autoresearch_scientific.sh <agent> <iterations>` — launch orchestrator loop
 - `scripts/start_dashboard.sh` — starts both backend + frontend
+- `scripts/start_falkordb.sh` — starts the FalkorDB knowledge graph (Flu Literature Context RAG, see below)
+- `scripts/build_flu_graph.py` — builds the FalkorDB graph from `literature_flu_md/` (see below)
 
 ## Literature
 
@@ -103,6 +105,44 @@ The PixelRAG model is used to retrieve relevant medical literature (PDF screensh
 4. **Retrieve** — agents query the index for relevant papers before modifying train.py
 
 This gives agents visual context from medical literature (tables, charts, radiograph comparisons) during the experiment loop.
+
+## Flu Literature Context RAG — FalkorDB Knowledge Graph (Hybrid)
+
+Separate from PixelRAG above. The flu literature (`literature_flu_md/`, 22 papers) already has a
+text-based vector index (`index_output_flu/`, built by `scripts/build_flu_rag.py`,
+`sentence-transformers/all-MiniLM-L6-v2` + FAISS). This is queried via
+`search_medical_literature(query, k, task="flu")`.
+
+To answer *relational* questions a vector index can't ("which model was evaluated on which
+country with which method, and what metric did it achieve") this is complemented — not
+replaced — by a knowledge graph in [FalkorDB](https://www.falkordb.com/), built and queried via
+LangChain (`langchain-community`, `langchain-experimental`, `langchain-openai`).
+
+### Pipeline
+
+1. **Start FalkorDB**: `bash scripts/start_falkordb.sh` (Docker; graph on `localhost:6379`, browser UI on `localhost:3001`)
+2. **Build the graph** (offline, run once / re-run after literature changes): `python scripts/build_flu_graph.py`
+   - Chunks `literature_flu_md/*.md` the same way as `build_flu_rag.py`
+   - Extracts entities/relationships per chunk with `LLMGraphTransformer`, LLM routed through OpenRouter
+   - Schema is intentionally narrow: nodes `{Model, Dataset, Country, Metric, Method, Paper}`,
+     relationships `{EVALUATED_ON, ACHIEVES, USES_METHOD, CITES, COMPARED_TO}` — open-ended
+     extraction on a corpus this small produces a noisy graph
+   - Clears and rebuilds the graph each run (`--no-reset` to skip)
+3. **Query (hybrid)**: `search_flu_context_rag(query, k=5)` in `MLAgentBench/agents/agent_specialized.py`
+   - Returns `{"vector_hits": [...], "graph_context": "...", "combined_context": "..."}`
+   - `vector_hits` — same FAISS search as `search_medical_literature(..., task="flu")`
+   - `graph_context` — answer from `GraphCypherQAChain` over the FalkorDB graph
+   - Degrades to vector-only (empty `graph_context`) if FalkorDB/langchain are unreachable — never raises
+
+### Call sites
+
+- `MLAgentBench/agents/agent_specialized.py` — `AGENT_PROMPTS["time_series_expert"]` references this tool
+- `scripts/run_orchestrator.py` — uses it (instead of `search_medical_literature`) when `--task flu`
+- `consult_agent.py --role time_series_expert --rag --graph` — CLI bridge, `--graph` opts into the hybrid path
+
+### Config
+
+`FALKORDB_HOST`, `FALKORDB_PORT`, `FALKORDB_GRAPH_NAME` in `.env` (see `.env.example`). The Literature RAG (PixelRAG, visual) is untouched by this — it has no extracted text/entities to build a graph from today.
 
 ## No CI / No tests / No lint / No typecheck
 

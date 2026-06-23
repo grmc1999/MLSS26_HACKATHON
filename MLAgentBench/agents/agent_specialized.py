@@ -137,6 +137,76 @@ def search_medical_literature(query: str, k: int = 5, task: str = "medmnist") ->
     return results
 
 
+# ---------------------------------------------------------------------------
+# Flu Literature Context RAG -- hybrid vector (FAISS, above) + knowledge graph
+# (FalkorDB) retrieval. The graph is built offline by scripts/build_flu_graph.py
+# and answers relational questions (model x country x method x metric) that
+# the vector index alone can't. See AGENTS.md for the full pipeline.
+# ---------------------------------------------------------------------------
+
+_flu_graph_chain = None
+_flu_graph_unavailable = False
+
+
+def _ensure_flu_graph_loaded():
+    """Lazily build the GraphCypherQAChain over FalkorDB. Sets
+    _flu_graph_unavailable instead of raising if FalkorDB/langchain aren't
+    reachable, so callers can degrade to vector-only results."""
+    global _flu_graph_chain, _flu_graph_unavailable
+    if _flu_graph_chain is not None or _flu_graph_unavailable:
+        return
+    try:
+        from langchain_community.chains.graph_qa.cypher import GraphCypherQAChain
+        from langchain_community.graphs import FalkorDBGraph
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.environ["OPENROUTER_API_KEY"],
+            model=os.getenv("FAST_MODEL", "openai/gpt-oss-20b:free"),
+            temperature=0,
+        )
+        graph = FalkorDBGraph(
+            database=os.getenv("FALKORDB_GRAPH_NAME", "flu_literature"),
+            host=os.getenv("FALKORDB_HOST", "localhost"),
+            port=int(os.getenv("FALKORDB_PORT", "6379")),
+        )
+        _flu_graph_chain = GraphCypherQAChain.from_llm(
+            llm=llm, graph=graph, allow_dangerous_requests=True, verbose=False,
+        )
+    except Exception as e:
+        print(f"[WARN] Flu literature graph unavailable, falling back to vector-only search: {e}")
+        _flu_graph_unavailable = True
+
+
+def search_flu_context_rag(query: str, k: int = 5) -> dict:
+    """Hybrid retrieval for the flu literature: vector hits (FAISS, same as
+    search_medical_literature) plus relational context from the FalkorDB
+    knowledge graph. Degrades to vector-only if FalkorDB is unreachable --
+    never raises, so it's safe to call from an unattended research loop.
+    """
+    vector_hits = search_medical_literature(query, k=k, task="flu")
+
+    _ensure_flu_graph_loaded()
+    graph_context = ""
+    if not _flu_graph_unavailable:
+        try:
+            result = _flu_graph_chain.invoke({"query": query})
+            graph_context = result.get("result", "")
+        except Exception as e:
+            graph_context = f"(graph query failed: {e})"
+
+    vector_block = "\n".join(f"- {r.get('title', r.get('file', '?'))} (score: {r.get('score', 0):.3f})" for r in vector_hits if "error" not in r)
+    combined_parts = [p for p in (vector_block, graph_context) if p]
+    combined_context = "\n\n".join(combined_parts)
+
+    return {
+        "vector_hits": vector_hits,
+        "graph_context": graph_context,
+        "combined_context": combined_context,
+    }
+
+
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "configs", "agents.yaml")
 
 
@@ -481,6 +551,13 @@ Where:
 - Target countries: FRA, MEX, AUS, ZAF
 - Current best: GRU hidden_dim=64, 3 layers, Test MAE=0.5835
 - Challenge: domain shift between US pretrain and target countries
+
+## Flu Literature Context RAG
+Call `search_flu_context_rag(query="your search terms", k=5)` to retrieve relevant flu/forecasting
+papers before proposing changes. This returns both semantically similar passages (vector search)
+and relational context from a knowledge graph (which model was evaluated on which country with
+which method, and what metric it achieved) -- use the graph context to ground comparisons like
+"how did adjoint-matched diffusion do on FRA vs. a from-scratch GRU".
 """,
 
     "robustness_expert": f"""You are an uncertainty quantification and robustness expert for OOD detection.
