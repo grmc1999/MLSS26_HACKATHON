@@ -31,7 +31,7 @@ LOCAL_EXPERTS = {
     "code_expert": {"path": str(MODELS_DIR / "Qwen2.5-Coder-7B-Instruct"), "model": None, "tokenizer": None},
     "math_expert": {"path": str(MODELS_DIR / "Qwen2.5-Math-7B-Instruct"), "model": None, "tokenizer": None},
     "medical_expert": {"path": str(MODELS_DIR / "BioMistral-7B"), "model": None, "tokenizer": None},
-    "time_series_expert": {"path": str(MODELS_DIR / "chronos-t5-small"), "model": None, "tokenizer": None},
+    "time_series_expert": {"path": str(MODELS_DIR / "Qwen2.5-Math-7B-Instruct"), "model": None, "tokenizer": None},
 }
 
 
@@ -45,10 +45,8 @@ def load_expert(role):
     if not torch.cuda.is_available():
         device = "cpu"
     print(f"[LOAD] Loading {role} on {device}...")
-    is_ts = role == "time_series_expert"
-    loader = AutoModel if is_ts else AutoModelForCausalLM
     expert["tokenizer"] = AutoTokenizer.from_pretrained(expert["path"], trust_remote_code=True)
-    expert["model"] = loader.from_pretrained(
+    expert["model"] = AutoModelForCausalLM.from_pretrained(
         expert["path"], torch_dtype=torch.bfloat16, device_map=device, trust_remote_code=True,
     )
     expert["model"].eval()
