@@ -29,15 +29,16 @@ Extract from $ARGUMENTS:
 | `METRIC_CMD` | `grep "Test ID Acc" run.log \| awk '{print $NF}'` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
 | `DIRECTION` | higher_is_better | lower_is_better |
 | `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_exp.py --epochs 50` |
-| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu, Qwen2.5-Math-7B) |
+| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu/ILI) |
 | `INPUT_SHAPE` | `(4, 1, 28, 28)` → `(4, 3)` | `(4, 5, 1)` → `(4, 10)` |
 | `LOG_COLS` | test_acc, ood_f1, val_acc, test_acc_id | test_mae, val_mae, params |
+| `RAG_INDEX` | `index_output/` (28 papers, Qwen VL) | `index_output_flu/` (22 papers, MiniLM) |
 
 ## Setup (if required context missing)
 
 If Goal or Metric missing → use question (single batched call):
   Q1 (Task): "Which task?" — medmnist (chest X-ray OOD) or flu (ILI forecasting)
-  Q2 (Goal): "What do you want to improve?" — for medmnist: ID Test Acc or OOD F1; for flu: Test MAE
+  Q2 (Goal): "What do you want to improve?" — depends on task
   Q3 (Iterations): "Iterations?" — default 5
   Q4 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
   Q5 (Pretrained): "Start from scratch or finetune a pretrained model?" — Scratch (default) or Pretrained
@@ -71,10 +72,15 @@ For each iteration (1 to max_iterations):
 
 **Goal**: Understand the problem, find relevant methods from literature.
 
-- **If RAG is enabled**: run `search_medical_literature(query, k=5)` using task-specific keywords
-- **research_literature**: what does the literature say about improving this metric?
-- **task_expert**: consult via `orchestrator.consult_agent("medical_expert", question)` (loads BioMistral-7B on GPU 1). For flu, use `orchestrator.consult_agent("time_series_expert", question)` (loads Qwen2.5-Math-7B on GPU 1).
-- Output: research brief (2-4 sentences) with paper citations
+**Step 1 — Problem Analysis**: Before searching literature, identify what makes this problem hard:
+- **medmnist**: domain shift between PneumoniaMNIST (training) and ChestMNIST (test). The model trains on one chest X-ray dataset and must detect unseen classes in another. Pneumonia vs consolidation look nearly identical on 28×28 grayscale.
+- **flu**: domain shift between US CDC ILINet (training) and WHO FluID (test on France, Mexico, Australia, South Africa). Different countries have different flu seasons, reporting standards, and healthcare systems. Australia is in the southern hemisphere — opposite flu season. A model that memorizes US patterns will fail globally.
+- Use this analysis to guide what kind of solution is needed (regularization? domain adaptation? seasonal features? calibration?).
+
+- **If RAG is enabled**: run `search_medical_literature(query, k=5, task="{TASK}")` using task-specific keywords. Uses `index_output/` for medmnist, `index_output_flu/` for flu.
+- **research_literature**: what does the literature say about improving this metric? Cite specific papers from the index
+- **task_expert**: consult via `orchestrator.consult_agent("medical_expert", question)` for medmnist or `orchestrator.consult_agent("math_expert", question)` for flu. This loads a local 7B LLM on GPU 1 (BioMistral-7B for medical, Qwen2.5-Math-7B for stats).
+- Output: research brief (2-4 sentences) identifying the problem type (domain shift? overfitting? calibration?) + paper citations for relevant methods
 
 ### Phase 2: Plan (autoresearch + llm_expert)
 
@@ -91,7 +97,7 @@ For each iteration (1 to max_iterations):
 
 - Route to **cv_expert** if change involves: model architecture, data augmentation, preprocessing, attention, pooling
 - Route to **dl_expert** if change involves: loss function, optimizer, learning rate, scheduler, regularization, dropout, batch size, calibration
-- Consult `orchestrator.consult_agent("code_expert", question)` for implementation advice (loads Qwen2.5-Coder-7B on GPU 1)
+- Consult via `orchestrator.consult_agent("code_expert", question)` for implementation advice (loads Qwen2.5-Coder-7B on GPU 1)
 - Or consult `orchestrator.consult_agent("math_expert", question)` for mathematical/statistical reasoning
 - Make ONE focused change to `{TRAIN_PY}`
 - Allowed: model architecture, optimizer, hyperparams, loss, augmentation, calibration
@@ -102,7 +108,7 @@ For each iteration (1 to max_iterations):
 
 **Goal**: Validate the change before running.
 
-- **robustness_expert: assess impact on the target metric via `orchestrator.consult_agent("math_expert", question)`. Check for known failure modes, overfitting risk, calibration impact
+- **robustness_expert**: assess impact on the target metric via `orchestrator.consult_agent("math_expert", question)`. Check for known failure modes, overfitting risk, calibration impact
 - **continual_learning**: is this safe to keep? Will it cause forgetting? What's the rollback plan? Consult `orchestrator.consult_agent("code_expert", question)` for versioning advice
 - Output: go/no-go recommendation + risk assessment
 
@@ -139,9 +145,9 @@ If all pass → **PASS**, safe to commit.
 
 ### Phase 8: Log
 
-Append to `experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv` (tab-separated):
-  iteration, commit, test_metric, secondary_metric, val_metric, extra, memory_gb, status, description
-DO NOT commit results.tsv. Dashboard reads from `experiments/loop-*/results.tsv` for auto-loop visualization.
+Append to results.tsv (tab-separated):
+  iteration, commit, test_acc/mae, ood_f1/val_mae, val_acc, test_acc_id, memory_gb, status, description
+DO NOT commit results.tsv.
 
 ### Eval Checkpoint
 If --evals: check if current_iteration % interval == 0 → run checkpoint analysis.
@@ -156,23 +162,3 @@ If bounded: current_iteration >= max_iterations → exit loop, print summary.
 
 ## Summary
 Print: total iterations, kept/discarded counts, starting → final metric, improvement %, most consulted agents.
-
-### Adaptive RAG Refresh (every 20 iterations)
-When iteration % 20 == 0:
-
-1. **Score existing papers**: for each paper in the literature corpus, count times consulted (from RAG logs), times a suggested change was KEPT vs DISCARDED. Score = kept_count - discarded_count.
-2. **Prune**: remove bottom 30% lowest-scoring papers from corpus and index.
-3. **Discover new papers**: search arXiv / GitHub / PapersWithCode for recent work on the current task. Use WebFetch with keywords from successful iterations. Download new PDFs to `literature/` or `literature_flu/`.
-4. **Ingest**: convert new PDFs to markdown (`literature_md/` or `literature_flu_md/`), rebuild FAISS index (`index_output/` or `index_output_flu/`).
-5. Replace old index with refreshed one.
-
-### Research Reset (every 40 iterations)
-When iteration % 40 == 0 AND metric hasn't improved in last 10 iterations:
-
-1. **Diagnose plateau**: identify what technique family has been tried (loss, architecture, data, OOD scoring).
-2. **Force paradigm shift**: switch to a completely different approach. For medmnist: losses → architecture, or architecture → OOD scoring. For flu: RNNs → diffusion/Transformer, or hyperparameters → data preprocessing.
-3. **Reset short-term memory**: treat as new research phase. Commit history and best metric preserved, exploration strategy resets.
-4. Prevents local optima — like epsilon-greedy in RL, when exploitation plateaus, force exploration.
-
-## Iteration Bound
-- `Iterations: unlimited` → never stop. Only manual interrupt (Ctrl+C). Ignore any ceiling.
