@@ -95,6 +95,21 @@ Agents call `search_medical_literature(query, k=5, task="{TASK}")` to retrieve r
 
 ---
 
+## Local Expert LLMs (GPU 1)
+
+When the pipeline consults an expert, it loads a local model on **GPU 1** (reserved for inference, 98GB VRAM) with the agent's system prompt:
+
+| Agent | Model | Size | Path |
+|-------|-------|------|------|
+| **CV Expert** | Med-R1 (Qwen2.5-VL-3B) | 7.1GB | `models/Qwen_2.5_3B_nothink/` |
+| **Code/DL Expert** | Qwen2.5-Coder-7B | 15GB | `models/Qwen2.5-Coder-7B-Instruct/` |
+| **Math/Stats Expert** | Qwen2.5-Math-7B | 15GB | `models/Qwen2.5-Math-7B-Instruct/` |
+| **Medical Expert** | BioMistral-7B | 14GB | `models/BioMistral-7B/` |
+| **AutoResearch** | *(AI assistant)* | — | — |
+| **Research Literature** | RAG index (FAISS) | — | `index_output/` or `index_output_flu/` |
+
+**Total VRAM**: ~51GB / 98GB. Models load on demand via `orchestrator.consult_agent(role, question)` and stay cached across consultations.
+
 ## 8 Specialized Agents
 
 Each agent has a role-specific system prompt with integrated domain skills. Defined in `MLAgentBench/agents/agent_specialized.py`.
