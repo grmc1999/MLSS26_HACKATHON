@@ -1,244 +1,82 @@
 # MLSS26 Hackathon — Scientific AI AutoResearch (Multi-Task)
 
-An autonomous **Scientific AI AutoResearch** system supporting multiple ML tasks. Each task has its own training script, metrics, and environment — all share the same 8-agent pipeline, code jury, and keep/discard loop.
+An autonomous **Scientific AI AutoResearch** system with 2 RAG-augmented experiment pipelines: chest X-ray OOD detection (MedMNIST) and cross-country ILI forecasting (flu).
 
 ## Available Tasks
 
-| Task | Domain | Runner | Primary Metric | Best Result |
-|------|--------|--------|----------------|-------------|
-| **medmnist** | Chest X-ray OOD detection | `scripts/run_medmnist.py` | OOD F1 / ID Test Acc | OOD F1: 0.3234 |
-| **flu** | ILI forecasting (CDC + WHO) | `scripts/run_exp.py` | Test MAE | 0.802 (baseline) |
+| Task | Domain | Runner | Primary Metric |
+|------|--------|--------|----------------|
+| **medmnist** | Chest X-ray OOD detection | `scripts/run_medmnist.py` | OOD F1 / ID Test Acc |
+| **flu** | ILI forecasting (CDC → WHO) | `scripts/run_exp.py` | Test MAE |
 
 Pass `Task: medmnist` or `Task: flu` when invoking `/autoresearch_pipeline`.
 
----
+## Quick Start
 
-## Baseline Model
+```bash
+source .venv/bin/activate
+export OPENROUTER_API_KEY=sk-or-v1-...
 
-The baseline is a **2-layer `SimpleCNN`** defined in `train.py`:
+# Run a standalone experiment
+python scripts/run_medmnist.py --epochs 25   # medmnist
+python scripts/run_exp.py --epochs 50         # flu
 
-| Component | Detail |
-|-----------|--------|
-| **Architecture** | Conv2d(1→32) → BN → LeakyReLU → MaxPool → Conv2d(32→64) → BN → LeakyReLU → MaxPool → FC(3136→128) → FC(128→3) |
-| **Params** | ~415K |
-| **Optimizer** | Adam, lr=1e-3 |
-| **Epochs** | 20 |
-| **Batch size** | 64 |
-| **OOD method** | Softmax confidence threshold (τ=0.7) — max prob < 0.7 → predict OOD (class 2) |
-| **Loss** | Cross-entropy (2-class on PneumoniaMNIST) |
+# Launch the autonomous pipeline
+python scripts/run_orchestrator.py --task medmnist --iterations 25
+python scripts/run_orchestrator.py --task flu --iterations 25
+```
 
-**Baseline results** (train_backup.py): ID Test Acc ≈ **71%**, OOD F1 ≈ **0.12**.
+## 2 RAG Systems
 
-A frozen copy of the baseline is saved at `MLAgentBench/benchmarks/medmnist/env/train_backup.py` — it is never modified, and all experiment iterations are compared against it.
+| | MedMNIST RAG | Flu RAG |
+|---|-------------|---------|
+| **Index** | `index_output/` | `index_output_flu/` |
+| **Papers** | 28 (OOD detection, chest X-ray) | 22 (influenza forecasting) |
+| **Embedding** | Qwen3-VL-Embedding-2B (vision, 2048-dim) | all-MiniLM-L6-v2 (text, 384-dim) |
+| **Type** | Visual — PDF screenshot tiles | Text — markdown chunks |
+| **Graph** | ❌ | ✅ FalkorDB knowledge graph |
+| **Search** | `search_medical_literature(query, k, task="medmnist")` | `search_flu_context_rag(query, k)` → vector hits + graph context (keyword-matched Cypher, no LLM) |
 
----
+The flu RAG adds a **FalkorDB knowledge graph** for relational queries ("which model on which country with which metric"). Querying uses keyword-matched Cypher — no LLM call, deterministic, instant. The graph is built offline via `python scripts/build_flu_graph.py`.
 
-## Task: Chest X-ray OOD Detection
+## 2 Slash Commands
 
-| | |
-|---|---|
-| **Train** | PneumoniaMNIST (4,708 samples, 28×28) |
-| **Classes** | normal, pneumonia |
-| **Test** | ChestMNIST 3-class subset (600 samples) |
-| **Classes** | normal (300), pneumonia (59), **consolidation 🆕 OOD** (241) |
-| **Goal** | Maximize OOD F1 + ID test accuracy |
-| **Baseline** | ID Test Acc: 71%, OOD F1: 0.12 |
+Defined in `.opencode/commands/`:
 
-The scientific challenge: a model trained only on PneumoniaMNIST must:
-1. Correctly classify normal vs pneumonia from ChestMNIST (domain transfer)
-2. Detect consolidation as **OOD** despite looking nearly identical to pneumonia on X-rays
-
-## Sample Run Results
-
-![Loop Results](assets/loop_results.png)
-
-The plot shows a typical autoresearch run: weight decay (iteration 2) improved ID Test Acc from 71% to 78% (+9.8%). Discarded changes are shown in red, kept in green.
-
-## Dataset Samples
-
-![Dataset Samples](assets/dataset_samples.png)
-
-The model trains on **PneumoniaMNIST** (28×28 grayscale chest X-rays, 2 classes: normal, pneumonia) and is evaluated on **ChestMNIST** (same resolution, 3 classes: normal, pneumonia, **consolidation** as an unseen OOD class). The 6 columns show 3 training samples per class from PneumoniaMNIST (left) and 3 test samples per class from ChestMNIST (right). Notice the visual similarity between pneumonia and consolidation — this is the key OOD detection challenge.
-
----
+| Command | What it does |
+|---------|-------------|
+| `/autoresearch` | Simple modify → run → keep/discard against a single metric |
+| `/autoresearch_pipeline` | Full multi-expert pipeline: research → plan → code → jury → commit → run → decide → log, with adaptive RAG and research reset |
 
 ## Architecture
 
 ```
-User / Dashboard
-       |
-       v
-+------------------------------+
-|    Scientific AutoResearch   |
-|    Orchestrator              |  ← consult_agent(role, question)
-+------------------------------+
-       |         ↑
-       |         | consultation with local LLMs on GPU 1
-       v         |
-+------------------------------+
-|    Local Expert LLMs        |
-|  +------------------------+ |
-|  | cv_expert  (Med-R1)    | |  7.1 GB
-|  | code_expert (Coder-7B) | |  15 GB
-|  | math_expert (Math-7B)  | |  15 GB
-|  | medical_expert (BioM)  | |  14 GB
-|  | time_series (Math-7B)  | |  15 GB
-|  +------------------------+ |
-|      ~51 GB / 98 GB VRAM   |
-+------------------------------+
-       |                ↕
-       |         +---------------------------+
-       |         |  Literature RAG (task)    |
-       |         |  medmnist: index_output/  |
-       |         |  flu:      index_output_flu/ |
-       |         |  Adaptive: refresh every  |
-       |         |  20 iterations (prune +   |
-       |         |  discover + ingest)       |
-       |         +---------------------------+
-       v
-+------------------------------+
-|   Experiment Pipeline       |  ← scripts/run_medmnist.py (medmnist)
-|                              |  ← scripts/run_exp.py (flu)
-+------------------------------+
+User
+  │
+  v
+┌────────────────────────────────────┐
+│ run_orchestrator.py / slash cmd    │
+│ 8 phases per iteration             │
+│ (Qwen2.5-7B-Instruct orchestrator) │
+└────────────────────────────────────┘
+  ├──→ Research:  RAG (task-aware FAISS + optional FalkorDB graph)
+  ├──→ Plan:      Orchestrator LLM proposes experiment
+  ├──→ Implement: Modify {ENV_DIR}/train.py
+  ├──→ Jury:      Syntax + forward + backward checks
+  ├──→ Commit:    git commit
+  ├──→ Run:       {runner} > run.log
+  ├──→ Decide:    keep (metric improved) or discard (git revert)
+  └──→ Log:       Append to results.tsv
 ```
 
-### Adaptive RAG (every 20 iterations)
-The RAG index self-improves every 20 iterations:
-1. **Score** each paper by usefulness (kept vs discarded suggestions)
-2. **Prune** bottom 30% least useful papers
-3. **Discover** new papers via arXiv/GitHub web search
-4. **Ingest** new PDFs → markdown → rebuild FAISS index
+## Experiment Protocol
 
-### Research Reset (every 40 iterations)
-If metric plateaus for 10+ iterations, forces a paradigm shift — switches to a different technique family (loss tuning → architecture, or RNNs → diffusion). Prevents local optima like epsilon-greedy in RL.
+Canonical protocol: **`autoresearch_pipeline.md`** (`.opencode/commands/autoresearch_pipeline.md`).
 
----
-
-## Local Expert LLMs (GPU 1)
-
-When the pipeline consults an expert, it loads a local model on **GPU 1** (reserved for inference, 98GB VRAM) with the agent's system prompt:
-
-| Agent | Model | Size | Path |
-|-------|-------|------|------|
-| **CV Expert** | Med-R1 (Qwen2.5-VL-3B) | 7.1GB | `models/Qwen_2.5_3B_nothink/` |
-| **Code/DL Expert** | Qwen2.5-Coder-7B | 15GB | `models/Qwen2.5-Coder-7B-Instruct/` |
-| **Math/Stats Expert** | Qwen2.5-Math-7B | 15GB | `models/Qwen2.5-Math-7B-Instruct/` |
-| **Medical Expert** | BioMistral-7B | 14GB | `models/BioMistral-7B/` |
-| **Time Series Expert** | Qwen2.5-Math-7B | 15GB | `models/Qwen2.5-Math-7B-Instruct/` |
-| **AutoResearch** | *(AI assistant)* | — | — |
-| **Research Literature** | RAG index (FAISS) | — | `index_output/` or `index_output_flu/` |
-
-**Total VRAM**: ~51GB / 98GB. Models load on demand via `orchestrator.consult_agent(role, question)` and stay cached across consultations.
-
-## 8 Specialized Agents
-
-Each agent has a role-specific system prompt with integrated domain skills. Defined in `MLAgentBench/agents/agent_specialized.py`.
-
-| Agent | Role | Skill Integration | RAG Access |
-|-------|------|-------------------|------------|
-| **CV Expert** | CNN architecture, augmentation, OOD scoring | Computer Vision skill | ✅ Yes |
-| **DL Expert** | Loss functions, optimizers, calibration | Deep Learning skill | ✅ Yes |
-| **Medical Expert** | Chest X-ray, MedMNIST, pneumonia patterns | Imaging Algorithms skill | ✅ Yes |
-| **Robustness Expert** | OOD theory, uncertainty, confidence calibration | Imaging Algorithms skill | ✅ Yes |
-| **Research Literature** | Paper search, SOTA methods | Literature RAG tool | ✅ Yes |
-| **AutoResearch** | Experiment planning, iteration strategy | Autoresearch loop skill | ✅ Yes |
-| **LLM Expert** | Multi-agent coordination, prompt design | — | ✅ Yes |
-| **Continual Learning** | Anti-forgetting, checkpoint versioning, EWC | — | ✅ Yes |
-
-Agents are routed via the orchestrator based on the goal keywords. For example, if your goal mentions "ood" or "threshold", the orchestrator routes to `robustness_expert`. If it mentions "architecture" or "augment", it routes to `cv_expert`.
-
-Run `/autoresearch_pipeline` for a **multi-expert workflow** that cycles through all 8 agents in sequence per iteration: research_literature + medical_expert (research phase) → llm_expert + autoresearch (plan phase) → cv_expert or dl_expert (implementation phase) → robustness_expert + continual_learning (review phase). This ensures every change is researched, planned, coded, and validated by the right expert.
-
----
-
-## 14 AutoResearch Slash Commands
-
-Available as opencode commands (type `/` in the TUI). Defined in `.opencode/commands/autoresearch_*.md`. Each command asks setup questions — **RAG** (search medical literature) and/or **Pretrained** (finetune pretrained models).
-
-| Command | Purpose | RAG | Pretrained |
-|---------|---------|-----|-----------|
-| `/autoresearch` | Iterate against metric: modify → verify → keep/discard | Q3 | Q3 |
-| `/autoresearch_plan` | Convert goal into experiment config | Q3 | — |
-| `/autoresearch_debug` | Hunt bugs via hypothesis testing | Q4 | — |
-| `/autoresearch_fix` | Fix errors one-by-one to zero | Q3 | — |
-| `/autoresearch_scenario` | Explore edge cases and sensitivity | Q3 | — |
-| `/autoresearch_predict` | 5-expert debate before changing code | Q2 | — |
-| `/autoresearch_learn` | Extract cross-iteration lessons | Q2 | — |
-| `/autoresearch_reason` | Adversarial debate with blind judges | Q2 | — |
-| `/autoresearch_probe` | Surface hidden constraints | Q2 | — |
-| `/autoresearch_improve` | Research SOTA methods, generate PRDs | Q3 | — |
-| `/autoresearch_evals` | Analyze trends across all runs | Q1 | — |
-| `/autoresearch_regression` | Baseline vs candidate stability gate | Q3 | — |
-| `/autoresearch_scientific` | 🧪 Full loop + 8 specialized agents | Q4 | Q5 |
-| `/autoresearch_pipeline` | 🔄 Multi-expert pipeline: 8 agents + code jury per iteration — research → plan → code → jury → review → commit → run → decide → log. Supports `Task: medmnist` or `Task: flu` | Q3 | Q4 |
-
----
-
-## Dashboard Features
-
-The dashboard (FastAPI backend + Next.js frontend) provides real-time experiment monitoring:
-
-| Page | Route | What It Shows |
-|------|-------|---------------|
-| **Overview** | `/` | Val Acc / ID Test Acc / OOD F1 timeline, recent runs, auto-loop cards |
-| **Experiments** | `/experiments` | Filterable table with source badges, search, keeep/discard tracking |
-| **Experiment Detail** | `/experiments/[id]` | 3-metric line chart, iteration log with deltas, **PCA embeddings** (test vs val), per-class accuracy bars, OOD confusion matrix, sample images per class |
-| **Agents** | `/agents` | 8 agent cards with model configs and skills |
-| **Config** | `/config` | Live agent-to-model reassignment via dropdowns |
-| **Leaderboard** | `/leaderboard` | Ranked by best ID Test Acc / OOD F1 |
-
-The experiment detail page includes a **PCA embedding scatter plot** showing both PneumoniaMNIST (val, diamonds) and ChestMNIST (test, circles) samples projected into 2D feature space — useful for visualizing domain shift.
-
----
-
-## Skills
-
-Integrated domain skills (loaded from the skill system) give agents specialized knowledge:
-
-- **Computer Vision** — OpenCV, scikit-image, torchvision operations for image preprocessing, feature detection, thresholding
-- **Deep Learning** — PyTorch training patterns, loss functions (Cross-Entropy, Focal, label smoothing), optimizer config (AdamW, SGD), scheduling (cosine annealing, warmup)
-- **Imaging Algorithms** — Classification metrics (Accuracy, F1, AUROC), OOD metrics (FPR@95, ECE), image preprocessing (normalization, CLAHE, denoising)
-- **Autoresearch Loop** — Karpathy-style autonomous experiment loop: baseline → modify → verify → keep/discard
-
-## Quick Start
-
-### 1. Setup
-```bash
-source .venv/bin/activate
-export OPENROUTER_API_KEY=sk-or-v1-...
-```
-
-### 2. Run baseline experiment
-```bash
-python scripts/run_medmnist.py --epochs 20
-```
-
-### 3. Run the autonomy loop
-```bash
-python -m MLAgentBench.agents.orchestrator \
-    --agent autoresearch \
-    --iterations 25 \
-    --verify "python scripts/run_medmnist.py --epochs 20"
-```
-
-### 4. Start dashboard
-```bash
-scripts/start_dashboard.sh
-# → Backend: http://localhost:8000
-# → Frontend: http://localhost:3000
-```
-
----
-
-## Data
-
-| Dataset | Source | Samples | Role |
-|---------|--------|---------|------|
-| **PneumoniaMNIST** | MedMNIST (auto-download) | 4,708 train + 524 val | Training |
-| **ChestMNIST subset** | Extracted from MedMNIST | 600 test | Evaluation |
-| Path: `data/medmnist_subset/chestmnist_3class.npz` (432 KB) | | | |
-
----
+- Only modify `{ENV_DIR}/train.py`. Do NOT modify eval/data files.
+- Run: `{VERIFY_CMD} > run.log 2>&1`
+- Parse metric from stdout, log to `experiments/loop-*/results.tsv`
+- Time budget: 5 min per experiment. Kill at 10 min.
 
 ## Project Structure
 
@@ -246,79 +84,48 @@ scripts/start_dashboard.sh
 MLSS26_HACKATHON/
 ├── AGENTS.md
 ├── README.md
-├── program.md
-├── .opencode/skills/autoresearch/SKILL.md     # 15 subcommands
-├── env/                                          # 🆕 Flu forecasting task
-│   ├── data.py                                   # CDC + WHO data loaders
-│   ├── train.py                                  # Forecasting models (LSTM, GRU, TCN, Transformer)
-│   └── eval.py                                   # Evaluation metrics
-├── configs/agents.yaml                           # Agents config
-├── configs/models.yaml                         # OpenRouter models
+├── .opencode/commands/
+│   ├── autoresearch.md               # Simple loop
+│   └── autoresearch_pipeline.md      # Multi-expert pipeline
+├── env/                           # Flu forecasting task
+│   ├── data.py                    # CDC ILINet + WHO FluID loaders
+│   ├── train.py                   # Forecasting models
+│   └── eval.py                    # Evaluation metrics
+├── MLAgentBench/benchmarks/medmnist/env/
+│   ├── train.py                   # MedMNIST training code
+│   └── loader.py                  # PneumoniaMNIST + ChestMNIST loader
 ├── MLAgentBench/agents/
-│   ├── orchestrator.py                         # Unified loop
-│   ├── agent_specialized.py                    # 8 agents
-│   └── continual_learning.py
-├── MLAgentBench/benchmarks/medmnist/           # 🆕 Current task
-│   ├── env/train.py                            # Training script
-│   └── env/loader.py                           # Data loader
-├── data/medmnist_subset/                       # ChestMNIST 3-class subset
+│   ├── orchestrator.py            # ScientificAutoResearch + ExperimentManager
+│   └── agent_specialized.py       # Agent prompts + RAG functions
+├── MLAgentBench/LLM.py            # OpenRouter routing
 ├── scripts/
-│   ├── run_medmnist.py                           # MedMNIST experiment CLI
-│   ├── run_exp.py                                # 🆕 Flu forecasting CLI
-│   ├── run_flu_pipeline.py                       # 🆕 Full flu pipeline
-│   └── run_autoresearch_scientific.sh            # Scientific AI launcher
-├── experiments/                                # Results
-├── dashboard/
-│   ├── backend/ (FastAPI)
-│   └── frontend/ (Next.js)
-├── models/
-│   ├── Qwen3-VL-Embedding-2B/                  # Visual RAG embedding model (2.1B)
-│   └── Qwen3-VL-Embedding-LoRA/                # LoRA adapters (lora_vit, dora_ls005, hyper3)
-└── .venv/
+│   ├── run_medmnist.py            # MedMNIST CLI wrapper
+│   ├── run_exp.py                 # Flu CLI wrapper
+│   ├── run_orchestrator.py        # Autonomous pipeline
+│   ├── build_flu_graph.py         # FalkorDB knowledge graph builder
+│   └── start_falkordb.sh          # FalkorDB Docker launcher
+├── index_output/                  # MedMNIST FAISS index (Qwen3-VL, 525 tiles)
+├── index_output_flu/              # Flu FAISS index (MiniLM, 475 chunks)
+├── literature/                    # 28 OOD/chest X-ray PDFs
+├── literature_flu/                # 22 flu forecasting PDFs
+└── experiments/                   # Run logs and results
 ```
 
----
+## FalkorDB (Flu Knowledge Graph)
 
-## Literature RAG (Task-Aware)
-
-Each task has its own FAISS index for retrieving relevant papers during the research phase.
-
-| Task | Papers | Index | Embedding Model | Chunks |
-|------|--------|-------|-----------------|--------|
-| **medmnist** | 28 medical (PDF) | `index_output/` | Qwen3-VL-Embedding-2B (2.1B, vision) | 525 tiles |
-| **flu** | 22 forecasting (PDF) | `index_output_flu/` | all-MiniLM-L6-v2 (text) | 475 chunks |
-
-The pipeline automatically selects the correct index based on `Task: medmnist` or `Task: flu`:
-
-```python
-# Called in Phase 1 (Research) of the pipeline:
-search_medical_literature(query, k=5, task="medmnist")  # → index_output/
-search_medical_literature(query, k=5, task="flu")        # → index_output_flu/
-```
-
-### medmnist RAG (Visual)
-Rendered PDF tiles embedded with Qwen3-VL-Embedding-2B (vision-language). Best for understanding medical images, OOD detection, and chest X-ray patterns.
-
-### flu RAG (Text)
-Text chunks from 22 papers on diffusion models, Neural ODEs, epidemiology, time series forecasting, and physics-informed methods. Embedded with sentence-transformers (MiniLM). Built via:
+Populate once (requires `openai/gpt-4o-mini` or similar for entity extraction):
 
 ```bash
-python scripts/build_flu_rag.py
+bash scripts/start_falkordb.sh
+python scripts/build_flu_graph.py --model openai/gpt-4o-mini
 ```
 
-## Dashboard
+Querying uses keyword-matched Cypher — no LLM needed at retrieval time:
 
-| Page | Route | Feature |
-|------|-------|---------|
-| Overview | `/` | Score chart, experiment stats |
-| Experiments | `/experiments` | List with source badges |
-| Experiment Detail | `/experiments/[id]` | Score + agent log, PCA embeddings, per-class accuracy |
-| Agents | `/agents` | Status and models |
-| Config | `/config` | Model swap panel |
-| Leaderboard | `/leaderboard` | Ranked by OOD F1 |
-
----
-
-## License
-
-MIT — inherited from [MLAgentBench](https://github.com/snap-stanford/MLAgentBench).
+```python
+from MLAgentBench.agents.agent_specialized import search_flu_context_rag
+result = search_flu_context_rag("GRU model France evaluation", k=5)
+# "vector_hits" → FAISS semantic search
+# "graph_context" → deterministic keyword-matched Cypher
+# "combined_context" → both combined
+```
