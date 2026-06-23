@@ -8,27 +8,12 @@ Loader batches are 5-tuples: (x, y, S, N, naive) -- see env/data.py.
 import copy
 import functools
 import math
-import random
 import time
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from peft import LoraConfig, get_peft_model
-
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-set_seed()
-
-# Replace Adam with AdamW for decoupled weight decay regularization
-torch.optim.Adam = torch.optim.AdamW
 
 try:  # cwd=env/ (scripts/run_exp.py inserts env/ onto sys.path directly)
     from data import load_pretrain_data, load_finetune_data
@@ -355,7 +340,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_loader, val_loader, test_loader = load_pretrain_data(batch_size=64)
     model = create_model("lstm", hidden_dim=128, num_layers=2).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     best_mae = float("inf")
     for _epoch in range(20):
         train_epoch(model, train_loader, optimizer, device)
