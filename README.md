@@ -82,6 +82,7 @@ User / Dashboard
 |  | code_expert (Coder-7B) | |  15 GB
 |  | math_expert (Math-7B)  | |  15 GB
 |  | medical_expert (BioM)  | |  14 GB
+|  | time_series (Chronos) | |  89 MB |
 |  +------------------------+ |
 |      ~51 GB / 98 GB VRAM   |
 +------------------------------+
