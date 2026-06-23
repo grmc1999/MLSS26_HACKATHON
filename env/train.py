@@ -33,27 +33,19 @@ FORECAST_STEPS = 10
 
 
 class LSTMSeq2Seq(nn.Module):
-    def __init__(self, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS, dropout=0.2):
+    def __init__(self, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
         super().__init__()
         self.forecast_steps = forecast_steps
-        self.dropout = dropout
-        self.encoder = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout if num_layers > 1 else 0)
-        self.decoder = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout if num_layers > 1 else 0)
+        self.encoder = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.decoder = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
         self.out_proj = nn.Linear(hidden_dim, input_dim)
-        if dropout > 0:
-            self.drop = nn.Dropout(dropout)
 
     def forward(self, x):
         _, (h, c) = self.encoder(x)
-        if self.dropout > 0:
-            h = self.drop(h)
-            c = self.drop(c)
         dec_input = x[:, -1:, :]
         outputs = []
         for _ in range(self.forecast_steps):
             out, (h, c) = self.decoder(dec_input, (h, c))
-            if self.dropout > 0:
-                out = self.drop(out)
             pred = self.out_proj(out)
             outputs.append(pred)
             dec_input = pred
@@ -296,9 +288,9 @@ def get_finetune_loss_fn(variant, beta, gamma):
 # --------------------------------------------------------------------------
 
 
-def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS, dropout=0.2):
+def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast_steps=FORECAST_STEPS):
     if model_type == "lstm":
-        return LSTMSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps, dropout)
+        return LSTMSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "gru":
         return GRUSeq2Seq(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "tcn":
