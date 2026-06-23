@@ -142,7 +142,7 @@ def main():
         # ── Phase 2: Plan ──
         print(f"\n  Phase 2 — Plan")
         plan = ask(orch, orch_tok, f"""Task: {args.task}. Best: {best_metric:.4f} ({best_desc}).
-History: {str([(h['iter'], round(h['metric'], 3), h['status']) for h in history[-5:]])}
+History: {[f'{h[\"iter\"]}={h[\"metric\"]:.3f}({h[\"status\"]})' for h in history[-5:]]}
 RAG: {rag_ctx}
 
 Propose ONE change to {cfg['train_py']} to improve the metric.
