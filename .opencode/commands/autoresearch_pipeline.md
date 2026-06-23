@@ -29,7 +29,7 @@ Extract from $ARGUMENTS:
 | `METRIC_CMD` | `grep "Test ID Acc" run.log \| awk '{print $NF}'` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
 | `DIRECTION` | higher_is_better | lower_is_better |
 | `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_exp.py --epochs 50` |
-| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu, Chronos-T5) |
+| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu, Qwen2.5-Math-7B) |
 | `INPUT_SHAPE` | `(4, 1, 28, 28)` → `(4, 3)` | `(4, 5, 1)` → `(4, 10)` |
 | `LOG_COLS` | test_acc, ood_f1, val_acc, test_acc_id | test_mae, val_mae, params |
 
@@ -73,7 +73,7 @@ For each iteration (1 to max_iterations):
 
 - **If RAG is enabled**: run `search_medical_literature(query, k=5)` using task-specific keywords
 - **research_literature**: what does the literature say about improving this metric?
-- **task_expert**: consult via `orchestrator.consult_agent("medical_expert", question)` (loads BioMistral-7B on GPU 1). For flu, use `orchestrator.consult_agent("time_series_expert", question)` (loads Chronos-T5 on GPU 1).
+- **task_expert**: consult via `orchestrator.consult_agent("medical_expert", question)` (loads BioMistral-7B on GPU 1). For flu, use `orchestrator.consult_agent("time_series_expert", question)` (loads Qwen2.5-Math-7B on GPU 1).
 - Output: research brief (2-4 sentences) with paper citations
 
 ### Phase 2: Plan (autoresearch + llm_expert)

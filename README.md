@@ -82,7 +82,7 @@ User / Dashboard
 |  | code_expert (Coder-7B) | |  15 GB
 |  | math_expert (Math-7B)  | |  15 GB
 |  | medical_expert (BioM)  | |  14 GB
-|  | time_series (Chronos)  | |  89 MB
+|  | time_series (Math-7B)  | |  15 GB
 |  +------------------------+ |
 |      ~51 GB / 98 GB VRAM   |
 +------------------------------+
@@ -124,7 +124,7 @@ When the pipeline consults an expert, it loads a local model on **GPU 1** (reser
 | **Code/DL Expert** | Qwen2.5-Coder-7B | 15GB | `models/Qwen2.5-Coder-7B-Instruct/` |
 | **Math/Stats Expert** | Qwen2.5-Math-7B | 15GB | `models/Qwen2.5-Math-7B-Instruct/` |
 | **Medical Expert** | BioMistral-7B | 14GB | `models/BioMistral-7B/` |
-| **Time Series Expert** | Chronos-T5-Small | 89MB | `models/chronos-t5-small/` |
+| **Time Series Expert** | Qwen2.5-Math-7B | 15GB | `models/Qwen2.5-Math-7B-Instruct/` |
 | **AutoResearch** | *(AI assistant)* | — | — |
 | **Research Literature** | RAG index (FAISS) | — | `index_output/` or `index_output_flu/` |
 
