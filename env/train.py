@@ -307,7 +307,6 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
     total_loss, n = 0.0, 0
     for pg in optimizer.param_groups:
         pg.setdefault("weight_decay", 1e-4)
-        pg["lr"] = 5e-4
     for x, y, S, N, _naive in loader:
         x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
         optimizer.zero_grad()
