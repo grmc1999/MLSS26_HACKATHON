@@ -49,38 +49,64 @@ Defined in `.opencode/commands/`:
 
 ## Architecture
 
-The system follows **`autoresearch_pipeline.md`** (`.opencode/commands/autoresearch_pipeline.md`), an 8-phase iteration loop driven by opencode:
+The system follows **`autoresearch_pipeline.md`** (`.opencode/commands/autoresearch_pipeline.md`), an 8-phase iteration loop driven by opencode. The Research phase uses a **4-tier RAG search strategy**:
 
 ```
-User
-  │
-  v
-┌───────────────────────────────────────────┐
-│  Phase 1: Research                        │
-│   - Search task-specific RAG (FAISS)      │
-│   - Optional FalkorDB graph query (flu)   │
-├───────────────────────────────────────────┤
-│  Phase 2: Plan                            │
-│   - Consult opencode for experiment plan  │
-├───────────────────────────────────────────┤
-│  Phase 3: Implement                       │
-│   - Modify {ENV_DIR}/train.py             │
-├───────────────────────────────────────────┤
-│  Phase 4: Code Jury                       │
-│   - Syntax + forward + backward checks    │
-├───────────────────────────────────────────┤
-│  Phase 5: Commit                          │
-│   - git commit                            │
-├───────────────────────────────────────────┤
-│  Phase 6: Run                             │
-│   - {VERIFY_CMD} > run.log                │
-├───────────────────────────────────────────┤
-│  Phase 7: Decide                          │
-│   - Keep (metric improved) or discard     │
-├───────────────────────────────────────────┤
-│  Phase 8: Log                             │
-│   - Append to experiments/loop-*/results  │
-└───────────────────────────────────────────┘
+                                ┌──────────────────────────┐
+                                │         User             │
+                                │  (/autoresearch_pipeline)│
+                                └──────────┬───────────────┘
+                                           │
+                                           v
+┌────────────────────────────────────────────────────────────────────────────┐
+│  Phase 1: RESEARCH                                                         │
+│                                                                           │
+│   ┌──────────────────────────────────────────────────────────────────┐    │
+│   │                   4-Tier Search Strategy                         │    │
+│   │                                                                  │    │
+│   │  Tier 1:  Local FAISS (task-specific) ─── fastest, no API        │    │
+│   │           medmnist → search_medical_literature()                  │    │
+│   │           flu      → search_flu_context_rag() (+ FalkorDB graph) │    │
+│   │                                                                  │    │
+│   │  Tier 2:  Tavily web search ── broader / post-index methods      │    │
+│   │           tvly search --depth=basic --max-results=5              │    │
+│   │                                                                  │    │
+│   │  Tier 3:  paper-navigator (Semantic Scholar) ── academic papers  │    │
+│   │           Requires S2_API_KEY for rubric-based discovery         │    │
+│   │                                                                  │    │
+│   │  Tier 4:  research-ideation (evo-memory) ── generate from        │    │
+│   │           scratch when search fails; avoids prior dead ends      │    │
+│   └──────────────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────────────────┘
+                                           │
+                                           v
+┌────────────────────────────────────────────────────────────────────────────┐
+│  Phase 2: PLAN                                                             │
+│   - Synthesize research into experiment hypothesis                        │
+│   - If needed: tvly search for recent work on proposed approach           │
+└────────────────────────────────────────────────────────────────────────────┘
+                                           │
+                                           v
+┌────────────────────────────────────────────────────────────────────────────┐
+│  Phase 3: IMPLEMENT                                                        │
+│   - Make ONE focused change to {ENV_DIR}/train.py                         │
+└────────────────────────────────────────────────────────────────────────────┘
+                                           │
+                                           v
+┌────────────────────────────────────────────────────────────────────────────┐
+│  Phase 4: CODE JURY                                                        │
+│   - Syntax check → forward pass → loss → backward pass                    │
+└────────────────────────────────────────────────────────────────────────────┘
+                                           │
+                                           v
+┌────────────────────────────────────────────────────────────────────────────┐
+│  Phase 5: COMMIT  │  Phase 6: RUN  │  Phase 7: DECIDE  │  Phase 8: LOG    │
+│  git add + commit  │ {VERIFY_CMD}   │ keep or discard   │ results.tsv      │
+│                    │ > run.log      │ (revert if worse) │                  │
+└────────────────────────────────────────────────────────────────────────────┘
+
+Every 10 iterations → Phase 9: Adaptive RAG Refresh (Tavily + arxiv discovery, rebuild index)
+Every 20 iterations → Phase 10: Research Reset (paradigm shift on plateau)
 ```
 
 ## Experiment Protocol
