@@ -78,20 +78,20 @@ User / Dashboard
 +------------------------------+
 |    8 Specialized Agents     |  ← domain experts with RAG
 +------------------------------+
-       |                ↕
-       |         +-------------------+
-       |         |  Medical Lit RAG  |
-       |         |  (FAISS index of  |
-       |         |   28 papers via   |
-       |         |   Qwen3-VL-Embed) |
-       |         +-------------------+
-       v
+        |         ↕
+        |         +---------------------------+
+        |         |  Literature RAG (task)    |
+        |         |  medmnist: index_output/  |
+        |         |  flu:      index_output_flu/ |
+        |         +---------------------------+
+        v
 +------------------------------+
-|   Experiment Pipeline       |  ← scripts/run_medmnist.py
+|   Experiment Pipeline       |  ← scripts/run_medmnist.py (medmnist)
+|                              |  ← scripts/run_exp.py (flu)
 +------------------------------+
 ```
 
-Agents call `search_medical_literature(query, k=5)` to retrieve relevant papers from the FAISS index before proposing changes to `train.py`. The index contains 525 tile embeddings from 28 medical papers on OOD detection, chest X-rays, and deep learning, embedded with Qwen3-VL-Embedding-2B.
+Agents call `search_medical_literature(query, k=5, task="{TASK}")` to retrieve relevant papers before proposing changes. The medmnist index (`index_output/`) contains 525 visual tile embeddings from 28 medical papers on OOD detection and chest X-rays, embedded with Qwen3-VL-Embedding-2B. The flu index (`index_output_flu/`) contains 475 text chunks from 22 papers on forecasting and diffusion models, embedded with all-MiniLM-L6-v2.
 
 ---
 
