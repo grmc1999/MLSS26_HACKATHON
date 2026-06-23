@@ -37,7 +37,7 @@ Extract from $ARGUMENTS:
 
 If Goal or Metric missing → use question (single batched call):
   Q1 (Task): "Which task?" — medmnist (chest X-ray OOD) or flu (ILI forecasting)
-  Q2 (Goal): "What do you want to improve?" — depends on task
+  Q2 (Goal): "What do you want to improve?" — for medmnist: ID Test Acc or OOD F1; for flu: Test MAE
   Q3 (Iterations): "Iterations?" — default 5
   Q4 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
   Q5 (Pretrained): "Start from scratch or finetune a pretrained model?" — Scratch (default) or Pretrained
