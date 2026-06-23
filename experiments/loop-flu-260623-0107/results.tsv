@@ -1,0 +1,4 @@
+iteration	commit	test_mae	val_mae	params	memory_gb	status	description
+0	952c367	0.5897	0.4963	125633	0.5	keep	GRU h=64 L=3 baseline
+1	(reverted)	0.6171	0.5450	125633	0.5	discard	GRU lr=0.0005
+2	(reverted)	0.632782	0.520595	\?	0.5	discard	GRU h=96

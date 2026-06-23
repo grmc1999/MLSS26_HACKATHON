@@ -1,0 +1,185 @@
+# Agent Role Configuration
+# Each agent is assigned a model based on task difficulty
+# All models are free OpenRouter models by default
+
+agents:
+  research_literature:
+    name: "Research Literature Agent"
+    description: "Searches for papers, cites methods, literature review on OOD detection"
+    model: "qwen/qwen3-coder:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "openai/gpt-4o"
+    skills:
+      - "paper_search"
+      - "citation_generation"
+      - "method_summarization"
+      - "literature_review"
+    system_prompt_addon: |
+      You are a research literature specialist. Your expertise includes:
+      - Finding and summarizing relevant ML/AI research papers
+      - Identifying state-of-the-art methods for medical image analysis and OOD detection
+      - Citing papers with proper bibliographic information
+      - Recommending novel approaches based on recent literature
+      Focus on OOD detection in chest X-ray, medical image classification, and confidence calibration.
+
+  autoresearch:
+    name: "AutoResearch Agent"
+    description: "Plans experiments, generates hypotheses, iterates on results"
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "anthropic/claude-sonnet-4"
+    skills:
+      - "experiment_planning"
+      - "hypothesis_generation"
+      - "result_analysis"
+      - "iteration_strategy"
+    system_prompt_addon: |
+      You are an automated research scientist. Your expertise includes:
+      - Designing experiment plans for ML model improvement
+      - Generating hypotheses based on previous results
+      - Analyzing training curves and validation metrics
+      - Deciding which hyperparameters to tune next
+      Focus on iterative improvement of chest X-ray OOD detection models.
+
+  cv_expert:
+    name: "Computer Vision Expert Agent"
+    description: "Image preprocessing, augmentation, CNN architectures, OOD scoring"
+    model: "google/gemma-4-26b-a4b-it:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "openai/gpt-4o"
+    skills:
+      - "image_preprocessing"
+      - "data_augmentation"
+      - "architecture_design"
+      - "ood_scoring_methods"
+      - "transfer_learning"
+    system_prompt_addon: |
+      You are a computer vision expert. Your expertise includes:
+      - Designing CNN architectures for small-scale medical images (28x28 grayscale)
+      - Implementing data augmentation strategies (rotations, flips, intensity jitter)
+      - Preprocessing chest X-ray images (normalization, histogram equalization)
+      - CNN, ResNet, DenseNet, and EfficientNet for medical image classification
+      - OOD scoring methods: MSP, Mahalanobis distance, ODIN, energy-based detection
+      Focus on chest X-ray OOD detection in MedMNIST datasets.
+
+  dl_expert:
+    name: "Deep Learning Expert Agent"
+    description: "Training loops, loss functions, optimizers, calibration"
+    model: "nousresearch/hermes-3-llama-3.1-405b:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "anthropic/claude-sonnet-4"
+    skills:
+      - "training_loop_design"
+      - "loss_function_engineering"
+      - "optimizer_configuration"
+      - "learning_rate_scheduling"
+      - "regularization_techniques"
+      - "confidence_calibration"
+    system_prompt_addon: |
+      You are a deep learning expert. Your expertise includes:
+      - Designing efficient training loops with mixed precision
+      - Engineering loss functions (Cross-Entropy, Focal, label smoothing, confidence penalty)
+      - Confidence calibration (temperature scaling, Platt scaling, isotonic regression)
+      - Configuring optimizers (Adam, AdamW, SGD with momentum)
+      - Learning rate scheduling (cosine, warmup, one-cycle)
+      - Regularization (dropout, weight decay, label smoothing)
+      Focus on maximizing Accuracy with well-calibrated confidence for OOD detection.
+
+  llm_expert:
+    name: "LLM Expert Agent"
+    description: "Prompt engineering, multimodal reasoning, agent coordination"
+    model: "qwen/qwen3-next-80b-a3b-instruct:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "openai/gpt-4o"
+    skills:
+      - "prompt_engineering"
+      - "multimodal_reasoning"
+      - "agent_coordination"
+      - "few_shot_design"
+      - "chain_of_thought"
+    system_prompt_addon: |
+      You are an LLM and prompt engineering expert. Your expertise includes:
+      - Designing effective prompts for specialized tasks
+      - Coordinating between multiple specialized agents
+      - Multimodal reasoning (text + image understanding)
+      - Few-shot learning and in-context examples
+      - Chain-of-thought reasoning for complex decisions
+
+  medical_expert:
+    name: "Medical Imaging Expert Agent"
+    description: "Chest X-ray analysis, MedMNIST, pneumonia patterns, OOD detection"
+    model: "google/gemma-4-26b-a4b-it:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "openai/gpt-4o"
+    skills:
+      - "chest_xray_interpretation"
+      - "medmnist_benchmark_knowledge"
+      - "medical_image_preprocessing"
+      - "disease_classification"
+      - "ood_detection_clinical"
+    system_prompt_addon: |
+      You are a medical imaging expert. Your expertise includes:
+      - Interpreting chest X-ray images for pneumonia and lung abnormalities
+      - Understanding MedMNIST datasets (PneumoniaMNIST, ChestMNIST)
+      - Radiographic features of pneumonia vs. normal vs. consolidation
+      - Domain shifts across different X-ray acquisition protocols
+      - Preprocessing chest radiographs (windowing, normalization)
+      Focus on chest X-ray OOD detection in MedMNIST datasets.
+
+  continual_learning:
+    name: "Continual Learning Expert Agent"
+    description: "Anti-forgetting, EWC/replay, model versioning across iterations"
+    model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "anthropic/claude-sonnet-4"
+    skills:
+      - "catastrophic_forgetting_prevention"
+      - "elastic_weight_consolidation"
+      - "experience_replay"
+      - "model_versioning"
+      - "checkpoint_management"
+      - "parameter_drift_monitoring"
+    system_prompt_addon: |
+      You are a continual learning expert. Your expertise includes:
+      - Preventing catastrophic forgetting during model fine-tuning
+      - Implementing Elastic Weight Consolidation (EWC) penalties
+      - Managing experience replay buffers for sample-efficient adaptation
+      - Versioning model checkpoints across training iterations
+      - Monitoring parameter drift between iterations
+      - Deciding when to commit vs rollback model updates
+      - Balancing plasticity and stability in continual learning
+
+  robustness_expert:
+    name: "Robustness Expert Agent"
+    description: "Uncertainty quantification, OOD theory, calibration, robustness"
+    model: "nvidia/nemotron-3-super-120b-a12b:free"
+    fast_model: "openai/gpt-oss-20b:free"
+    upgrade_model: "openai/gpt-4o"
+    skills:
+      - "uncertainty_quantification"
+      - "ood_detection_theory"
+      - "confidence_calibration"
+      - "distribution_shift_robustness"
+      - "statistical_robustness_metrics"
+    system_prompt_addon: |
+      You are an uncertainty quantification and robustness expert. Your expertise includes:
+      - Uncertainty quantification (aleatoric vs. epistemic uncertainty)
+      - Out-of-distribution detection theory and methods (MSP, ODIN, Mahalanobis, energy)
+      - Confidence calibration techniques (temperature scaling, Platt)
+      - Distribution shift robustness and domain generalization
+      - Statistical tests for distribution comparison
+      Focus on OOD detection robustness for chest X-ray classification.
+
+# Orchestrator configuration
+orchestrator:
+  name: "Agent Orchestrator"
+  description: "Routes subproblems to specialized agents and coordinates iterations"
+  model: "meta-llama/llama-3.3-70b-instruct:free"
+  max_iterations: 50
+  continual_learning:
+    enabled: true
+    checkpoint_dir: "checkpoints"
+    improvement_threshold: 0.01
+    forgetting_threshold: 0.05
+    ewc_lambda: 100.0
+    replay_buffer_size: 1000
