@@ -70,21 +70,28 @@ User / Dashboard
        v
 +------------------------------+
 |    Scientific AutoResearch   |
-|    Orchestrator              |  ← modify → train → eval → keep/discard
+|    Orchestrator              |  ← consult_agent(role, question)
 +------------------------------+
        |         ↑
-       |         | consultation (route_to_agent)
+       |         | consultation with local LLMs on GPU 1
        v         |
 +------------------------------+
-|    8 Specialized Agents     |  ← domain experts with RAG
+|    Local Expert LLMs        |
+|  +------------------------+ |
+|  | cv_expert  (Med-R1)    | |  7.1 GB
+|  | code_expert (Coder-7B) | |  15 GB
+|  | math_expert (Math-7B)  | |  15 GB
+|  | medical_expert (BioM)  | |  14 GB
+|  +------------------------+ |
+|      ~51 GB / 98 GB VRAM   |
 +------------------------------+
-        |         ↕
-        |         +---------------------------+
-        |         |  Literature RAG (task)    |
-        |         |  medmnist: index_output/  |
-        |         |  flu:      index_output_flu/ |
-        |         +---------------------------+
-        v
+       |                ↕
+       |         +---------------------------+
+       |         |  Literature RAG (task)    |
+       |         |  medmnist: index_output/  |
+       |         |  flu:      index_output_flu/ |
+       |         +---------------------------+
+       v
 +------------------------------+
 |   Experiment Pipeline       |  ← scripts/run_medmnist.py (medmnist)
 |                              |  ← scripts/run_exp.py (flu)
