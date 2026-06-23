@@ -49,7 +49,7 @@ TASKS = {
     },
 }
 
-RECENT_FAILURES = []  # track failed suggestions to avoid repeats
+RECENT_FAILURES.clear()  # track failed suggestions to avoid repeats
 
 
 def search_arxiv(query, max_results=3):
@@ -238,11 +238,20 @@ def main():
     print("[BOOT] Ready.\n")
 
     results_file.write_text("iteration\tcommit\ttest_acc\tood_f1\tval_acc\ttest_id_acc\tmemory_gb\tstatus\tdescription\n")
+    
+    # Persistent memory
+    lessons_file = log_dir / "lessons.json"
+    memory = {"failures": [], "successes": [], "models_tried": []}
+    if lessons_file.exists():
+        try:
+            memory = json.loads(lessons_file.read_text())
+            print(f"[MEMORY] Loaded {len(memory.get('failures',[]))} failures, {len(memory.get('successes',[]))} successes")
+        except:
+            pass
     iteration = 0
     best_metric = float("inf") if cfg["direction"] == "lower" else 0.0
     best_desc = "baseline"
     history = []
-    global RECENT_FAILURES
 
     while iteration < max_iter:
         iteration += 1
@@ -265,15 +274,25 @@ def main():
 History: {str([(h['iter'], round(h['metric'], 3), h['status']) for h in history[-5:]])}
 RAG: {rag_ctx}
 
-RECENTLY TRIED AND FAILED (DO NOT SUGGEST THESE AGAIN):
-{failures_ctx}
+WHAT WORKED (build on these):
+{"\n".join(f"  - {s}" for s in memory.get("successes", [])[-3:])}
 
-Propose ONE NEW change to {cfg['train_py']} to improve the metric.
-It must be DIFFERENT from the failed attempts above.
+WHAT FAILED (do NOT repeat):
+{"\n".join(f"  - {f}" for f in RECENT_FAILURES[-10:])}
+
+AVAILABLE HYPERPARAMETERS (pick ONE new combo not in failures):
+- Model: gru, lstm, tcn, transformer
+- Hidden dim: 32, 48, 64, 80, 96, 128
+- Learning rate: 0.0005, 0.001, 0.01
+- Epochs: 20, 25, 30, 40, 50
+- Batch: 32, 64, 128
+- Layers: 2, 3
+
+Propose ONE specific NEW combination.
 Format:
-CHANGE: <description>
+CHANGE: <model> h=<h> lr=<lr> ep=<ep> bs=<bs> L=<L>
 DELTA: <expected>
-CODE: <exact change>""")
+RISK: <low/med/high>""")
         print(f"  Plan: {plan[:200]}...")
 
         # ── Phase 3: Implement ──
@@ -354,7 +373,7 @@ CODE: <exact change>""")
                         print(f"  Model: {old} → {new}")
                         break
                 # Clear failure cache so it tries new ideas
-                RECENT_FAILURES = []
+                RECENT_FAILURES.clear()
                 print(f"  New runner: {cfg['runner']}")
                 print(f"  {'='*50}\n")
 
