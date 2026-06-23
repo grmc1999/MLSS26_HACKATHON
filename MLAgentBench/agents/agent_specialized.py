@@ -13,7 +13,7 @@ import faiss
 import numpy as np
 import torch
 from pathlib import Path
-from transformers import AutoModel, AutoProcessor
+from transformers import AutoModel, AutoProcessor, AutoModelForCausalLM, AutoTokenizer
 from MLAgentBench.agents.agent_research import ResearchAgent
 from MLAgentBench.agents.agent import Agent, SimpleActionAgent, ReasoningActionAgent
 
@@ -24,6 +24,41 @@ from MLAgentBench.agents.agent import Agent, SimpleActionAgent, ReasoningActionA
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 INDEX_DIR = PROJECT_ROOT / "index_output"
 FLU_INDEX_DIR = PROJECT_ROOT / "index_output_flu"
+MODELS_DIR = PROJECT_ROOT / "models"
+
+LOCAL_EXPERTS = {
+    "cv_expert": {"path": str(MODELS_DIR / "Qwen2.5-VL-3B"), "model": None, "tokenizer": None},
+    "code_expert": {"path": str(MODELS_DIR / "Qwen2.5-Coder-7B-Instruct"), "model": None, "tokenizer": None},
+    "math_expert": {"path": str(MODELS_DIR / "Qwen2.5-Math-7B-Instruct"), "model": None, "tokenizer": None},
+    "medical_expert": {"path": str(MODELS_DIR / "BioMistral-7B"), "model": None, "tokenizer": None},
+}
+
+
+def load_expert(role):
+    if role not in LOCAL_EXPERTS:
+        return None
+    expert = LOCAL_EXPERTS[role]
+    if expert["model"] is not None:
+        return expert
+    device = "cuda:1" if torch.cuda.device_count() > 1 else "cuda:0"
+    if not torch.cuda.is_available():
+        device = "cpu"
+    print(f"[LOAD] Loading {role} on {device}...")
+    expert["tokenizer"] = AutoTokenizer.from_pretrained(expert["path"], trust_remote_code=True)
+    expert["model"] = AutoModelForCausalLM.from_pretrained(
+        expert["path"], torch_dtype=torch.bfloat16, device_map=device, trust_remote_code=True,
+    )
+    expert["model"].eval()
+    return expert
+
+
+def unload_expert(role):
+    if role in LOCAL_EXPERTS:
+        expert = LOCAL_EXPERTS[role]
+        expert["model"] = None
+        expert["tokenizer"] = None
+        import gc; gc.collect()
+        torch.cuda.empty_cache()
 
 _literature_model = None
 _literature_processor = None

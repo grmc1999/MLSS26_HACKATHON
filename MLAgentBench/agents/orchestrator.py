@@ -328,13 +328,26 @@ class ScientificAutoResearch:
             f.write(json.dumps(entry) + "\n")
 
     def consult_agent(self, role: str, question: str) -> str:
-        """Consult a specialized agent for domain expertise.
-
-        This returns the agent prompt that would be sent to the LLM.
-        In practice, the LLM calling this would generate the response.
-        """
-        from MLAgentBench.agents.agent_specialized import AGENT_PROMPTS
+        from MLAgentBench.agents.agent_specialized import AGENT_PROMPTS, LOCAL_EXPERTS, load_expert
         prompt = AGENT_PROMPTS.get(role, "")
+        expert = LOCAL_EXPERTS.get(role)
+        if expert and os.path.exists(expert["path"]):
+            loaded = load_expert(role)
+            if loaded and loaded["model"] is not None:
+                try:
+                    model = loaded["model"]
+                    tokenizer = loaded["tokenizer"]
+                    messages = [
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": question},
+                    ]
+                    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                    inputs = tokenizer([text], return_tensors="pt").to(model.device)
+                    out = model.generate(**inputs, max_new_tokens=512, do_sample=False, temperature=0.3)
+                    response = tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+                    return response.strip()
+                except Exception as e:
+                    return f"[{role} model error: {e}]"
         return f"=== Consulting {role} ===\n{prompt}\n\nQuestion: {question}"
 
     def get_status(self) -> dict:
