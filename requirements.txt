@@ -42,6 +42,9 @@ kaggle
 openai
 anthropic
 langchain
+langchain-community
+langchain-experimental
+langchain-openai
 sentencepiece
 spacy
 nltk
@@ -56,9 +59,13 @@ vertaxai
 torch-geometric==2.3.1
 ogb
 networkx
+falkordb
 
 
 #others
 cchardet
 pytest
+pytest-cov
+medmnist
+faiss-cpu
 dacite

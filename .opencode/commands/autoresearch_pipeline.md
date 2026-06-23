@@ -110,13 +110,15 @@ For each iteration (1 to max_iterations):
 
 **Goal**: Verify code correctness before committing — catch bugs in seconds instead of waiting 5min for a crash.
 
-Run these checks in `{ENV_DIR}`:
-
-1. **Syntax check**: `python -c "import py_compile; py_compile.compile('train.py', doraise=True)"`
-2. **Model instantiation**: import and create the model
-3. **Forward pass**: feed a random tensor of shape `{INPUT_SHAPE}` and verify output shape
-4. **Loss**: compute loss, verify finite
-5. **Backward pass**: call `.backward()`, verify gradients non-None
+- **Task: medmnist** — run `pytest tests/test_train_unit.py -q` from the project root. It covers
+  syntax/import, model instantiation, forward pass shape, loss finiteness, gradient flow, *and*
+  the OOD metric math (none of which the manual checks below verify).
+- **Task: flu** (no pytest suite yet) — run these manual checks in `{ENV_DIR}`:
+  1. **Syntax check**: `python -c "import py_compile; py_compile.compile('train.py', doraise=True)"`
+  2. **Model instantiation**: import and create the model
+  3. **Forward pass**: feed a random tensor of shape `{INPUT_SHAPE}` and verify output shape
+  4. **Loss**: compute loss, verify finite
+  5. **Backward pass**: call `.backward()`, verify gradients non-None
 
 If any check fails → **STOP**, diagnose the error, fix the code, re-run jury.
 If all pass → **PASS**, safe to commit.

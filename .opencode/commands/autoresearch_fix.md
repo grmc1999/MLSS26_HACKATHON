@@ -34,6 +34,10 @@ Order: crashes → wrong results → poor accuracy → OOD detection → warning
 - Make ONE focused fix in train.py
 - Common fixes: model architecture, loss function, hyperparameters, OOD threshold, data preprocessing
 
+### Phase 2b: Code Jury
+- Run `pytest tests/test_train_unit.py -q` from the project root.
+- Fails → the fix didn't work or broke something else; iterate before spending a full run on it.
+
 ### Phase 3: Verify
 - `python scripts/run_medmnist.py > run.log 2>&1`
 - Check: did error count decrease? Did metric improve?
