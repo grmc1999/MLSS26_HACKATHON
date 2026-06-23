@@ -302,7 +302,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
-def train_epoch(model, loader, optimizer, device, loss_fn=None):
+def train_epoch(model, loader, optimizer, device, loss_fn=None, max_grad_norm=1.0):
     model.train()
     total_loss, n = 0.0, 0
     for x, y, S, N, _naive in loader:
@@ -313,6 +313,8 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         else:
             loss = F.l1_loss(model(x), y)
         loss.backward()
+        if max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
         optimizer.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
