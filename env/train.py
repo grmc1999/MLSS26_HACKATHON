@@ -302,6 +302,14 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=3, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
+def correlation_loss(y_pred, y_true):
+    y_pc = y_pred - y_pred.mean(dim=1, keepdim=True)
+    y_tc = y_true - y_true.mean(dim=1, keepdim=True)
+    cov = (y_pc * y_tc).sum(dim=1)
+    denom = torch.sqrt(y_pc.pow(2).sum(dim=1) * y_tc.pow(2).sum(dim=1))
+    return (1 - (cov / (denom + 1e-8))).mean()
+
+
 def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
@@ -313,7 +321,8 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
         else:
-            loss = F.l1_loss(model(x), y)
+            y_pred = model(x)
+            loss = F.l1_loss(y_pred, y) + 0.5 * correlation_loss(y_pred, y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
