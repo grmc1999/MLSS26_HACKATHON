@@ -22,9 +22,6 @@ except ImportError:  # imported as a package, e.g. `from env.train import ...`
     from env.data import load_pretrain_data, load_finetune_data
     from env.eval import evaluate, evaluate_full, sir_residual
 
-PHYSICS_BETA = 0.5
-PHYSICS_GAMMA = 0.3
-
 prepare_data = load_pretrain_data  # scripts/run_exp.py imports `prepare_data` by this name
 
 INPUT_STEPS = 5
@@ -316,10 +313,7 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)
         else:
-            y_pred = model(x)
-            l_l1 = F.l1_loss(y_pred, y)
-            l_phys = sir_residual(y_pred.squeeze(-1), S[:, -FORECAST_STEPS:], N, PHYSICS_BETA, PHYSICS_GAMMA)
-            loss = l_l1 + 0.05 * l_phys
+            loss = F.l1_loss(model(x), y)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
