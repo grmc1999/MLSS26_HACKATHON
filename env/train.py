@@ -143,7 +143,9 @@ class ConditionalDenoiser(nn.Module):
         temb = self.time_proj(sinusoidal_embedding(tau, self.time_dim)).unsqueeze(-1)
         h = F.relu(h + cond + temb)
         h = self.dropout(h)
-        h = F.relu(self.conv_mid(h))
+        skip = h
+        h = self.conv_mid(h)
+        h = F.relu(h + skip)
         return self.out_proj(h.transpose(1, 2))
 
 
@@ -310,7 +312,8 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
     for x, y, S, N, _naive in loader:
-        x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
+        x, y, S = x.to(device), y.to(device), S.to(device)
+        N = torch.as_tensor(N, dtype=torch.float32, device=device)
         optimizer.zero_grad()
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)

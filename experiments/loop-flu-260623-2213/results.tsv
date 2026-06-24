@@ -1,0 +1,9 @@
+iteration	commit	test_mae	val_mae	params	memory_gb	status	description
+0	(baseline)	221.0454	N/A	N/A	N/A	baseline	Initial baseline run
+iter	change	test_mae	decision	duration_s
+0	baseline (no skip)	221.0454	baseline	~
+1	residual skip connection	146.8242	KEPT	~
+2	+third conv block	157.6542	DISCARD	~
+3	+cosine annealing LR	534.1222	DISCARD	~
+4	+LeakyReLU(0.01)	253.0435	DISCARD	~
+5	+InstanceNorm1d	413.4650	DISCARD	~
