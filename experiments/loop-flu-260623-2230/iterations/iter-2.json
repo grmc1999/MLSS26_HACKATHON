@@ -1,0 +1,34 @@
+{
+  "iteration": 2,
+  "task": "flu",
+  "commit": "bd079a9",
+  "timestamp": "2026-06-24T02:39:16Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 22.3607,
+    "baseline": 238.7726
+  },
+  "change": {
+    "type": "loss",
+    "file": "env/train.py",
+    "diff_summary": "Added auxiliary x0-prediction loss (self-consistency, weight=0.05) to diffusion_loss"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Adding an auxiliary x0-prediction loss to diffusion pretraining encourages the denoiser to produce accurate reconstructions, leading to better forecasting features and improved cross-country generalization.",
+    "mechanism": "The x0-prediction term MSE(x0_hat, x0) with weight 0.05 aligns the denoising direction with the true data manifold, regularizing the noise-prediction objective (self-consistency training).",
+    "expected_delta": "expect Test MAE to decrease by 10-20 points",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 25.0,
+    "memory_gb": 0.0,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "bd079a9",
+    "commit_message": "pipeline: time_series_expert \u2014 Add auxiliary x0 prediction loss to diffusion pretrain"
+  }
+}

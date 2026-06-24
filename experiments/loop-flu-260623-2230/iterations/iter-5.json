@@ -1,0 +1,34 @@
+{
+  "iteration": 5,
+  "task": "flu",
+  "commit": "96e489e",
+  "timestamp": "2026-06-24T02:46:42Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 19.0133,
+    "baseline": 20.9385
+  },
+  "change": {
+    "type": "hyperparameter",
+    "file": "env/train.py",
+    "diff_summary": "Switched diffusion noise schedule from cosine to linear (1e-4 to 0.02)"
+  },
+  "jury_reasoning": {
+    "hypothesis": "A linear beta schedule is better suited for smooth time series data like ILI than the cosine schedule designed for natural images.",
+    "mechanism": "Linear schedule provides a more uniform noise distribution across 30 diffusion steps, allowing the denoiser to learn more consistent denoising patterns for smooth ILI signals.",
+    "expected_delta": "expect Test MAE to decrease from 20.94 to ~18-20",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 25.0,
+    "memory_gb": 0.0,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "96e489e",
+    "commit_message": "pipeline: time_series_expert \u2014 Switch noise schedule cosine->linear for diffusion"
+  }
+}

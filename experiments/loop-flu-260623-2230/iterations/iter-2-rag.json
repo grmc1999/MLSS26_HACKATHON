@@ -1,0 +1,51 @@
+{
+  "iteration": 2,
+  "task": "flu",
+  "query": "diffusion model auxiliary prediction loss self-consistency time series forecasting",
+  "k": 5,
+  "timestamp": "2026-06-24T02:36:37Z",
+  "results": [
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.5082738399505615,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.48587533831596375,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4845324754714966,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4653250575065613,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4557695686817169,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) Recurrent models -[COMPARED_TO]-> (Model) Transformer\n(Model) RNN sequence-to-sequence models -[COMPARED_TO]-> (Model) Transformer\n(None) Mean Squared Error Loss -[USES_METHOD]-> (Model) Neural Network\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Dataset) Burgers' Equation\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Model) Shr\u00a8odinger equation\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Model) Burgers' Equation\n(Dataset) Sequence modeling",
+      "metadata": {}
+    }
+  ]
+}
