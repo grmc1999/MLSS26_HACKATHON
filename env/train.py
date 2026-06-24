@@ -134,7 +134,6 @@ class ConditionalDenoiser(nn.Module):
         self.time_proj = nn.Linear(time_dim, hidden_dim)
         self.conv_in = nn.Conv1d(1, hidden_dim, kernel_size=3, padding=1)
         self.conv_mid = nn.Conv1d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
-        self.conv_mid2 = nn.Conv1d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
         self.out_proj = nn.Linear(hidden_dim, 1)
         self.dropout = nn.Dropout(dropout)
 
@@ -147,9 +146,6 @@ class ConditionalDenoiser(nn.Module):
         skip = h
         h = self.conv_mid(h)
         h = F.relu(h + skip)
-        skip2 = h
-        h = self.conv_mid2(h)
-        h = F.relu(h + skip2)
         return self.out_proj(h.transpose(1, 2))
 
 
@@ -313,7 +309,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
-def train_epoch(model, loader, optimizer, device, loss_fn=None):
+def train_epoch(model, loader, optimizer, device, loss_fn=None, scheduler=None):
     model.train()
     total_loss, n = 0.0, 0
     for x, y, S, N, _naive in loader:
@@ -326,6 +322,8 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
             loss = F.l1_loss(model(x), y)
         loss.backward()
         optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
     return total_loss / max(n, 1)

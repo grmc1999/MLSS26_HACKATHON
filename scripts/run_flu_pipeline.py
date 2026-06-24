@@ -57,10 +57,12 @@ def pretrain_diffusion(loaders, device, epochs, lr, hidden_dim=64, batch=64):
     train_loader, val_loader, test_loader = loaders
     model = create_model("diffusion", hidden_dim=hidden_dim).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    steps_per_epoch = len(train_loader)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps_per_epoch * epochs)
     best_mae, best_epoch = float("inf"), 0
     start = time.time()
     for epoch in range(epochs):
-        train_epoch(model, train_loader, optimizer, device, loss_fn=diffusion_loss_step)
+        train_epoch(model, train_loader, optimizer, device, loss_fn=diffusion_loss_step, scheduler=scheduler)
         val_mae = evaluate(model, val_loader, device)
         if val_mae < best_mae:
             best_mae, best_epoch = val_mae, epoch + 1
@@ -77,8 +79,10 @@ def run_finetune_variant(pretrained_model, variant, country, n_seasons, device, 
     start = time.time()
     if loss_fn is not None:
         optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)
+        steps_per_epoch = len(train_loader)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps_per_epoch * epochs)
         for _ in range(epochs):
-            train_epoch(model, train_loader, optimizer, device, loss_fn=loss_fn)
+            train_epoch(model, train_loader, optimizer, device, loss_fn=loss_fn, scheduler=scheduler)
     elapsed = time.time() - start
     metrics = evaluate_full(model, test_loader, device, beta=beta, gamma=gamma, stats=stats)
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -132,7 +136,7 @@ def main():
 
     countries = [c for c in args.countries.split(",") if c]
     regimes = [int(r) for r in args.regimes.split(",")]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     rows = []
 
     print("=== Step 1: baselines on CDC (US) pretrain data ===")
