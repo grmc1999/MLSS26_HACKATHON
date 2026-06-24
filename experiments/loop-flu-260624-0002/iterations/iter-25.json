@@ -1,0 +1,34 @@
+{
+  "iteration": 25,
+  "task": "flu",
+  "commit": "c245cf52ec45577b51d55b35cb3934846e91d269",
+  "timestamp": "2026-06-24T14:27:04Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.916,
+    "baseline": 17.2964
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Learnable temperature scaling (sample_temp=0.9) in DDIM"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Temperature<1 produces sharper forecasts, reducing MAE.",
+    "mechanism": "Added nn.Parameter sample_temp=0.9, multiplied with eps_hat in DDIM update.",
+    "expected_delta": "expect Test MAE decrease by 0.1-0.3",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 104.1,
+    "memory_gb": 0.88,
+    "params": 17218
+  },
+  "git": {
+    "commit_hash": "c245cf52ec45577b51d55b35cb3934846e91d269",
+    "commit_message": "pipeline: time_series_expert \u2014 Learnable temperature scaling in DDIM sampling"
+  }
+}
