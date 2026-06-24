@@ -1,0 +1,51 @@
+{
+  "iteration": 4,
+  "task": "flu",
+  "query": "denoiser dropout regularization self-consistency diffusion model capacity trade-off time series forecasting",
+  "k": 5,
+  "timestamp": "2026-06-24T02:41:53Z",
+  "results": [
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.5258382558822632,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4417671263217926,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.43768179416656494,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4351122975349426,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.426413893699646,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) Recurrent models -[COMPARED_TO]-> (Model) Transformer\n(Method) dropout rate Pdrop -[USES_METHOD]-> (Model) Transformer\n(Model) RNN sequence-to-sequence models -[COMPARED_TO]-> (Model) Transformer\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Dataset) Burgers' Equation\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Model) Shr\u00a8odinger equation\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Model) Burgers' Equation\n(Dataset) Sequence modeling tasks",
+      "metadata": {}
+    }
+  ]
+}

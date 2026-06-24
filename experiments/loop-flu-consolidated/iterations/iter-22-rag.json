@@ -1,0 +1,51 @@
+{
+  "iteration": 10,
+  "task": "flu",
+  "query": "deeper convolutional denoiser architecture diffusion model time series small model capacity",
+  "k": 5,
+  "timestamp": "2026-06-24T04:29:36Z",
+  "results": [
+    {
+      "title": "2010.02502",
+      "source": "local_rag_vector",
+      "score": 0.5171986222267151,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2006.11239",
+      "source": "local_rag_vector",
+      "score": 0.5055100321769714,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.5029100775718689,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2010.02502",
+      "source": "local_rag_vector",
+      "score": 0.49734386801719666,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2010.02502",
+      "source": "local_rag_vector",
+      "score": 0.4627453684806824,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) Deep Neural Architecture -[ACHIEVES]-> (Method) statistical approaches\n(Model) Deep Neural Architecture -[EVALUATED_ON]-> (Dataset) TOURISM\n(Model) Deep Neural Architecture -[EVALUATED_ON]-> (Dataset) M4\n(Model) Deep Neural Architecture -[EVALUATED_ON]-> (Dataset) M3\n(Method) convolutional architectures -[USES_METHOD]-> (Model) ANODEs\n(Model) Convolutional Architecture -[COMPARED_TO]-> (None) Temporal Convolutional Network\n(Method) separable convolution -[COMPARED_TO]-> (Method) self-att",
+      "metadata": {}
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "iteration": 13,
+  "task": "flu",
+  "commit": "acafda477cea9f72490f6ae588bd9302743f068e",
+  "timestamp": "2026-06-24T04:39:10Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.5039,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Deterministic DDIM sampling (eta=0) \u2014 removed noise during denoising"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Stochastic noise injection during sampling increases forecast variance and degrades point forecast MAE. Removing noise produces cleaner, more deterministic predictions.",
+    "mechanism": "Removed noise addition term from all denoising steps in sample(). Each step now returns the deterministic mean prediction. Equivalent to DDIM with eta=0.",
+    "expected_delta": "expect Test MAE decrease significantly by 0.5-2.0",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 105.3,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "acafda477cea9f72490f6ae588bd9302743f068e",
+    "commit_message": "pipeline: time_series_expert \u2014 Deterministic DDIM sampling (eta=0)"
+  }
+}

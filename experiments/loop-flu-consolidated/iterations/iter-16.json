@@ -1,0 +1,34 @@
+{
+  "iteration": 4,
+  "task": "flu",
+  "commit": "b055907c499a305202e369b52ad884038747dcd4",
+  "timestamp": "2026-06-24T04:16:13Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.876,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "hyperparameter",
+    "file": "env/train.py",
+    "diff_summary": "Increased x0 loss weight 0.15\u21920.25"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Stronger x0 self-consistency loss improves direct reconstruction accuracy during pretraining.",
+    "mechanism": "Changed auxiliary x0-prediction MSE weight from 0.15 to 0.25 in diffusion_loss.",
+    "expected_delta": "expect Test MAE decrease by 0.2-0.5",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 105.3,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "b055907c499a305202e369b52ad884038747dcd4",
+    "commit_message": "pipeline: time_series_expert \u2014 Increase x0 loss weight 0.15\u21920.25"
+  }
+}

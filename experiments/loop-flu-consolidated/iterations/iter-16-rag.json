@@ -1,0 +1,51 @@
+{
+  "iteration": 4,
+  "task": "flu",
+  "query": "x0 prediction loss weight self-consistency diffusion model training time series forecasting",
+  "k": 5,
+  "timestamp": "2026-06-24T04:14:00Z",
+  "results": [
+    {
+      "title": "1912.09363",
+      "source": "local_rag_vector",
+      "score": 0.48164600133895874,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.47343671321868896,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2012.07436",
+      "source": "local_rag_vector",
+      "score": 0.4629215598106384,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.4500904679298401,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1912.09363",
+      "source": "local_rag_vector",
+      "score": 0.44683969020843506,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) seasonality forecast -[USES_METHOD]-> (Model) FC network\n(Model) seasonality forecast -[USES_METHOD]-> (Model) Fourier series\n(Method) Backcast Prediction -[USES_METHOD]-> (Model) Doubly Residual Stacking\n(Dataset) Forecast Basis Vectors -[ACHIEVES]-> (Model) Block\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Adjoint sensitivity method\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Reverse-mode automatic differentiation\n(Model) Continuous-time series m",
+      "metadata": {}
+    }
+  ]
+}

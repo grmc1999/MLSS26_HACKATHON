@@ -1,0 +1,34 @@
+{
+  "iteration": 9,
+  "task": "flu",
+  "commit": "97fc86723f19d835739efe1f9b04015d6cee3df6",
+  "timestamp": "2026-06-24T04:29:05Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 18.0813,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "regularization",
+    "file": "env/train.py",
+    "diff_summary": "Added L2 weight decay 1e-5 on denoiser during pretrain"
+  },
+  "jury_reasoning": {
+    "hypothesis": "L2 regularization prevents overfitting to US-specific patterns.",
+    "mechanism": "Added 1e-5 * sum(p^2) L2 penalty in diffusion_loss.",
+    "expected_delta": "expect Test MAE decrease by 0.1-0.3",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 111.2,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "97fc86723f19d835739efe1f9b04015d6cee3df6",
+    "commit_message": "pipeline: time_series_expert \u2014 L2 weight decay on denoiser during pretrain"
+  }
+}

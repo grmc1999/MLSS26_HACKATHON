@@ -1,0 +1,34 @@
+{
+  "iteration": 21,
+  "task": "flu",
+  "commit": "52e267aaa186dc0431cd466f410896244eb344b9",
+  "timestamp": "2026-06-24T05:00:35Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.3611,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Added cross-attention conditioning in denoiser"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Cross-attention allows selective feature routing from condition to forecast steps.",
+    "mechanism": "Added nn.MultiheadAttention(64, 4 heads) after first activation with residual connection.",
+    "expected_delta": "expect Test MAE decrease by 0.3-0.8",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 121.0,
+    "memory_gb": 0.88,
+    "params": 29393
+  },
+  "git": {
+    "commit_hash": "52e267aaa186dc0431cd466f410896244eb344b9",
+    "commit_message": "pipeline: time_series_expert \u2014 Cross-attention conditioning in denoiser"
+  }
+}

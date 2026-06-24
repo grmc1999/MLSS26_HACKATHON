@@ -1,0 +1,51 @@
+{
+  "iteration": 5,
+  "task": "flu",
+  "query": "diffusion self-consistency loss weight tuning x0 prediction optimization",
+  "k": 5,
+  "timestamp": "2026-06-24T02:44:21Z",
+  "results": [
+    {
+      "title": "2006.11239",
+      "source": "local_rag_vector",
+      "score": 0.49765545129776,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2006.11239",
+      "source": "local_rag_vector",
+      "score": 0.41202157735824585,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2010.02502",
+      "source": "local_rag_vector",
+      "score": 0.4087481200695038,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2006.11239",
+      "source": "local_rag_vector",
+      "score": 0.37917762994766235,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2006.11239",
+      "source": "local_rag_vector",
+      "score": 0.3778492510318756,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(None) Mean Squared Error Loss -[USES_METHOD]-> (Model) Neural Network\n(Method) Convolutional sequence prediction -[ACHIEVES]-> (Model) Temporal Convolutional Network\n(Metric) Loss -[ACHIEVES]-> (Model) Neural CDE\n(Metric) Loss function -[USES_METHOD]-> (Method) Adjoint method\n(Method) Fine-tuning -[USES_METHOD]-> (None) Transfer learning technique\n(Method) Fine-tuning -[EVALUATED_ON]-> (Dataset) SQuAD v1.1\n(Method) Fine-tuning -[EVALUATED_ON]-> (Dataset) ImageNet\n(Method) Fine-tuning -[USES_MET",
+      "metadata": {}
+    }
+  ]
+}

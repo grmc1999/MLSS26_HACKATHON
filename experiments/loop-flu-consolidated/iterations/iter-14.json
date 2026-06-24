@@ -1,0 +1,34 @@
+{
+  "iteration": 2,
+  "task": "flu",
+  "commit": "5e26e2cb0ec89a5a2aa5bbe916f7cf95e604c7f7",
+  "timestamp": "2026-06-24T04:10:45Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 19.025,
+    "baseline": 18.8732
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "ReLU \u2192 SiLU (Swish) activation in ConditionalDenoiser"
+  },
+  "jury_reasoning": {
+    "hypothesis": "SiLU provides smoother gradients and avoids dying ReLU, improving training dynamics for small denoisers.",
+    "mechanism": "Replaced F.relu with F.silu in both activation points of the ConditionalDenoiser.",
+    "expected_delta": "expect Test MAE decrease by 0.3-0.8",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 102.1,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "5e26e2cb0ec89a5a2aa5bbe916f7cf95e604c7f7",
+    "commit_message": "pipeline: time_series_expert \u2014 SiLU activation in ConditionalDenoiser"
+  }
+}

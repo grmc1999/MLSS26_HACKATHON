@@ -1,0 +1,34 @@
+{
+  "iteration": 17,
+  "task": "flu",
+  "commit": "4575c29f50b7415151f8cf5ba3ae503e6be1d525",
+  "timestamp": "2026-06-24T04:48:53Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.5164,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "loss",
+    "file": "env/train.py",
+    "diff_summary": "Changed diffusion loss from MSE to L1"
+  },
+  "jury_reasoning": {
+    "hypothesis": "L1 loss is more robust to outliers and better aligns with MAE evaluation metric.",
+    "mechanism": "Changed both l_diff and l_x0 from F.mse_loss to F.l1_loss in diffusion_loss.",
+    "expected_delta": "expect Test MAE decrease by 0.1-0.3",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 106.3,
+    "memory_gb": 0.88,
+    "params": 17217
+  },
+  "git": {
+    "commit_hash": "4575c29f50b7415151f8cf5ba3ae503e6be1d525",
+    "commit_message": "pipeline: time_series_expert \u2014 L1 loss for diffusion pretraining"
+  }
+}

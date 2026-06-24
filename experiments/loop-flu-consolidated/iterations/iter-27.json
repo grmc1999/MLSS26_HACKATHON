@@ -1,0 +1,34 @@
+{
+  "iteration": 15,
+  "task": "flu",
+  "commit": "5bc543d378732d95ef17f623de0d04f98bfcf843",
+  "timestamp": "2026-06-24T04:44:12Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.2294,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Increased denoiser hidden_dim 64\u219296 (1.5x)"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Larger hidden dimension provides more representational capacity.",
+    "mechanism": "Modified create_model and prepare_finetune_variant to multiply hidden_dim by 1.5 for diffusion models.",
+    "expected_delta": "expect Test MAE decrease by 0.3-0.6",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 104.1,
+    "memory_gb": 0.88,
+    "params": 38634
+  },
+  "git": {
+    "commit_hash": "5bc543d378732d95ef17f623de0d04f98bfcf843",
+    "commit_message": "pipeline: time_series_expert \u2014 Increase denoiser hidden_dim 64\u219296 (1.5x)"
+  }
+}

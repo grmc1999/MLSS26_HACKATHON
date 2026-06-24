@@ -1,0 +1,34 @@
+{
+  "iteration": 1,
+  "task": "flu",
+  "commit": "c5ec674",
+  "timestamp": "2026-06-24T02:36:05Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 330.4117,
+    "baseline": 238.7726
+  },
+  "change": {
+    "type": "regularization",
+    "file": "env/train.py",
+    "diff_summary": "Added gradient clipping (max_norm=1.0) to train_epoch"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Gradient clipping stabilizes training by capping gradient magnitudes, preventing the diffusion model from overfitting to US-specific noise patterns and improving generalization to unseen country domains.",
+    "mechanism": "torch.nn.utils.clip_grad_norm_ after loss.backward() limits L2 norm of gradients, preventing exploding gradients from outlier ILI data points.",
+    "expected_delta": "expect Test MAE to decrease by 5-10 points",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 25.0,
+    "memory_gb": 0.0,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "c5ec674",
+    "commit_message": "pipeline: time_series_expert \u2014 Add gradient clipping (max_norm=1.0) to train_epoch. JURY REASONING: - Hypothesis: ... - Mechanism: ... - Expected delta: -5-10 MAE - Risk: low - Baseline: env.baseline/"
+  }
+}

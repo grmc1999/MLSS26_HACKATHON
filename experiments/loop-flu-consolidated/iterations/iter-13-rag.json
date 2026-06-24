@@ -1,0 +1,51 @@
+{
+  "iteration": 1,
+  "task": "flu",
+  "query": "diffusion model time series forecasting domain adaptation cross-country ILI generalization",
+  "k": 5,
+  "timestamp": "2026-06-24T04:04:51Z",
+  "results": [
+    {
+      "title": "1912.09363",
+      "source": "local_rag_vector",
+      "score": 0.44030898809432983,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.42512738704681396,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.42097437381744385,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.4110598564147949,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.4047831892967224,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) seasonality forecast -[USES_METHOD]-> (Model) FC network\n(Model) seasonality forecast -[USES_METHOD]-> (Model) Fourier series\n(Dataset) Forecast Basis Vectors -[ACHIEVES]-> (Model) Block\n(Method) Feature-based transfer -[USES_METHOD]-> (None) Transfer learning technique\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Adjoint sensitivity method\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Reverse-mode automatic differentiation\n(Model) Continuous-time ser",
+      "metadata": {}
+    }
+  ]
+}

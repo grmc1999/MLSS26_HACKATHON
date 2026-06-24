@@ -1,0 +1,51 @@
+{
+  "iteration": 5,
+  "task": "flu",
+  "query": "layer normalization convolutional denoiser small model time series diffusion forecasting",
+  "k": 5,
+  "timestamp": "2026-06-24T04:16:31Z",
+  "results": [
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.450683057308197,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.44068944454193115,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.43606942892074585,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.4360358417034149,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.42181360721588135,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) seasonality forecast -[USES_METHOD]-> (Model) FC network\n(Model) seasonality forecast -[USES_METHOD]-> (Model) Fourier series\n(Method) Normalizing flows -[USES_METHOD]-> (None) Change of variables theorem\n(Method) Normalizing flows -[USES_METHOD]-> (Method) Discretized equation\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Adjoint sensitivity method\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Reverse-mode automatic differentiation\n(Model) Continuous-",
+      "metadata": {}
+    }
+  ]
+}

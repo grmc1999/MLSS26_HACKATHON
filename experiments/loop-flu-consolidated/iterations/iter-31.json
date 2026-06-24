@@ -1,0 +1,34 @@
+{
+  "iteration": 19,
+  "task": "flu",
+  "commit": "28dc3fdf1f8e1cf05914d5e7b99e2c4ee1fc0fc3",
+  "timestamp": "2026-06-24T04:54:26Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 16.8558,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Ensemble DDIM sampling (n=3)"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Averaging 3 DDIM samples reduces forecast variance from initial noise.",
+    "mechanism": "sample() runs 3 independent DDIM chains and returns their mean.",
+    "expected_delta": "expect Test MAE decrease by 0.2-0.5",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 115.9,
+    "memory_gb": 0.88,
+    "params": 17217
+  },
+  "git": {
+    "commit_hash": "28dc3fdf1f8e1cf05914d5e7b99e2c4ee1fc0fc3",
+    "commit_message": "pipeline: time_series_expert \u2014 Ensemble DDIM sampling (n=3)"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "iteration": 1,
+  "task": "flu",
+  "query": "cross-country ILI forecasting domain adaptation seasonal generalization",
+  "k": 5,
+  "timestamp": "2026-06-24T02:33:05Z",
+  "results": [
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.45464566349983215,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1912.09363",
+      "source": "local_rag_vector",
+      "score": 0.4489268362522125,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1912.09363",
+      "source": "local_rag_vector",
+      "score": 0.4334985017776489,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.430164098739624,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.43013060092926025,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Method) seasonality-trend-level approach -[COMPARED_TO]-> (Model) Interpretable DL for Time Series\n(None) Seasonality forecast -[ACHIEVES]-> (Model) Fourier series\n(None) Seasonality stack -[USES_METHOD]-> (Model) FC network\n(Model) Seasonality model -[USES_METHOD]-> (Model) N-BEATS\n(Model) Plasma equilibrium solver -[CITES]-> (Model) Neural network differential equation\n(Model) Plasma equilibrium solver -[CITES]-> (None) Physical Review Letters\n(Metric) Interpretability -[ACHIEVES]-> (Model) T",
+      "metadata": {}
+    }
+  ]
+}

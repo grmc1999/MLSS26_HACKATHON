@@ -1,0 +1,34 @@
+{
+  "iteration": 20,
+  "task": "flu",
+  "commit": "40ca783d793ef5e284128fb5925a573a3686be13",
+  "timestamp": "2026-06-24T04:56:53Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.9407,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "loss",
+    "file": "env/train.py",
+    "diff_summary": "Reduced diffusion loss weight (lam_diff=0.5) during finetuning"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Reducing generic diffusion loss focuses LoRA on SIR-guided adaptation.",
+    "mechanism": "Added lam_diff=0.5 to total_finetune_loss, diffusion loss now weighted at 0.5x.",
+    "expected_delta": "expect Test MAE decrease by 0.2-0.5",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 108.3,
+    "memory_gb": 0.88,
+    "params": 17217
+  },
+  "git": {
+    "commit_hash": "40ca783d793ef5e284128fb5925a573a3686be13",
+    "commit_message": "pipeline: time_series_expert \u2014 Reduce diffusion loss weight in finetune (lam_diff=0.5)"
+  }
+}

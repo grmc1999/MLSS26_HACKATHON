@@ -1,0 +1,34 @@
+{
+  "iteration": 5,
+  "task": "flu",
+  "commit": "f47a516b7e299251fcb29ca5c6317bde62e5c202",
+  "timestamp": "2026-06-24T04:18:57Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 18.0059,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Added LayerNorm after each conv activation in denoiser"
+  },
+  "jury_reasoning": {
+    "hypothesis": "LayerNorm stabilizes internal representations across varying noise levels.",
+    "mechanism": "Added nn.LayerNorm(hidden_dim) after each F.relu in denoiser forward pass.",
+    "expected_delta": "expect Test MAE decrease by 0.2-0.5",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 103.0,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "f47a516b7e299251fcb29ca5c6317bde62e5c202",
+    "commit_message": "pipeline: time_series_expert \u2014 Add LayerNorm to ConditionalDenoiser"
+  }
+}

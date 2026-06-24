@@ -1,0 +1,34 @@
+{
+  "iteration": 3,
+  "task": "flu",
+  "commit": "d6d9535",
+  "timestamp": "2026-06-24T02:41:39Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 20.9385,
+    "baseline": 22.3607
+  },
+  "change": {
+    "type": "hyperparameter",
+    "file": "env/train.py",
+    "diff_summary": "Increased x0 self-consistency loss weight 0.05->0.15 in diffusion_loss"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Increasing the x0 prediction loss weight strengthens the self-consistency training signal, further improving the denoiser's reconstruction quality.",
+    "mechanism": "Higher weight (0.15) on MSE(x0_hat, x0) places more emphasis on accurate x0 reconstruction, aligning gradient signals with the true data manifold.",
+    "expected_delta": "expect Test MAE to decrease further by 2-4 points",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 25.0,
+    "memory_gb": 0.0,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "d6d9535",
+    "commit_message": "pipeline: time_series_expert \u2014 Increase x0 self-consistency loss weight 0.05->0.15"
+  }
+}

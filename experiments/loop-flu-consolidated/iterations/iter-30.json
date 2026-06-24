@@ -1,0 +1,34 @@
+{
+  "iteration": 18,
+  "task": "flu",
+  "commit": "849dae22d2a2dca4b36c243f0dec89a8e684c207",
+  "timestamp": "2026-06-24T04:51:30Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 16.9649,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "augmentation",
+    "file": "env/train.py",
+    "diff_summary": "Added input noise augmentation (sigma=0.01) during pretraining"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Small input noise makes model robust to cross-country data quality differences.",
+    "mechanism": "c = c + randn * 0.01 added at start of diffusion_loss",
+    "expected_delta": "expect Test MAE decrease by 0.1-0.3",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 104.2,
+    "memory_gb": 0.88,
+    "params": 17217
+  },
+  "git": {
+    "commit_hash": "849dae22d2a2dca4b36c243f0dec89a8e684c207",
+    "commit_message": "pipeline: time_series_expert \u2014 Input noise augmentation during pretraining"
+  }
+}

@@ -1,0 +1,39 @@
+iteration	commit	test_mae	val_mae	params	memory_gb	status	description	source
+0	(baseline)	221.0454				baseline	Initial baseline run	loop-flu-260623-2213
+1		146.8242			keep	Residual skip connection	loop-flu-260623-2213
+2		157.6542			discard	Third conv block	loop-flu-260623-2213
+3		534.1222			discard	Cosine annealing LR	loop-flu-260623-2213
+4		253.0435			discard	LeakyReLU(0.01)	loop-flu-260623-2213
+5		413.4650			discard	InstanceNorm1d	loop-flu-260623-2213
+6	(baseline)	238.7726				baseline	Initial baseline run	loop-flu-260623-2230
+7	c5ec674	330.4117		15169		discard	Gradient clipping max_norm=1.0	loop-flu-260623-2230
+8	bd079a9	22.3607		15169		keep	Auxiliary x0 prediction loss (self-consistency)	loop-flu-260623-2230
+9	d6d9535	20.9385		15169		keep	Increase x0 self-consistency loss weight 0.05->0.15	loop-flu-260623-2230
+10	96e489e	19.0133		15169		keep	Linear beta schedule (1e-4 to 0.02)	loop-flu-260623-2230
+11	d3d304e	21.8280		15169		discard	Dropout 0.15->0.05	loop-flu-260623-2230
+12	(baseline)	18.8732		15169	0.8800	baseline	Initial baseline run (30 pretrain + 10 finetune epochs)	loop-flu-260624-0002
+13	166eff5	20.9875		15169	0.8800	discard	Cosine beta schedule (Improved DDPM)	loop-flu-260624-0002
+14	5e26e2c	19.0250		15169	0.8800	discard	SiLU activation in ConditionalDenoiser	loop-flu-260624-0002
+15	fbf2e7a	17.7865		15169	0.8800	keep	Diffusion steps 30->50 (improved)	loop-flu-260624-0002
+16	b055907	17.8760		15169	0.8800	discard	x0 weight 0.15->0.25 (worsened)	loop-flu-260624-0002
+17	f47a516	18.0059		15169	0.8800	discard	LayerNorm in denoiser (worsened)	loop-flu-260624-0002
+18	8614897	18.2955		15169	0.8800	discard	Diffusion steps 50->100 (worsened)	loop-flu-260624-0002
+19	52375f4	17.9055		15169	0.8800	discard	SIR phys weight 0.1->0.5 (worsened)	loop-flu-260624-0002
+20	f2f06c0	17.9296		15169	0.8800	discard	Amplitude augmentation (worsened)	loop-flu-260624-0002
+21	97fc867	18.0813		15169	0.8800	discard	L2 weight decay 1e-5 (worsened)	loop-flu-260624-0002
+22	e7eca05	18.3591		27521	0.8800	discard	Extra conv layer (worsened)	loop-flu-260624-0002
+23	7cfddca	18.4410		15169	0.8800	discard	LoRA r=4->8 (worsened)	loop-flu-260624-0002
+24	13c9797	17.9216		15169	0.8800	discard	Gradient clipping 5.0 (worsened)	loop-flu-260624-0002
+25	acafda4	17.5039		15169	0.8800	keep	DDIM deterministic sampling (eta=0)	loop-flu-260624-0002
+26	e4b1bcc	16.5714		17217	0.8800	keep	Time embedding dim 32->64 (improved)	loop-flu-260624-0002
+27	5bc543d	17.2294		38634	0.8800	discard	hidden_dim 64->96 (worsened)	loop-flu-260624-0002
+28	14fb625	16.9258		21825	0.8800	discard	Time embedding 64->128 (worsened)	loop-flu-260624-0002
+29	4575c29	17.5164		17217	0.8800	discard	L1 diffusion loss (worsened)	loop-flu-260624-0002
+30	849dae2	16.9649		17217	0.8800	discard	Input noise augmentation (worsened)	loop-flu-260624-0002
+31	28dc3fd	16.8558		17217	0.8800	discard	Ensemble DDIM n=3 (worsened)	loop-flu-260624-0002
+32	40ca783	17.9407		17217	0.8800	discard	lam_diff=0.5 finetune (worsened)	loop-flu-260624-0002
+33	52e267a	17.3611		29393	0.8800	discard	Cross-attention conditioning (worsened)	loop-flu-260624-0002
+34	9be1d4e	17.7991		17217	0.8800	discard	Min-SNR weighting (worsened)	loop-flu-260624-0002
+35	2e17c55	16.6930		17217	0.8800	discard	LoRA r=4->2 (worsened)	loop-flu-260624-0002
+36	f1adb58	17.2964		17217	0.8800	keep	Merged remote (CosineAnnealingLR scheduler)	loop-flu-260624-0002
+37	c245cf5	17.9160		17218	0.8800	discard	Temperature scaling in DDIM (worsened)	loop-flu-260624-0002

@@ -1,0 +1,51 @@
+{
+  "iteration": 3,
+  "task": "flu",
+  "query": "self-consistency diffusion training loss weight tuning x0 prediction time series",
+  "k": 5,
+  "timestamp": "2026-06-24T02:39:36Z",
+  "results": [
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.49626630544662476,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2012.07436",
+      "source": "local_rag_vector",
+      "score": 0.4311744272708893,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2012.07436",
+      "source": "local_rag_vector",
+      "score": 0.4302060008049011,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4223380982875824,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1912.09363",
+      "source": "local_rag_vector",
+      "score": 0.4199202358722687,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Dataset) WSJ training set -[EVALUATED_ON]-> (Model) Transformer\n(None) Mean Squared Error Loss -[USES_METHOD]-> (Model) Neural Network\n(Dataset) Training set -[EVALUATED_ON]-> (Model) Schr\u00f6dinger equation\n(Dataset) Boundary training data -[EVALUATED_ON]-> (Model) Schr\u00f6dinger equation\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Dataset) Burgers' Equation\n(Method) Runge-Kutta time-stepping schemes -[USES_METHOD]-> (Model) Shr\u00a8odinger equation\n(Method) Runge-Kutta time-stepping sc",
+      "metadata": {}
+    }
+  ]
+}
