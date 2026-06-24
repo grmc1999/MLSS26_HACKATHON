@@ -151,7 +151,7 @@ class DiffusionForecaster(nn.Module):
     """Section 5.1's epsilon_theta(x_tau, c, tau): cosine-schedule DDPM over the
     10-step forecast, conditioned on the 5-step input."""
 
-    def __init__(self, input_dim=1, hidden_dim=64, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, num_diffusion_steps=30):
+    def __init__(self, input_dim=1, hidden_dim=64, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, num_diffusion_steps=50):
         super().__init__()
         assert input_dim == 1, "denoiser assumes a univariate %ILI signal"
         self.num_diffusion_steps = num_diffusion_steps
