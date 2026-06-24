@@ -131,7 +131,7 @@ class ConditionalDenoiser(nn.Module):
     cond_proj/time_proj/out_proj are deliberately plain named nn.Linear layers so
     they're clean LoRA injection targets for `apply_lora`."""
 
-    def __init__(self, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, hidden_dim=64, time_dim=32):
+    def __init__(self, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, hidden_dim=64, time_dim=32, dropout=0.15):
         super().__init__()
         self.forecast_steps = forecast_steps
         self.time_dim = time_dim
@@ -140,12 +140,14 @@ class ConditionalDenoiser(nn.Module):
         self.conv_in = nn.Conv1d(1, hidden_dim, kernel_size=3, padding=1)
         self.conv_mid = nn.Conv1d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
         self.out_proj = nn.Linear(hidden_dim, 1)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x_tau, c, tau):
         h = self.conv_in(x_tau.transpose(1, 2))
         cond = self.cond_proj(c.squeeze(-1)).unsqueeze(-1)
         temb = self.time_proj(sinusoidal_embedding(tau, self.time_dim)).unsqueeze(-1)
         h = F.relu(h + cond + temb)
+        h = self.dropout(h)
         h = F.relu(self.conv_mid(h))
         return self.out_proj(h.transpose(1, 2))
 
