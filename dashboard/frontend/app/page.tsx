@@ -118,6 +118,18 @@ export default function Home() {
     [experiments]
   );
 
+  const [debugInfo] = useState<string>('loading...');
+  useEffect(() => {
+    if (experiments.length > 0) {
+      const loops = experiments.filter(e => e.source === 'auto_loop');
+      let total = 0;
+      loops.forEach(e => {
+        if (e.iterations) total += e.iterations.filter((it: any) => it.test_acc_id !== null && it.ood_f1 !== null).length;
+      });
+      console.log('[DBG]', {exps: experiments.length, loops: loops.length, validIters: total, allIters: allIterations.length});
+    }
+  }, [experiments, allIterations]);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -166,9 +178,9 @@ export default function Home() {
         } color="#f59e0b" sub={task === 'flu' ? 'Test MAE: first → latest' : 'ID test acc: first → latest'} />
       </div>
 
-      {allIterations.length > 1 && (
-        <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Metrics Over All Iterations</h2>
+      <div className="bg-slate-800 rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Metrics Over All Iterations</h2>
+        {allIterations.length > 0 ? (
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={allIterations} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -195,8 +207,10 @@ export default function Home() {
               )}
             </LineChart>
           </ResponsiveContainer>
-        </div>
-      )}
+        ) : (
+          <p className="text-slate-400">No iteration data ({loopExps.length} loops, {experiments.length} exps). Check browser console for [DBG] messages.</p>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-800 rounded-lg p-6">
