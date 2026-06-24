@@ -308,7 +308,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
-def train_epoch(model, loader, optimizer, device, loss_fn=None):
+def train_epoch(model, loader, optimizer, device, loss_fn=None, scheduler=None):
     model.train()
     total_loss, n = 0.0, 0
     for x, y, S, N, _naive in loader:
@@ -321,6 +321,8 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
             loss = F.l1_loss(model(x), y)
         loss.backward()
         optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
     return total_loss / max(n, 1)
