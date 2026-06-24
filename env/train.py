@@ -178,8 +178,7 @@ class DiffusionForecaster(nn.Module):
             eps_hat = self.denoiser(x, c, tau)
             beta_t, a_bar_t = self.betas[t], self.alphas_cumprod[t]
             a_t = 1 - beta_t
-            mean = (x - beta_t / torch.sqrt(1 - a_bar_t) * eps_hat) / torch.sqrt(a_t)
-            x = mean if t == 0 else mean + torch.sqrt(beta_t) * torch.randn_like(x)
+            x = (x - beta_t / torch.sqrt(1 - a_bar_t) * eps_hat) / torch.sqrt(a_t)
         return x
 
 
