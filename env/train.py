@@ -131,7 +131,7 @@ class ConditionalDenoiser(nn.Module):
     cond_proj/time_proj/out_proj are deliberately plain named nn.Linear layers so
     they're clean LoRA injection targets for `apply_lora`."""
 
-    def __init__(self, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, hidden_dim=96, time_dim=32, dropout=0.15):
+    def __init__(self, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, hidden_dim=64, time_dim=32, dropout=0.15):
         super().__init__()
         self.forecast_steps = forecast_steps
         self.time_dim = time_dim
@@ -156,7 +156,7 @@ class DiffusionForecaster(nn.Module):
     """Section 5.1's epsilon_theta(x_tau, c, tau): cosine-schedule DDPM over the
     10-step forecast, conditioned on the 5-step input."""
 
-    def __init__(self, input_dim=1, hidden_dim=96, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, num_diffusion_steps=30):
+    def __init__(self, input_dim=1, hidden_dim=64, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, num_diffusion_steps=30):
         super().__init__()
         assert input_dim == 1, "denoiser assumes a univariate %ILI signal"
         self.num_diffusion_steps = num_diffusion_steps
