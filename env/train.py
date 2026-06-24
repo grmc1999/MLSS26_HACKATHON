@@ -227,7 +227,7 @@ def peak_event_loss(x0_hat, y):
     return F.l1_loss(pred_peak, true_peak)
 
 
-def total_finetune_loss(model, x0, c, S_forecast, N, device, beta, gamma, lam_am=1.0, lam_phys=0.1, lam_event=0.1):
+def total_finetune_loss(model, x0, c, S_forecast, N, device, beta, gamma, lam_am=1.0, lam_phys=0.3, lam_event=0.2):
     """Section 5.3: L = L_diff + lam_AM*L_adjoint_match + lam_phys*L_phys + lam_event*L_event."""
     B = x0.shape[0]
     tau = torch.randint(0, model.num_diffusion_steps, (B,), device=device)
