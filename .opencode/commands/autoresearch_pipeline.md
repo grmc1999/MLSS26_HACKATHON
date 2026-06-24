@@ -24,15 +24,15 @@ Extract from $ARGUMENTS:
 |---------|----------|-----|
 | `ENV_DIR` | `MLAgentBench/benchmarks/medmnist/env/` | `env/` |
 | `TRAIN_PY` | `{ENV_DIR}/train.py` | `{ENV_DIR}/train.py` |
-| `RUNNER` | `scripts/run_medmnist.py` | `scripts/run_exp.py` |
+| `RUNNER` | `scripts/run_medmnist.py` | `scripts/run_flu_pipeline.py` |
 | `METRIC` | ID Test Acc (default) or OOD F1 | Test MAE (default) |
 | `METRIC_CMD` | `grep "Test ID Acc" run.log \| awk '{print $NF}'` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
 | `DIRECTION` | higher_is_better | lower_is_better |
-| `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_exp.py --epochs 50` |
+| `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10` |
 | `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu/ILI) |
 | `INPUT_SHAPE` | `(4, 1, 28, 28)` → `(4, 3)` | `(4, 5, 1)` → `(4, 10)` |
 | `LOG_COLS` | test_acc, ood_f1, val_acc, test_acc_id | test_mae, val_mae, params |
-| `RAG_INDEX` | `index_output/` (28 papers, Qwen VL) | `index_output_flu/` (22 papers, MiniLM) |
+| `RAG_INDEX` | `index_output/` (28 papers, Qwen VL, from `literature/` PDFs) | `index_output_flu/` (22 papers, MiniLM, from `literature_flu_md/` markdown files) |
 
 ## Setup (if required context missing)
 
@@ -59,11 +59,19 @@ If Pretrained=no, skip directly to Establish Baseline.
 
 ## Establish Baseline (Iteration 0)
 
-1. Run: `{VERIFY_CMD} > run.log 2>&1`
-2. Extract: `{METRIC_CMD}`
-3. Record as iteration 0 in `experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv`
-4. Base metric from chosen Metric
-5. Save baseline code to compare the improvement as backup
+1. **Backup the entire env directory** before any modification:
+   ```bash
+   BASELINE_DIR="experiments/loop-{task}-{YYMMDD}-{HHMM}/env.baseline"
+   mkdir -p "$BASELINE_DIR"
+   cp -r {ENV_DIR}/* "$BASELINE_DIR/"
+   git add -f "$BASELINE_DIR" && git commit -m "baseline: {task} env backup (iteration 0)"
+   ```
+   The `env.baseline/` directory is **read-only for the entire pipeline** — it is never modified, and all experiment results are compared against it. It serves as the ground truth reference.
+
+2. Run: `{VERIFY_CMD} > run.log 2>&1`
+3. Extract: `{METRIC_CMD}`
+4. Record as iteration 0 in `experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv`
+5. Base metric from chosen Metric
 
 ## Iteration Loop (Multi-Expert Pipeline)
 
@@ -128,9 +136,9 @@ For each iteration (1 to max_iterations):
 - If further validation needed: use `tvly search` (tavily-search) to check if this approach has known failure cases reported online.
 - Output: go/no-go recommendation + risk assessment
 
-### Phase 4b: Code Jury (syntax + shape + gradient check)
+### Phase 4b: Code Jury (syntax + shape + gradient + reasoning)
 
-**Goal**: Verify code correctness before committing — catch bugs in seconds instead of waiting 5min for a crash.
+**Goal**: Verify code correctness before committing and explicitly document the scientific reasoning behind the change.
 
 Run these checks in `{ENV_DIR}`:
 
@@ -142,6 +150,31 @@ Run these checks in `{ENV_DIR}`:
 
 If any check fails → **STOP**, diagnose the error, fix the code, re-run jury.
 If all pass → **PASS**, safe to commit.
+
+**Before passing, the Jury must log the following reasoning explicitly in the commit message** (this is a scientific record, not just a code change):
+
+```
+JURY REASONING:
+- Hypothesis: [What did you expect this change to do, and why? Reference the research or theory that motivated it.]
+- Mechanism: [How does the change affect the model's behavior? E.g., "adds a regularization term that penalizes extreme weights, reducing overfitting to US-specific patterns."]
+- Expected delta: [Quantitative prediction: "expect OOD F1 to improve by 0.02–0.05" or "expect Test MAE to decrease by 0.01"]
+- Risk assessment: [low / medium / high] — what could go wrong and why?
+- Baseline comparison: [Which baseline config from env.baseline/ is this compared against?]
+```
+
+The commit message format becomes:
+```
+pipeline: {agent} — {short description}
+
+JURY REASONING:
+- Hypothesis: ...
+- Mechanism: ...
+- Expected delta: ...
+- Risk assessment: ...
+- Baseline comparison: ...
+```
+
+This ensures every experiment has a documented scientific rationale that can be reviewed, challenged, and learned from in future iterations.
 
 ### Phase 5: Commit
 
@@ -196,7 +229,7 @@ If bounded: current_iteration >= max_iterations → exit loop, print summary.
 
 ## Time Constraints
 - medmnist: ~5 min per experiment (25 epochs). Kill at 10 min.
-- flu: ~5 min per experiment (50 epochs). Kill at 10 min.
+- flu: ~5 min per experiment (30 pretrain + 10 finetune epochs). Kill at 10 min.
 - Treat timeout as crash.
 
 ## Summary
