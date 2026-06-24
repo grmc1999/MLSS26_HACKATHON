@@ -172,14 +172,17 @@ class DiffusionForecaster(nn.Module):
     @torch.no_grad()
     def sample(self, c):
         B, device = c.shape[0], c.device
-        x = torch.randn(B, self.denoiser.forecast_steps, 1, device=device)
-        for t in reversed(range(self.num_diffusion_steps)):
-            tau = torch.full((B,), t, device=device, dtype=torch.long)
-            eps_hat = self.denoiser(x, c, tau)
-            beta_t, a_bar_t = self.betas[t], self.alphas_cumprod[t]
-            a_t = 1 - beta_t
-            x = (x - beta_t / torch.sqrt(1 - a_bar_t) * eps_hat) / torch.sqrt(a_t)
-        return x
+        forecasts = []
+        for _ in range(3):
+            x = torch.randn(B, self.denoiser.forecast_steps, 1, device=device)
+            for t in reversed(range(self.num_diffusion_steps)):
+                tau = torch.full((B,), t, device=device, dtype=torch.long)
+                eps_hat = self.denoiser(x, c, tau)
+                beta_t, a_bar_t = self.betas[t], self.alphas_cumprod[t]
+                a_t = 1 - beta_t
+                x = (x - beta_t / torch.sqrt(1 - a_bar_t) * eps_hat) / torch.sqrt(a_t)
+            forecasts.append(x)
+        return torch.stack(forecasts).mean(0)
 
 
 def diffusion_loss(model, x0, c, device):
