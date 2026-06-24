@@ -141,11 +141,11 @@ class ConditionalDenoiser(nn.Module):
         h = self.conv_in(x_tau.transpose(1, 2))
         cond = self.cond_proj(c.squeeze(-1)).unsqueeze(-1)
         temb = self.time_proj(sinusoidal_embedding(tau, self.time_dim)).unsqueeze(-1)
-        h = F.relu(h + cond + temb)
+        h = F.leaky_relu(h + cond + temb, 0.01)
         h = self.dropout(h)
         skip = h
         h = self.conv_mid(h)
-        h = F.relu(h + skip)
+        h = F.leaky_relu(h + skip, 0.01)
         return self.out_proj(h.transpose(1, 2))
 
 
@@ -309,7 +309,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
-def train_epoch(model, loader, optimizer, device, loss_fn=None, scheduler=None):
+def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
     for x, y, S, N, _naive in loader:
@@ -322,8 +322,6 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None, scheduler=None):
             loss = F.l1_loss(model(x), y)
         loss.backward()
         optimizer.step()
-        if scheduler is not None:
-            scheduler.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
     return total_loss / max(n, 1)
