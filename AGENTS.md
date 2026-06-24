@@ -18,7 +18,6 @@
 | Command | Purpose |
 |---------|---------|
 | `python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10` | Standalone flu train/eval |
-| `python scripts/run_orchestrator.py --task flu` | Autonomous pipeline |
 | `python scripts/code_jury.py --task flu --env-dir env --train-py env/train.py --input-shape "(4, 5, 1)" --expected-output-shape "(4, 10, 1)" --out jury.json` | Code validation |
 | `python scripts/run_rag_search.py --task flu --iteration N --query "..." --k 5 --out rag.json` | RAG literature search |
 
@@ -40,7 +39,6 @@ env/
 
 scripts/
 ├── run_flu_pipeline.py   # Flu CLI wrapper
-├── run_orchestrator.py   # Autonomous pipeline
 ├── code_jury.py          # Pre-commit code validation
 ├── run_rag_search.py     # RAG literature search
 ├── make_iter_log.py      # Per-iteration JSON logging

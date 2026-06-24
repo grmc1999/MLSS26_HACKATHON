@@ -2,17 +2,13 @@
 
 An autonomous **Scientific AI AutoResearch** system for cross-country ILI forecasting (flu), using diffusion models with RAG-augmented literature grounding.
 
+![Flu Dashboard](flu_dashboard.png)
+
 ## Quick Start
 
 ```bash
 source .venv/bin/activate
 python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10
-```
-
-## Autonomous Pipeline
-
-```bash
-python scripts/run_orchestrator.py --task flu --iterations 25
 ```
 
 ## RAG System (Flu)
@@ -42,7 +38,6 @@ MLSS26_HACKATHON/
 │   └── agent_specialized.py       # Agent prompts + RAG functions
 ├── scripts/
 │   ├── run_flu_pipeline.py        # Flu CLI wrapper
-│   ├── run_orchestrator.py        # Autonomous pipeline launcher
 │   ├── build_flu_graph.py         # FalkorDB knowledge graph builder
 │   └── start_falkordb.sh          # FalkorDB Docker launcher
 ├── dashboard/                     # Interactive experiment dashboard
