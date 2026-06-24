@@ -126,6 +126,15 @@ def parse_runs_jsonl() -> list[dict]:
     return experiments
 
 
+def split_tsv(line: str) -> list[str]:
+    """Split a TSV line handling both real tabs and literal \\t strings."""
+    if "\t" in line:
+        return line.split("\t")
+    if "\\t" in line:
+        return line.split("\\t")
+    return [line]
+
+
 def parse_loop_results() -> list[dict]:
     experiments = []
     loop_dirs = sorted(PROJECT_ROOT.glob("experiments/loop-*/results.tsv"), reverse=True)
@@ -134,43 +143,95 @@ def parse_loop_results() -> list[dict]:
         if len(lines) < 2:
             continue
         loop_id = tsv_path.parent.name
+        is_flu = "flu" in loop_id.lower()
+
+        headers = None
+        data_start = 0
+        for i, line in enumerate(lines):
+            if not line or line.startswith("#"):
+                data_start = i + 1
+                continue
+            low = line.lower().replace("\\t", "\t")
+            if any(kw in low for kw in ["iteration", "commit", "timestamp", "test"]):
+                headers = [h.strip().lower() for h in split_tsv(line)]
+                data_start = i + 1
+                break
+
+        if headers:
+            h = {name: idx for idx, name in enumerate(headers)}
+            idx_iter = h.get("iteration", 0)
+            idx_commit = h.get("commit", h.get("timestamp", 1))
+            idx_metric = h.get("test_mae", h.get("test_acc", h.get("metric", 2)))
+            idx_metric2 = h.get("val_mae", h.get("ood_f1", h.get("secondary", 3)))
+            idx_metric3 = h.get("val_acc", 4)
+            idx_metric4 = h.get("test_acc_id", h.get("test_id_acc", 5))
+            idx_status = h.get("status", 7)
+            idx_desc = h.get("description", 8)
+            # If idx_metric4 points to the params column, null it out
+            if idx_metric4 is not None and idx_metric4 < len(headers):
+                col_name = headers[idx_metric4]
+                if col_name in ("params", "memory_gb", "timestamp", "status", "commit"):
+                    idx_metric4 = None
+            # Ensure val_acc doesn't overlap with params
+            if idx_metric3 is not None and idx_metric3 < len(headers):
+                col_name3 = headers[idx_metric3]
+                if col_name3 in ("params", "memory_gb", "timestamp", "status", "commit"):
+                    idx_metric3 = None
+        else:
+            idx_iter, idx_commit = 0, 1
+            idx_metric, idx_metric2, idx_metric3, idx_metric4 = 2, 3, 4, 5
+            idx_status, idx_desc = 7, 8
+
         scores = []
         iterations_data = []
         final_score = None
-        has_mae = False
-        for i, line in enumerate(lines[1:]):
+        for line in lines[data_start:]:
             if not line or line.startswith("#"):
                 continue
-            parts = line.split("\t")
-            if len(parts) >= 7:
-                try:
-                    iteration = parts[0].strip()
-                    commit = parts[1].strip()
-                    test_acc = float(parts[2]) if parts[2] else None
-                    ood_f1 = float(parts[3]) if parts[3] else None
-                    val_acc = float(parts[4]) if len(parts) > 4 and parts[4] else None
-                    test_acc_id = float(parts[5]) if len(parts) > 5 and parts[5] else None
-                    memory_gb = parts[6].strip() if len(parts) > 6 else ""
-                    status = parts[7].strip() if len(parts) > 7 else ""
-                    description = parts[8].strip() if len(parts) > 8 else ""
-                    if description and "mae" in description.lower():
-                        has_mae = True
-                    metric = test_acc if test_acc is not None else 0.0
-                    scores.append({"step": int(iteration), "score": metric})
+            parts = split_tsv(line)
+            if len(parts) < 7:
+                continue
+            try:
+                def pval(idx):
+                    if idx is None or idx >= len(parts):
+                        return None
+                    v = parts[idx].strip()
+                    if v and v not in (".", "-", "?"):
+                        try:
+                            return float(v)
+                        except ValueError:
+                            return None
+                    return None
+
+                iteration = parts[idx_iter].strip() if idx_iter is not None and idx_iter < len(parts) else ""
+                commit = parts[idx_commit].strip() if idx_commit is not None and idx_commit < len(parts) else ""
+                m1 = pval(idx_metric)
+                m2 = pval(idx_metric2)
+                m3 = pval(idx_metric3)
+                m4 = pval(idx_metric4)
+                memory_gb = parts[6].strip() if len(parts) > 6 else ""
+                status = parts[idx_status].strip() if idx_status < len(parts) else ""
+                description = parts[idx_desc].strip() if idx_desc < len(parts) else ""
+
+                metric = m1 if m1 is not None else (m2 if m2 is not None else (m4 if m4 is not None else 0.0))
+                if metric is not None and not is_flu:
+                    scores.append({"step": int(iteration) if iteration else 0, "score": metric})
                     final_score = metric
-                    iterations_data.append({
-                        "iteration": int(iteration),
-                        "commit": commit,
-                        "test_acc": test_acc,
-                        "ood_f1": ood_f1,
-                        "val_acc": val_acc,
-                        "test_acc_id": test_acc_id,
-                        "memory_gb": memory_gb,
-                        "status": status,
-                        "description": description,
-                    })
-                except (ValueError, IndexError):
-                    continue
+
+                iterations_data.append({
+                    "iteration": int(iteration) if iteration else 0,
+                    "commit": commit,
+                    "test_acc": m1,
+                    "ood_f1": m2,
+                    "val_acc": m3,
+                    "test_acc_id": m4,
+                    "memory_gb": memory_gb,
+                    "status": status,
+                    "description": description,
+                })
+            except (ValueError, IndexError):
+                continue
+
         experiments.append({
             "id": loop_id,
             "path": str(tsv_path.parent),
@@ -180,7 +241,7 @@ def parse_loop_results() -> list[dict]:
             "final_score": final_score,
             "status": "completed" if scores else "unknown",
             "source": "auto_loop",
-            "task": "flu" if has_mae else "medmnist",
+            "task": "flu" if is_flu else "medmnist",
             "details": {
                 "iterations": iterations_data,
                 "total_iterations": len(iterations_data),
