@@ -198,7 +198,7 @@ def diffusion_loss(model, x0, c, device):
     a_bar = model.alphas_cumprod[tau].view(-1, 1, 1)
     x0_hat = (x_tau - torch.sqrt(1 - a_bar) * eps_hat) / (torch.sqrt(a_bar) + 1e-6)
     l_x0 = F.mse_loss(x0_hat, x0)
-    return l_diff + 0.25 * l_x0
+    return l_diff + 0.15 * l_x0
 
 
 def physical_loss(x0_hat, S_forecast, N, beta, gamma):
