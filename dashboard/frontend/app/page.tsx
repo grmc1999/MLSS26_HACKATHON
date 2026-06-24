@@ -184,35 +184,40 @@ export default function Home() {
         } color="#f59e0b" sub={task === 'flu' ? 'Test MAE: first → latest' : 'ID test acc: first → latest'} />
       </div>
 
-      <div className="bg-slate-800 rounded-lg p-6">
+      <div className="bg-slate-800 rounded-lg p-6" style={{minHeight: 450}}>
         <h2 className="text-xl font-semibold mb-4">Metrics Over All Iterations</h2>
         {allIterations.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={allIterations} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
-              <YAxis stroke="#94a3b8" domain={task === 'flu' ? undefined : [0, 1]} />
-              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
-              <Legend />
-              {task === 'flu' ? (
-                <>
-                  <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
-                        dot={{ r: 5 }} name="Test MAE" connectNulls />
-                  <Line type="monotone" dataKey="ood_f1" stroke="#f59e0b" strokeWidth={2}
-                        dot={{ r: 5 }} name="Val MAE" connectNulls />
-                </>
-              ) : (
-                <>
-                  <Line type="monotone" dataKey="val_acc" stroke="#06b6d4" strokeWidth={2}
-                        dot={{ r: 5 }} name="Val Acc" connectNulls />
-                  <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
-                        dot={{ r: 5 }} name="ID Test Acc" connectNulls />
-                  <Line type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
-                        dot={{ r: 5 }} name="OOD F1" connectNulls />
-                </>
-              )}
-            </LineChart>
-          </ResponsiveContainer>
+          <>
+            <p className="text-xs text-slate-500 mb-2">{allIterations.length} data points across {loopExps.length} loops</p>
+            <div style={{width: '100%', height: 400, position: 'relative'}}>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={allIterations} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
+                  <YAxis stroke="#94a3b8" domain={task === 'flu' ? undefined : [0, 1]} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
+                  <Legend />
+                  {task === 'flu' ? (
+                    <>
+                      <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
+                            dot={{ r: 5 }} name="Test MAE" connectNulls />
+                      <Line type="monotone" dataKey="ood_f1" stroke="#f59e0b" strokeWidth={2}
+                            dot={{ r: 5 }} name="Val MAE" connectNulls />
+                    </>
+                  ) : (
+                    <>
+                      <Line type="monotone" dataKey="val_acc" stroke="#06b6d4" strokeWidth={2}
+                            dot={{ r: 5 }} name="Val Acc" connectNulls />
+                      <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
+                            dot={{ r: 5 }} name="ID Test Acc" connectNulls />
+                      <Line type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
+                            dot={{ r: 5 }} name="OOD F1" connectNulls />
+                    </>
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
         ) : (
           <p className="text-slate-400">No iteration data ({loopExps.length} loops, {experiments.length} exps). Check browser console for [DBG] messages.</p>
         )}
