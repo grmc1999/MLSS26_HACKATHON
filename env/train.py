@@ -315,6 +315,7 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
         else:
             loss = F.l1_loss(model(x), y)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         total_loss += float(loss) * x.shape[0]
         n += x.shape[0]
