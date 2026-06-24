@@ -110,13 +110,8 @@ class TinyTransformer(nn.Module):
 # --------------------------------------------------------------------------
 
 
-def cosine_beta_schedule(timesteps, s=0.008):
-    steps = timesteps + 1
-    t = torch.linspace(0, timesteps, steps) / timesteps
-    alphas_cumprod = torch.cos((t + s) / (1 + s) * math.pi / 2) ** 2
-    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
-    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-    return torch.clamp(betas, 1e-4, 0.999)
+def linear_beta_schedule(timesteps, beta_start=1e-4, beta_end=0.02):
+    return torch.linspace(beta_start, beta_end, timesteps)
 
 
 def sinusoidal_embedding(timesteps, dim):
@@ -161,7 +156,7 @@ class DiffusionForecaster(nn.Module):
         assert input_dim == 1, "denoiser assumes a univariate %ILI signal"
         self.num_diffusion_steps = num_diffusion_steps
         self.denoiser = ConditionalDenoiser(forecast_steps, input_steps, hidden_dim)
-        betas = cosine_beta_schedule(num_diffusion_steps)
+        betas = linear_beta_schedule(num_diffusion_steps)
         self.register_buffer("betas", betas)
         self.register_buffer("alphas_cumprod", torch.cumprod(1.0 - betas, dim=0))
 
