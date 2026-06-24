@@ -25,8 +25,9 @@ python scripts/run_orchestrator.py --task flu --iterations 25
 
 | Command | What it does |
 |---------|-------------|
-| `/autoresearch_final` | Simple modify → run → keep/discard against a single metric |
-| `/autoresearch_pipeline` | Full multi-expert pipeline with adaptive RAG |
+| `/autoresearch` | Simple modify → run → keep/discard against a single metric |
+| `/autoresearch_final` | Full multi-expert pipeline with adaptive RAG + code jury + logging |
+| `/autoresearch_pipeline` | Full multi-expert pipeline (alias for autoresearch_final) |
 
 ## Architecture
 
