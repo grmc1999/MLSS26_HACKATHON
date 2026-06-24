@@ -1,7 +1,7 @@
 ---
 name: autoresearch_pipeline
 description: "Multi-expert pipeline: 8 agents + code jury per iteration — research → plan → code → jury → review → commit → run → decide → log"
-argument-hint: "[Goal: <text>] [Task: medmnist|flu] [Metric: ...] [Iterations: N] [RAG: yes|no] [Pretrained: yes|no] [--evals]"
+argument-hint: "[Goal: <text>] [Task: flu] [Metric: ...] [Iterations: N] [RAG: yes|no] [--evals]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -10,38 +10,35 @@ EXECUTE IMMEDIATELY.
 
 Extract from $ARGUMENTS:
 - `Goal:` — what to improve
-- `Task:` — `medmnist` (default) or `flu`
-- `Metric:` — task-dependent (see below)
+- `Task:` — `flu`
+- `Metric:` — Test MAE
 - `Iterations:` or `--iterations` — default 5. "unlimited" for unbounded.
 - `RAG:` — "yes" or "no" (default: yes)
-- `Pretrained:` — "yes" to search and finetune pretrained models, "no" to train from scratch (default: no)
 - `--evals` — enable mid-loop checkpoints
 - `--evals-interval N` — checkpoint frequency override
 
-### Task Configurations
+### Task Configuration
 
-| Setting | medmnist | flu |
-|---------|----------|-----|
-| `ENV_DIR` | `MLAgentBench/benchmarks/medmnist/env/` | `env/` |
-| `TRAIN_PY` | `{ENV_DIR}/train.py` | `{ENV_DIR}/train.py` |
-| `RUNNER` | `scripts/run_medmnist.py` | `scripts/run_flu_pipeline.py` |
-| `METRIC` | ID Test Acc (default) or OOD F1 | Test MAE (default) |
-| `METRIC_CMD` | `grep "Test ID Acc" run.log \| awk '{print $NF}'` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
-| `DIRECTION` | higher_is_better | lower_is_better |
-| `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10` |
-| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu/ILI) |
-| `INPUT_SHAPE` | `(4, 1, 28, 28)` → `(4, 3)` | `(4, 5, 1)` → `(4, 10)` |
-| `LOG_COLS` | test_acc, ood_f1, val_acc, test_acc_id | test_mae, val_mae, params |
-| `RAG_INDEX` | `index_output/` (28 papers, Qwen VL, from `literature/` PDFs) | `index_output_flu/` (22 papers, MiniLM, from `literature_flu_md/` markdown files) |
+| Setting | Value |
+|---------|-------|
+| `ENV_DIR` | `env/` |
+| `TRAIN_PY` | `env/train.py` |
+| `RUNNER` | `scripts/run_flu_pipeline.py` |
+| `METRIC` | Test MAE |
+| `METRIC_CMD` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
+| `DIRECTION` | lower_is_better |
+| `VERIFY_CMD` | `python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10` |
+| `EXPERT` | time_series_expert (flu/ILI) |
+| `INPUT_SHAPE` | `(4, 5, 1)` → `(4, 10, 1)` |
+| `LOG_COLS` | test_mae, val_mae, params |
+| `RAG_INDEX` | `index_output_flu/` (22 papers, MiniLM, from `literature_flu_md/` markdown files) |
 
 ## Setup (if required context missing)
 
-If Goal or Metric missing → use question (single batched call):
-  Q1 (Task): "Which task?" — medmnist (chest X-ray OOD) or flu (ILI forecasting)
-  Q2 (Goal): "What do you want to improve?" — depends on task
-  Q3 (Iterations): "Iterations?" — default 5
-  Q4 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
-  Q5 (Pretrained): "Start from scratch or finetune a pretrained model?" — Scratch (default) or Pretrained
+If Goal or Metric missing → use question tool:
+  Q1 (Goal): "What do you want to improve?" — depends on task
+  Q2 (Iterations): "Iterations?" — default 5
+  Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Precondition Checks
 
@@ -50,12 +47,7 @@ If Goal or Metric missing → use question (single batched call):
 3. Verify `{ENV_DIR}/train.py` exists
 4. Verify `{RUNNER}` exists
 
-## Pretrained Model Search (Phase 0) — only if `Pretrained: yes`
-
-For **medmnist**: search HuggingFace / torchvision for DenseNet, ResNet, EfficientNet adapted for 28×28 grayscale.
-For **flu**: no standard pretrained models — skip to baseline.
-
-If Pretrained=no, skip directly to Establish Baseline.
+## Establish Baseline (Iteration 0)
 
 ## Establish Baseline (Iteration 0)
 
@@ -88,18 +80,16 @@ For each iteration (1 to max_iterations):
 
 **Goal**: Understand the problem, find relevant methods from literature. **Do not skip this phase on any iteration. Every change must be grounded in literature.**
 
-**Step 1 — Problem Analysis**: Before searching literature, identify what makes this problem hard:
-- **medmnist**: domain shift between PneumoniaMNIST (training) and ChestMNIST (test). The model trains on one chest X-ray dataset and must detect unseen classes in another. Pneumonia vs consolidation look nearly identical on 28×28 grayscale.
+**Step 1 — Problem Analysis**: Identify what makes this problem hard:
 - **flu**: domain shift between US CDC ILINet (training) and WHO FluID (test on France, Mexico, Australia, South Africa). Different countries have different flu seasons, reporting standards, and healthcare systems. Australia is in the southern hemisphere — opposite flu season. A model that memorizes US patterns will fail globally.
 - Use this analysis to guide what kind of solution is needed (regularization? domain adaptation? seasonal features? calibration?).
 
 **Search strategy** (run ALL of these every iteration, in order):
 
 1. **Local RAG** (if enabled): ALWAYS run first.
-   - For medmnist: run `search_medical_literature(query, k=5, task="medmnist")`. Uses `index_output/`.
-   - For flu: run `search_flu_context_rag(query, k=5)`. Uses FAISS vector search (`index_output_flu/`) + FalkorDB knowledge graph for relational queries. Fastest — check here first.
+   - **flu**: run `search_flu_context_rag(query, k=5)`. Uses FAISS vector search (`index_output_flu/`) + FalkorDB knowledge graph for relational queries.
 
-2. **Tavily web search** (tavily-search skill): ALWAYS run. Use query specific to the current iteration's hypothesis (not a generic repeat from iter 1). `tvly search <query> --depth=basic --max-results=5 --include-answer`. Use task-specific keywords for medmnist (OOD detection, chest X-ray, domain shift) or flu (ILI forecasting, cross-country generalization, time series domain adaptation).
+2. **Tavily web search** (tavily-search skill): ALWAYS run. Use query specific to the current iteration's hypothesis (not a generic repeat from iter 1). `tvly search <query> --depth=basic --max-results=5 --include-answer`. Use keywords: ILI forecasting, cross-country generalization, time series domain adaptation.
 
 3. **paper-navigator** (EvoSkill): ALWAYS run for at least one source. Use `python3 skills/paper-navigator/scripts/scholar_search.py <technique>` to find papers with rubric-based relevance scores. If S2_API_KEY is available, also use `citation_traverse.py` for citation chains.
 
@@ -276,8 +266,7 @@ If --evals: check if current_iteration % interval == 0 → run checkpoint analys
 If bounded: current_iteration >= max_iterations → exit loop, print summary.
 
 ## Time Constraints
-- medmnist: ~5 min per experiment (25 epochs). Kill at 10 min.
-- flu: ~5 min per experiment (30 pretrain + 10 finetune epochs). Kill at 10 min.
+- ~5 min per experiment (30 pretrain + 10 finetune epochs). Kill at 10 min.
 - Treat timeout as crash.
 
 ## Summary

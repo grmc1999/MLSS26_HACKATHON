@@ -28,7 +28,7 @@ from pipeline_utils import (
 
 VALID_STATUSES = {"keep", "discard", "crash"}
 VALID_DIRECTIONS = {"higher_is_better", "lower_is_better"}
-VALID_TASKS = {"medmnist", "flu"}
+VALID_TASKS = {"flu"}
 
 
 def validate_fields(args: argparse.Namespace) -> dict:

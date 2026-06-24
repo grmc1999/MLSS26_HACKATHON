@@ -1,17 +1,10 @@
 """Mandatory code validation before commit: syntax, import, forward, loss, backward.
 
-Usage (flu):
+Usage:
     python scripts/code_jury.py --task flu --env-dir env \\
         --train-py env/train.py --input-shape "(4, 5, 1)" \\
         --expected-output-shape "(4, 10)" \\
         --out experiments/loop-flu-YYMMDD-HHMM/iterations/iter-4-jury.json
-
-Usage (medmnist):
-    python scripts/code_jury.py --task medmnist \\
-        --env-dir MLAgentBench/benchmarks/medmnist/env \\
-        --train-py MLAgentBench/benchmarks/medmnist/env/train.py \\
-        --input-shape "(4, 1, 28, 28)" --expected-output-shape "(4, 3)" \\
-        --out experiments/loop-medmnist-YYMMDD-HHMM/iterations/iter-4-jury.json
 """
 
 import argparse
@@ -82,7 +75,7 @@ def discover_model(mod, model_factory: str | None) -> tuple:
 
 def main():
     parser = argparse.ArgumentParser(description="Code Jury — mandatory pre-commit validation")
-    parser.add_argument("--task", required=True, choices=["medmnist", "flu"])
+    parser.add_argument("--task", required=True, choices=["flu"])
     parser.add_argument("--env-dir", required=True)
     parser.add_argument("--train-py", required=True)
     parser.add_argument("--input-shape", required=True)

@@ -4,10 +4,6 @@ Usage:
     python scripts/run_rag_search.py --task flu --iteration 4 \\
         --query "cross-country ILI forecasting domain adaptation" \\
         --k 5 --out experiments/loop-flu-YYMMDD-HHMM/iterations/iter-4-rag.json
-
-    python scripts/run_rag_search.py --task medmnist --iteration 1 \\
-        --query "OOD detection chest X-ray energy-based" \\
-        --k 5 --out experiments/loop-medmnist-YYMMDD-HHMM/iterations/iter-1-rag.json
 """
 
 import argparse
@@ -22,40 +18,19 @@ def import_rag_functions(rag_module: str, task: str):
     if rag_module:
         import importlib
         mod = importlib.import_module(rag_module)
-        if task == "medmnist":
-            fn = getattr(mod, "search_medical_literature", None)
-            if fn is None:
-                raise ImportError(f"{rag_module} has no 'search_medical_literature'")
-            return fn
-        else:
-            fn = getattr(mod, "search_flu_context_rag", None)
-            if fn is None:
-                raise ImportError(f"{rag_module} has no 'search_flu_context_rag'")
-            return fn
+        fn = getattr(mod, "search_flu_context_rag", None)
+        if fn is None:
+            raise ImportError(f"{rag_module} has no 'search_flu_context_rag'")
+        return fn
 
     try:
-        from MLAgentBench.agents.agent_specialized import search_medical_literature, search_flu_context_rag
+        from MLAgentBench.agents.agent_specialized import search_flu_context_rag
     except ImportError as e:
         print(f"ERROR: Could not import RAG functions: {e}", file=sys.stderr)
         print("Pass --rag-module to specify an alternative module path.", file=sys.stderr)
         sys.exit(2)
 
-    if task == "medmnist":
-        return search_medical_literature
     return search_flu_context_rag
-
-
-def normalize_medmnist_hits(hits: list[dict]) -> list[dict]:
-    results = []
-    for h in hits:
-        results.append({
-            "title": h.get("title", h.get("file", "?")),
-            "source": "local_rag",
-            "score": float(h.get("score", 0)),
-            "snippet": "",
-            "metadata": {},
-        })
-    return results
 
 
 def normalize_flu_hits(rag_output: dict) -> list[dict]:
@@ -84,7 +59,7 @@ def normalize_flu_hits(rag_output: dict) -> list[dict]:
 
 def main():
     parser = argparse.ArgumentParser(description="Run RAG literature search and save results to JSON")
-    parser.add_argument("--task", required=True, choices=["medmnist", "flu"])
+    parser.add_argument("--task", required=True, choices=["flu"])
     parser.add_argument("--iteration", type=int, required=True)
     parser.add_argument("--query", required=True)
     parser.add_argument("--k", type=int, default=5)
@@ -100,10 +75,7 @@ def main():
 
     raw = rag_fn(args.query, k=args.k)
 
-    if args.task == "medmnist":
-        results = normalize_medmnist_hits(raw)
-    else:
-        results = normalize_flu_hits(raw)
+    results = normalize_flu_hits(raw)
 
     record = {
         "iteration": args.iteration,

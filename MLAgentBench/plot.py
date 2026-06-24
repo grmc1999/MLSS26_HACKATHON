@@ -1,4 +1,3 @@
-
 import glob
 import os
 import json
@@ -6,27 +5,18 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-task_name_mapping = {
-    "cifar10_training" : "cifar10",
-    "chestmnist_3class" : "medmnist",
-}
+task_name_mapping = {}
 
-HUMAN_PERFORMANCE = {
-    "cifar10": 0.9,
-    "medmnist": 0.6,
-}
+HUMAN_PERFORMANCE = {}
 
-lower_the_better_tasks = []
+lower_the_better_tasks = ["flu"]
 
 print_labels = {
-    "no_retrieval_gpt4" : "GPT-4",
-    "sanity_check" : "Baseline",
+    "no_retrieval_gpt4": "GPT-4",
+    "sanity_check": "Baseline",
 }
 
-print_task_labels = {
-    "cifar10_training" : "cifar10",
-    "chestmnist_3class" : "medmnist",
-}
+print_task_labels = {}
 
 
 def is_float_in_list(lst):

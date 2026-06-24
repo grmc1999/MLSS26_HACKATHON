@@ -18,13 +18,10 @@ from pipeline_utils import ensure_parent_dir
 
 
 FLU_HEADER = ["iteration", "commit", "test_mae", "val_mae", "params", "memory_gb", "status", "description"]
-MEDMNIST_HEADER = ["iteration", "commit", "test_acc", "ood_f1", "val_acc", "test_acc_id", "memory_gb", "status", "description"]
 
 
 def get_header(task: str) -> list[str]:
-    if task == "flu":
-        return FLU_HEADER
-    return MEDMNIST_HEADER
+    return FLU_HEADER
 
 
 def make_row(header: list[str], args: argparse.Namespace) -> list[str]:
@@ -55,7 +52,7 @@ def _fmt(v):
 
 def main():
     parser = argparse.ArgumentParser(description="Append result row to results.tsv")
-    parser.add_argument("--task", required=True, choices=["medmnist", "flu"])
+    parser.add_argument("--task", required=True, choices=["flu"])
     parser.add_argument("--results", required=True)
     parser.add_argument("--iteration", type=int, required=True)
     parser.add_argument("--commit", default=None)

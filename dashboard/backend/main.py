@@ -58,10 +58,6 @@ def get_agents_config():
 
 EXPERIMENTS_RUNS = PROJECT_ROOT / "experiments" / "runs.jsonl"
 
-def infer_task(exp: dict) -> str:
-    return "flu"
-
-
 TASK_METRICS = {
     "flu": {
         "primary": "Test MAE", "secondary": "Val MAE",
@@ -81,8 +77,7 @@ def parse_runs_jsonl() -> list[dict]:
                 continue
             try:
                 data = json.loads(line)
-                model = data.get("model", "SimpleCNN")
-                is_flu = any(k in model.lower() for k in ["lstm", "gru", "tcn", "transformer", "diffusion"])
+                model = data.get("model", "")
                 exp = {
                     "id": str(hash(line))[-8:],
                     "path": str(EXPERIMENTS_RUNS),
@@ -92,7 +87,7 @@ def parse_runs_jsonl() -> list[dict]:
                     "final_score": data.get("test_acc") or data.get("test_mae"),
                     "status": "completed",
                     "source": "run_exp",
-                    "task": "flu" if is_flu else "medmnist",
+                    "task": "flu",
                     "details": {
                         "model": model,
                         "epochs": data.get("epochs", 20),
