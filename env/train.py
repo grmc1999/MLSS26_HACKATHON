@@ -245,7 +245,7 @@ def total_finetune_loss(model, x0, c, S_forecast, N, device, beta, gamma, lam_am
     return l_diff + lam_am * l_adj + lam_phys * l_phys + lam_event * l_event
 
 
-def apply_lora(model, r=2, alpha=4, target_modules=("cond_proj", "time_proj", "out_proj")):
+def apply_lora(model, r=4, alpha=8, target_modules=("cond_proj", "time_proj", "out_proj")):
     config = LoraConfig(r=r, lora_alpha=alpha, target_modules=list(target_modules))
     model.denoiser = get_peft_model(model.denoiser, config)
     return model
