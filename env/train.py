@@ -134,6 +134,7 @@ class ConditionalDenoiser(nn.Module):
         self.time_proj = nn.Linear(time_dim, hidden_dim)
         self.conv_in = nn.Conv1d(1, hidden_dim, kernel_size=3, padding=1)
         self.conv_mid = nn.Conv1d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
+        self.conv_mid2 = nn.Conv1d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
         self.out_proj = nn.Linear(hidden_dim, 1)
         self.dropout = nn.Dropout(dropout)
 
@@ -146,6 +147,9 @@ class ConditionalDenoiser(nn.Module):
         skip = h
         h = self.conv_mid(h)
         h = F.relu(h + skip)
+        skip2 = h
+        h = self.conv_mid2(h)
+        h = F.relu(h + skip2)
         return self.out_proj(h.transpose(1, 2))
 
 
