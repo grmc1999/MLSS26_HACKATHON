@@ -56,6 +56,8 @@ vertaxai
 torch-geometric==2.3.1
 ogb
 networkx
+falkordb  # used by scripts/build_flu_graph.py, was imported but missing here
+sentence-transformers  # node/query embeddings for the flu graph + build_flu_rag.py's FAISS index
 
 
 #others

@@ -43,10 +43,31 @@ Canonical protocol is **`autoresearch_pipeline.md`** (`.opencode/commands/autore
 
 ### Flu RAG (Vector + FalkorDB Graph)
 - **Vector (FAISS)**: `index_output_flu/` — all-MiniLM-L6-v2 embeddings from 22 papers, 384-dim IVF
-- **Graph (FalkorDB)**: Docker-backed knowledge graph, built via `scripts/build_flu_graph.py` (uses OpenRouter LLM for entity extraction)
-- **Search**: `search_flu_context_rag(query, k=5)` — returns `{"vector_hits", "graph_context", "combined_context"}`
+- **Graph (FalkorDB)**: Docker-backed knowledge graph, built via `scripts/build_flu_graph.py` using
+  the **local Qwen2.5-Coder-7B model** for entity/relationship extraction (not OpenRouter — LLM
+  calls in this project run through opencode, see `MLAgentBench/LLM.py`).
+  - **Entity dedup**: each extracted entity is embedded (`sentence-transformers/all-MiniLM-L6-v2`).
+    Embedding distance alone is *not* a reliable same-entity signal for short names (measured: "GRU"
+    vs "Gated Recurrent Unit" ~0.19 cosine similarity, while "WMT 2014 English-to-German" vs
+    "...English-to-French", different entities, ~0.83 — the ranges overlap) — so embeddings only
+    shortlist *candidates* (Euclidean distance ≤ `DEDUP_CANDIDATE_MAX_DIST`, capped at
+    `DEDUP_MAX_CANDIDATES`), and a second call to the same already-loaded local model makes the
+    actual same/different judgment per candidate.
+- **Search**: `search_flu_context_rag(query, k=5)` — returns `{"vector_hits", "graph_context", "graph_summary", "combined_context"}`
   - Vector hits: FAISS semantic search
-  - Graph context: keyword-matched Cypher (no LLM needed at query time). Matches query tokens against node names, returns 1-hop neighborhood. Degrades gracefully to vector-only if FalkorDB unavailable.
+  - Graph context: **semantic** matching — embeds the query with the same MiniLM model, compares
+    against every node's stored `embedding` property (Euclidean distance, top 5 within
+    `_FLU_GRAPH_MATCH_MAX_DIST`), then expands 1 hop. Catches synonyms/paraphrasing a literal
+    substring match would miss. No LLM call needed for this part. Falls back to the older
+    substring/keyword Cypher match (`_query_flu_graph_substring()`) for a graph built before this
+    change (no `embedding` property on its nodes yet).
+  - Graph summary: a 1-2 sentence narration of `graph_context`, via a **local Ollama** model called
+    directly (`_call_ollama()` in `agent_specialized.py`) — Ollama is free/local, not a paid external
+    API, so this doesn't reintroduce what the OpenRouter cleanup removed. Purely additive: skipped
+    (no call) if `graph_context` is empty, degrades to `""` if Ollama is unreachable. Start with
+    `scripts/start_ollama.sh`; configure via `OLLAMA_HOST`/`OLLAMA_MODEL` in `.env`.
+  - Degrades gracefully to vector-only if FalkorDB, the embedding model, or Ollama is unavailable —
+    never raises.
 - **Graph schema**: nodes `{Model, Dataset, Country, Metric, Method, Paper}`, rels `{EVALUATED_ON, ACHIEVES, USES_METHOD, CITES, COMPARED_TO}`
 
 ## 2 Available Slash Commands
