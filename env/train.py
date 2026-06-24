@@ -189,13 +189,21 @@ class DiffusionForecaster(nn.Module):
 
 
 def diffusion_loss(model, x0, c, device):
-    """Section 5.1: L_diff = E[||eps - eps_theta(x_tau,c,tau)||^2]."""
+    """L_diff = E[||eps - eps_theta||^2] + 0.05 * E[||x0 - x0_hat||^2].
+    
+    The auxiliary x0-prediction term (self-consistency) encourages the denoiser
+    to produce accurate reconstructions, not just accurate noise predictions.
+    """
     B = x0.shape[0]
     tau = torch.randint(0, model.num_diffusion_steps, (B,), device=device)
     noise = torch.randn_like(x0)
     x_tau = model.q_sample(x0, tau, noise)
     eps_hat = model.denoiser(x_tau, c, tau)
-    return F.mse_loss(eps_hat, noise)
+    l_diff = F.mse_loss(eps_hat, noise)
+    a_bar = model.alphas_cumprod[tau].view(-1, 1, 1)
+    x0_hat = (x_tau - torch.sqrt(1 - a_bar) * eps_hat) / (torch.sqrt(a_bar) + 1e-6)
+    l_x0 = F.mse_loss(x0_hat, x0)
+    return l_diff + 0.05 * l_x0
 
 
 def physical_loss(x0_hat, S_forecast, N, beta, gamma):
