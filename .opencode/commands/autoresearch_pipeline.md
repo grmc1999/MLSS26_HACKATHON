@@ -198,6 +198,47 @@ Append to results.tsv (tab-separated):
   iteration, commit, test_acc/mae, ood_f1/val_mae, val_acc, test_acc_id, memory_gb, status, description
 DO NOT commit results.tsv.
 
+**Additionally, generate a per-experiment JSON log** in `experiments/loop-{task}-{YYMMDD}-{HHMM}/iterations/` named `iter-{N}.json` with the full experiment record:
+
+```json
+{
+  "iteration": 1,
+  "task": "flu",
+  "commit": "abc1234",
+  "timestamp": "2026-06-23T21:30:00Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 0.5823,
+    "baseline": 0.5897
+  },
+  "change": {
+    "type": "architecture / loss / optimizer / hyperparameter / augmentation",
+    "file": "env/train.py",
+    "diff_summary": "Added dropout 0.2 between GRU encoder layers"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Dropout will reduce overfitting to US-specific patterns and improve cross-country generalization.",
+    "mechanism": "nn.Dropout(0.2) applied to encoder hidden states before decoding, forcing the model to learn redundant representations.",
+    "expected_delta": "-0.01 to -0.03 Test MAE",
+    "risk": "low — dropout only active during training",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 42.3,
+    "memory_gb": 1.2,
+    "params": 298881
+  },
+  "git": {
+    "commit_hash": "abc1234",
+    "commit_message": "pipeline: time_series_expert — Add dropout 0.2 to GRUSeq2Seq"
+  }
+}
+```
+
+This JSON is machine-readable and can be processed by evo-memory, aggregated across runs, or fed into the dashboard's visualization pipeline. The TSV stays as the human-readable summary.
+
 
 ### Phase 9: Adaptive RAG Refresh (every 10 iterations)
 When iteration % 10 == 0:
