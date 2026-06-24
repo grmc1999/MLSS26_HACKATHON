@@ -131,7 +131,7 @@ class ConditionalDenoiser(nn.Module):
     cond_proj/time_proj/out_proj are deliberately plain named nn.Linear layers so
     they're clean LoRA injection targets for `apply_lora`."""
 
-    def __init__(self, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, hidden_dim=64, time_dim=32, dropout=0.05):
+    def __init__(self, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS, hidden_dim=64, time_dim=32, dropout=0.15):
         super().__init__()
         self.forecast_steps = forecast_steps
         self.time_dim = time_dim
