@@ -193,10 +193,10 @@ def diffusion_loss(model, x0, c, device):
     noise = torch.randn_like(x0)
     x_tau = model.q_sample(x0, tau, noise)
     eps_hat = model.denoiser(x_tau, c, tau)
-    l_diff = F.mse_loss(eps_hat, noise)
+    l_diff = F.l1_loss(eps_hat, noise)
     a_bar = model.alphas_cumprod[tau].view(-1, 1, 1)
     x0_hat = (x_tau - torch.sqrt(1 - a_bar) * eps_hat) / (torch.sqrt(a_bar) + 1e-6)
-    l_x0 = F.mse_loss(x0_hat, x0)
+    l_x0 = F.l1_loss(x0_hat, x0)
     return l_diff + 0.15 * l_x0
 
 
