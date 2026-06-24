@@ -18,7 +18,7 @@ source .venv/bin/activate
 
 # Run a standalone experiment
 python scripts/run_medmnist.py --epochs 25   # medmnist
-python scripts/run_exp.py --epochs 50         # flu
+python scripts/run_flu_pipeline.py --epochs 50         # flu
 
 # Launch the autonomous pipeline
 python scripts/run_orchestrator.py --task medmnist --iterations 25

@@ -167,15 +167,18 @@ def parse_loop_results() -> list[dict]:
             idx_metric4 = h.get("test_acc_id", h.get("test_id_acc", 5))
             idx_status = h.get("status", 7)
             idx_desc = h.get("description", 8)
-            # If idx_metric4 points to the params column, null it out
+            # For flu: map test_mae → test_acc_id (frontend needs it for allIterations filter)
+            if "test_mae" in h and "test_acc_id" not in h and idx_metric is not None:
+                idx_metric4 = idx_metric
+            # If idx_metric4 still points to params/timestamp, null it out
             if idx_metric4 is not None and idx_metric4 < len(headers):
                 col_name = headers[idx_metric4]
-                if col_name in ("params", "memory_gb", "timestamp", "status", "commit"):
+                if col_name in ("params", "memory_gb", "timestamp", "status", "commit", "iteration"):
                     idx_metric4 = None
-            # Ensure val_acc doesn't overlap with params
+            # Ensure val_acc doesn't overlap with non-metric columns
             if idx_metric3 is not None and idx_metric3 < len(headers):
                 col_name3 = headers[idx_metric3]
-                if col_name3 in ("params", "memory_gb", "timestamp", "status", "commit"):
+                if col_name3 in ("params", "memory_gb", "timestamp", "status", "commit", "iteration"):
                     idx_metric3 = None
         else:
             idx_iter, idx_commit = 0, 1

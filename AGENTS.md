@@ -27,7 +27,7 @@ Canonical protocol is **`autoresearch_pipeline.md`** (`.opencode/commands/autore
 - `MLAgentBench/benchmarks/medmnist/env/train.py` — MedMNIST training code
 - `env/train.py` — flu training code
 - `scripts/run_medmnist.py` — MedMNIST CLI wrapper
-- `scripts/run_exp.py` — flu CLI wrapper
+- `scripts/run_flu_pipeline.py` — flu CLI wrapper
 - `scripts/run_orchestrator.py` — autonomous pipeline: 8 phases per iteration
 - `MLAgentBench/agents/orchestrator.py` — `ScientificAutoResearch` + `ExperimentManager`
 - `MLAgentBench/agents/agent_specialized.py` — agent prompts + RAG functions
