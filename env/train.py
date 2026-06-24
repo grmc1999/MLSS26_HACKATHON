@@ -229,7 +229,7 @@ def peak_event_loss(x0_hat, y):
     return F.l1_loss(pred_peak, true_peak)
 
 
-def total_finetune_loss(model, x0, c, S_forecast, N, device, beta, gamma, lam_diff=0.5, lam_am=1.0, lam_phys=0.1, lam_event=0.1):
+def total_finetune_loss(model, x0, c, S_forecast, N, device, beta, gamma, lam_am=1.0, lam_phys=0.1, lam_event=0.1):
     """Section 5.3: L = L_diff + lam_AM*L_adjoint_match + lam_phys*L_phys + lam_event*L_event."""
     B = x0.shape[0]
     tau = torch.randint(0, model.num_diffusion_steps, (B,), device=device)
@@ -242,7 +242,7 @@ def total_finetune_loss(model, x0, c, S_forecast, N, device, beta, gamma, lam_di
     l_phys = physical_loss(x0_hat, S_forecast, N, beta, gamma)
     l_event = peak_event_loss(x0_hat, x0)
 
-    return lam_diff * l_diff + lam_am * l_adj + lam_phys * l_phys + lam_event * l_event
+    return l_diff + lam_am * l_adj + lam_phys * l_phys + lam_event * l_event
 
 
 def apply_lora(model, r=4, alpha=8, target_modules=("cond_proj", "time_proj", "out_proj")):
