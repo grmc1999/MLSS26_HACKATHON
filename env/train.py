@@ -188,6 +188,7 @@ def diffusion_loss(model, x0, c, device):
     The auxiliary x0-prediction term (self-consistency) encourages the denoiser
     to produce accurate reconstructions, not just accurate noise predictions.
     """
+    c = c + torch.randn_like(c) * 0.01
     B = x0.shape[0]
     tau = torch.randint(0, model.num_diffusion_steps, (B,), device=device)
     noise = torch.randn_like(x0)
