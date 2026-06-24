@@ -133,7 +133,9 @@ class ConditionalDenoiser(nn.Module):
         self.cond_proj = nn.Linear(input_steps, hidden_dim)
         self.time_proj = nn.Linear(time_dim, hidden_dim)
         self.conv_in = nn.Conv1d(1, hidden_dim, kernel_size=3, padding=1)
+        self.norm_in = nn.LayerNorm(hidden_dim)
         self.conv_mid = nn.Conv1d(hidden_dim, hidden_dim, kernel_size=3, padding=1)
+        self.norm_mid = nn.LayerNorm(hidden_dim)
         self.out_proj = nn.Linear(hidden_dim, 1)
         self.dropout = nn.Dropout(dropout)
 
@@ -142,8 +144,10 @@ class ConditionalDenoiser(nn.Module):
         cond = self.cond_proj(c.squeeze(-1)).unsqueeze(-1)
         temb = self.time_proj(sinusoidal_embedding(tau, self.time_dim)).unsqueeze(-1)
         h = F.relu(h + cond + temb)
+        h = self.norm_in(h.transpose(1, 2)).transpose(1, 2)
         h = self.dropout(h)
         h = F.relu(self.conv_mid(h))
+        h = self.norm_mid(h.transpose(1, 2)).transpose(1, 2)
         return self.out_proj(h.transpose(1, 2))
 
 
