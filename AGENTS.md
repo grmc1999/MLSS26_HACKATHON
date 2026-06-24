@@ -10,8 +10,7 @@
 | Command | What it does |
 |---------|-------------|
 | `/autoresearch` | Simple flu iteration loop: modify → verify → keep/discard |
-| `/autoresearch_final` | Full pipeline with RAG + code jury + logging |
-| `/autoresearch_pipeline` | Full pipeline (alias for autoresearch_final) |
+| `/autoresearch_pipeline` | Full pipeline with RAG + code jury + logging + adaptive RAG refresh |
 
 ## Entry Points
 

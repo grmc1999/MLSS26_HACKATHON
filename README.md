@@ -22,8 +22,7 @@ python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10
 | Command | What it does |
 |---------|-------------|
 | `/autoresearch` | Simple modify → run → keep/discard against a single metric |
-| `/autoresearch_final` | Full multi-expert pipeline with adaptive RAG + code jury + logging |
-| `/autoresearch_pipeline` | Full multi-expert pipeline (alias for autoresearch_final) |
+| `/autoresearch_pipeline` | Full pipeline with RAG + code jury + logging + adaptive RAG refresh |
 
 ## Architecture
 
