@@ -118,17 +118,23 @@ export default function Home() {
     [experiments]
   );
 
-  const [debugInfo] = useState<string>('loading...');
   useEffect(() => {
     if (experiments.length > 0) {
       const loops = experiments.filter(e => e.source === 'auto_loop');
-      let total = 0;
-      loops.forEach(e => {
-        if (e.iterations) total += e.iterations.filter((it: any) => it.test_acc_id !== null && it.ood_f1 !== null).length;
+      console.log('[DBG] experiments', experiments.length, 'auto-loops', loops.length);
+      loops.forEach((e, i) => {
+        const its = e.iterations || [];
+        const valid = its.filter((it: any) => it.test_acc_id !== null && it.ood_f1 !== null);
+        console.log(`[DBG] loop ${i}: ${its.length} iters, ${valid.length} valid`);
+        if (its.length > 0) {
+          console.log(`[DBG]   first iter: test_acc_id=${its[0].test_acc_id} (${typeof its[0].test_acc_id}), ood_f1=${its[0].ood_f1} (${typeof its[0].ood_f1})`);
+        }
       });
-      console.log('[DBG]', {exps: experiments.length, loops: loops.length, validIters: total, allIters: allIterations.length});
+      console.log('[DBG] allIterations', allIterations.length);
+    } else {
+      console.log('[DBG] no experiments yet');
     }
-  }, [experiments, allIterations]);
+  }, [experiments, allIterations, loopExps]);
 
   return (
     <div className="space-y-8">
