@@ -311,7 +311,8 @@ def train_epoch(model, loader, optimizer, device, loss_fn=None):
     model.train()
     total_loss, n = 0.0, 0
     for x, y, S, N, _naive in loader:
-        x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
+        x, y, S = x.to(device), y.to(device), S.to(device)
+        N = torch.as_tensor(N, dtype=torch.float32, device=device)
         optimizer.zero_grad()
         if loss_fn is not None:
             loss = loss_fn(model, x, y, S, N)

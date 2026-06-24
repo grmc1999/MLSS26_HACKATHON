@@ -63,7 +63,8 @@ def evaluate_full(model, loader, device, beta=0.5, gamma=0.3, stats=None):
     all_y, all_pred, all_S, all_N = [], [], [], []
     with torch.no_grad():
         for x, y, S, N, _naive in loader:
-            x, y, S, N = x.to(device), y.to(device), S.to(device), N.to(device)
+            x, y, S = x.to(device), y.to(device), S.to(device)
+            N = torch.as_tensor(N, dtype=torch.float32, device=device)
             y_hat = _predict(model, x)
             all_y.append(y)
             all_pred.append(y_hat)
