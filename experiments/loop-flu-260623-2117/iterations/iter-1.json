@@ -1,0 +1,34 @@
+{
+  "iteration": 1,
+  "task": "flu",
+  "commit": "38891a2",
+  "timestamp": "2026-06-23T21:35:00Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 163.2545,
+    "baseline": 212.1968
+  },
+  "change": {
+    "type": "architecture/regularization",
+    "file": "env/train.py",
+    "diff_summary": "Added nn.Dropout(0.15) to ConditionalDenoiser after first ReLU"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Dropout regularizes the denoiser to prevent overfitting to US-specific flu patterns, improving cross-country generalization.",
+    "mechanism": "nn.Dropout(0.15) after first ReLU randomly drops 15% of hidden units, forcing redundant representations.",
+    "expected_delta": "-10 to -20 Test MAE",
+    "risk": "low \u2014 dropout inactive at inference",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 300,
+    "memory_gb": 0,
+    "params": 920
+  },
+  "git": {
+    "commit_hash": "38891a2",
+    "commit_message": "pipeline: time_series_expert \u2014 Add dropout 0.15 to ConditionalDenoiser"
+  }
+}

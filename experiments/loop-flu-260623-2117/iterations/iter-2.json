@@ -1,0 +1,29 @@
+{
+  "iteration": 2,
+  "task": "flu",
+  "commit": "c1bdd53",
+  "timestamp": "2026-06-23T21:35:00Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 303.3534,
+    "baseline": 212.1968
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "loss weights increased"
+  },
+  "jury_reasoning": {
+    "hypothesis": "N/A",
+    "mechanism": "N/A",
+    "expected_delta": "N/A",
+    "risk": "N/A",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {},
+  "git": {
+    "commit_hash": "c1bdd53"
+  }
+}

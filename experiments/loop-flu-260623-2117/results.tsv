@@ -1,0 +1,7 @@
+iteration	commit	test_mae	val_mae	params	memory_gb	status	description
+0	(baseline)	N/A	N/A	N/A	N/A	N/A	baseline	Initial baseline run	
+1	38891a2	163.2545	N/A	N/A	N/A	keep	Dropout 0.15 in ConditionalDenoiser
+2	c1bdd53	303.3534	N/A	N/A	N/A	discard	Increased phys/event loss weights (0.1→0.3, 0.1→0.2)
+3	226632a	171.8743	N/A	N/A	N/A	discard	Increased denoiser hidden_dim 64→96
+4	9e95d62	697.0105	N/A	N/A	N/A	discard	Added LayerNorm to denoiser conv blocks
+5	9a2d6f0	307.7577	N/A	N/A	N/A	discard	Added third conv block to denoiser

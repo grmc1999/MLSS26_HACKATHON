@@ -1,0 +1,29 @@
+{
+  "iteration": 4,
+  "task": "flu",
+  "commit": "9e95d62",
+  "timestamp": "2026-06-23T21:35:00Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 697.0105,
+    "baseline": 212.1968
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "LayerNorm added"
+  },
+  "jury_reasoning": {
+    "hypothesis": "N/A",
+    "mechanism": "N/A",
+    "expected_delta": "N/A",
+    "risk": "N/A",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {},
+  "git": {
+    "commit_hash": "9e95d62"
+  }
+}

@@ -1,0 +1,202 @@
+/mnt/castaneda_lab/GitHub/MLSS26_HACKATHON/env/train.py:319: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:838.)
+  total_loss += float(loss) * x.shape[0]
+=== Step 1: baselines on CDC (US) pretrain data ===
+  lstm: test_mae=0.6685
+  gru: test_mae=0.7383
+  tcn: test_mae=0.7066
+  transformer: test_mae=0.6483
+  seasonal_naive: test_mae=0.6807
+=== Step 2: pretrain diffusion backbone on CDC (US) data ===
+  diffusion pretrain: test_mae=26.9126
+  US SIR fit: beta=0.2086 gamma=0.1153
+=== Step 3: per-country, per-regime fine-tuning comparison ===
+  FRA SIR fit: beta=0.2374 gamma=0.0412
+  FRA n_seasons=1 frozen: test_mae=492.5084 (trainable=0)
+  FRA n_seasons=1 naive_full_finetune: test_mae=691.2722 (trainable=15169)
+  FRA n_seasons=1 lora_no_physics: test_mae=619.0405 (trainable=920)
+  FRA n_seasons=1 lora_adjoint_matched: test_mae=504.8093 (trainable=920)
+  FRA n_seasons=1 from_scratch: test_mae=2177.1213 (trainable=15169)
+  FRA n_seasons=1 from_scratch_lstm: test_mae=20.2136
+  FRA n_seasons=1 from_scratch_gru: test_mae=19.5123
+  FRA n_seasons=1 from_scratch_tcn: test_mae=21.2427
+  FRA n_seasons=1 from_scratch_transformer: test_mae=19.5432
+  FRA n_seasons=2 frozen: test_mae=533.7581 (trainable=0)
+  FRA n_seasons=2 naive_full_finetune: test_mae=236.0058 (trainable=15169)
+  FRA n_seasons=2 lora_no_physics: test_mae=588.0151 (trainable=920)
+  FRA n_seasons=2 lora_adjoint_matched: test_mae=495.6990 (trainable=920)
+  FRA n_seasons=2 from_scratch: test_mae=2789.4470 (trainable=15169)
+  FRA n_seasons=2 from_scratch_lstm: test_mae=20.8841
+  FRA n_seasons=2 from_scratch_gru: test_mae=19.2529
+  FRA n_seasons=2 from_scratch_tcn: test_mae=23.6798
+  FRA n_seasons=2 from_scratch_transformer: test_mae=19.2743
+  FRA n_seasons=3 frozen: test_mae=583.1919 (trainable=0)
+  FRA n_seasons=3 naive_full_finetune: test_mae=701.5453 (trainable=15169)
+  FRA n_seasons=3 lora_no_physics: test_mae=601.3625 (trainable=920)
+  FRA n_seasons=3 lora_adjoint_matched: test_mae=451.5603 (trainable=920)
+  FRA n_seasons=3 from_scratch: test_mae=3607.7966 (trainable=15169)
+  FRA n_seasons=3 from_scratch_lstm: test_mae=20.3097
+  FRA n_seasons=3 from_scratch_gru: test_mae=18.8882
+  FRA n_seasons=3 from_scratch_tcn: test_mae=27.5272
+  FRA n_seasons=3 from_scratch_transformer: test_mae=19.1366
+  FRA n_seasons=5 frozen: test_mae=840.9293 (trainable=0)
+  FRA n_seasons=5 naive_full_finetune: test_mae=931.5020 (trainable=15169)
+  FRA n_seasons=5 lora_no_physics: test_mae=753.6586 (trainable=920)
+  FRA n_seasons=5 lora_adjoint_matched: test_mae=614.9524 (trainable=920)
+  FRA n_seasons=5 from_scratch: test_mae=4705.5967 (trainable=15169)
+  FRA n_seasons=5 from_scratch_lstm: test_mae=19.3721
+  FRA n_seasons=5 from_scratch_gru: test_mae=18.2418
+  FRA n_seasons=5 from_scratch_tcn: test_mae=17.3403
+  FRA n_seasons=5 from_scratch_transformer: test_mae=17.5017
+  FRA n_seasons=10 frozen: test_mae=1067.7804 (trainable=0)
+  FRA n_seasons=10 naive_full_finetune: test_mae=177.5860 (trainable=15169)
+  FRA n_seasons=10 lora_no_physics: test_mae=560.3000 (trainable=920)
+  FRA n_seasons=10 lora_adjoint_matched: test_mae=298.5364 (trainable=920)
+  FRA n_seasons=10 from_scratch: test_mae=1713.6913 (trainable=15169)
+  FRA n_seasons=10 from_scratch_lstm: test_mae=19.8049
+  FRA n_seasons=10 from_scratch_gru: test_mae=18.3230
+  FRA n_seasons=10 from_scratch_tcn: test_mae=17.3723
+  FRA n_seasons=10 from_scratch_transformer: test_mae=19.0845
+  MEX SIR fit: beta=0.0369 gamma=0.0335
+  MEX n_seasons=1 frozen: test_mae=66.2076 (trainable=0)
+  MEX n_seasons=1 naive_full_finetune: test_mae=3419.4888 (trainable=15169)
+  MEX n_seasons=1 lora_no_physics: test_mae=73.9768 (trainable=920)
+  MEX n_seasons=1 lora_adjoint_matched: test_mae=295.9181 (trainable=920)
+  MEX n_seasons=1 from_scratch: test_mae=4255.1128 (trainable=15169)
+  MEX n_seasons=1 from_scratch_lstm: test_mae=25.3239
+  MEX n_seasons=1 from_scratch_gru: test_mae=21.2835
+  MEX n_seasons=1 from_scratch_tcn: test_mae=28.3493
+  MEX n_seasons=1 from_scratch_transformer: test_mae=41.6176
+  MEX n_seasons=2 frozen: test_mae=40.4766 (trainable=0)
+  MEX n_seasons=2 naive_full_finetune: test_mae=1401.4709 (trainable=15169)
+  MEX n_seasons=2 lora_no_physics: test_mae=175.3636 (trainable=920)
+  MEX n_seasons=2 lora_adjoint_matched: test_mae=11.9369 (trainable=920)
+  MEX n_seasons=2 from_scratch: test_mae=1561.3271 (trainable=15169)
+  MEX n_seasons=2 from_scratch_lstm: test_mae=27.9267
+  MEX n_seasons=2 from_scratch_gru: test_mae=25.4892
+  MEX n_seasons=2 from_scratch_tcn: test_mae=33.4760
+  MEX n_seasons=2 from_scratch_transformer: test_mae=40.0828
+  MEX n_seasons=3 frozen: test_mae=120.9500 (trainable=0)
+  MEX n_seasons=3 naive_full_finetune: test_mae=1034.1545 (trainable=15169)
+  MEX n_seasons=3 lora_no_physics: test_mae=94.6142 (trainable=920)
+  MEX n_seasons=3 lora_adjoint_matched: test_mae=91.7394 (trainable=920)
+  MEX n_seasons=3 from_scratch: test_mae=2447.9026 (trainable=15169)
+  MEX n_seasons=3 from_scratch_lstm: test_mae=15.7413
+  MEX n_seasons=3 from_scratch_gru: test_mae=4.0100
+  MEX n_seasons=3 from_scratch_tcn: test_mae=5.7847
+  MEX n_seasons=3 from_scratch_transformer: test_mae=10.4647
+  MEX n_seasons=5 frozen: test_mae=406.9790 (trainable=0)
+  MEX n_seasons=5 naive_full_finetune: test_mae=803.7380 (trainable=15169)
+  MEX n_seasons=5 lora_no_physics: test_mae=65.5325 (trainable=920)
+  MEX n_seasons=5 lora_adjoint_matched: test_mae=131.6137 (trainable=920)
+  MEX n_seasons=5 from_scratch: test_mae=570.7386 (trainable=15169)
+  MEX n_seasons=5 from_scratch_lstm: test_mae=5.6325
+  MEX n_seasons=5 from_scratch_gru: test_mae=4.9929
+  MEX n_seasons=5 from_scratch_tcn: test_mae=5.2225
+  MEX n_seasons=5 from_scratch_transformer: test_mae=8.1402
+  MEX n_seasons=10 frozen: test_mae=678.8652 (trainable=0)
+  MEX n_seasons=10 naive_full_finetune: test_mae=994.2229 (trainable=15169)
+  MEX n_seasons=10 lora_no_physics: test_mae=52.9795 (trainable=920)
+  MEX n_seasons=10 lora_adjoint_matched: test_mae=90.1331 (trainable=920)
+  MEX n_seasons=10 from_scratch: test_mae=563.0609 (trainable=15169)
+  MEX n_seasons=10 from_scratch_lstm: test_mae=5.8975
+  MEX n_seasons=10 from_scratch_gru: test_mae=3.6419
+  MEX n_seasons=10 from_scratch_tcn: test_mae=3.8946
+  MEX n_seasons=10 from_scratch_transformer: test_mae=4.4983
+  AUS SIR fit: beta=0.0010 gamma=0.0133
+  AUS n_seasons=1 frozen: test_mae=151.2031 (trainable=0)
+  AUS n_seasons=1 naive_full_finetune: test_mae=845.7040 (trainable=15169)
+  AUS n_seasons=1 lora_no_physics: test_mae=200.5755 (trainable=920)
+  AUS n_seasons=1 lora_adjoint_matched: test_mae=157.2975 (trainable=920)
+  AUS n_seasons=1 from_scratch: test_mae=90.5008 (trainable=15169)
+  AUS n_seasons=1 from_scratch_lstm: test_mae=26.0320
+  AUS n_seasons=1 from_scratch_gru: test_mae=23.2480
+  AUS n_seasons=1 from_scratch_tcn: test_mae=24.2769
+  AUS n_seasons=1 from_scratch_transformer: test_mae=25.1904
+  AUS n_seasons=2 frozen: test_mae=152.8360 (trainable=0)
+  AUS n_seasons=2 naive_full_finetune: test_mae=59.4933 (trainable=15169)
+  AUS n_seasons=2 lora_no_physics: test_mae=156.2215 (trainable=920)
+  AUS n_seasons=2 lora_adjoint_matched: test_mae=277.9992 (trainable=920)
+  AUS n_seasons=2 from_scratch: test_mae=59.9958 (trainable=15169)
+  AUS n_seasons=2 from_scratch_lstm: test_mae=23.5944
+  AUS n_seasons=2 from_scratch_gru: test_mae=22.8598
+  AUS n_seasons=2 from_scratch_tcn: test_mae=22.9009
+  AUS n_seasons=2 from_scratch_transformer: test_mae=23.8017
+  AUS n_seasons=3 frozen: test_mae=506.1743 (trainable=0)
+  AUS n_seasons=3 naive_full_finetune: test_mae=716.9447 (trainable=15169)
+  AUS n_seasons=3 lora_no_physics: test_mae=671.4822 (trainable=920)
+  AUS n_seasons=3 lora_adjoint_matched: test_mae=244.5529 (trainable=920)
+  AUS n_seasons=3 from_scratch: test_mae=372.1544 (trainable=15169)
+  AUS n_seasons=3 from_scratch_lstm: test_mae=14.2047
+  AUS n_seasons=3 from_scratch_gru: test_mae=12.7590
+  AUS n_seasons=3 from_scratch_tcn: test_mae=11.2821
+  AUS n_seasons=3 from_scratch_transformer: test_mae=9.6175
+  AUS n_seasons=5 frozen: test_mae=609.4168 (trainable=0)
+  AUS n_seasons=5 naive_full_finetune: test_mae=220.9236 (trainable=15169)
+  AUS n_seasons=5 lora_no_physics: test_mae=467.9976 (trainable=920)
+  AUS n_seasons=5 lora_adjoint_matched: test_mae=174.1344 (trainable=920)
+  AUS n_seasons=5 from_scratch: test_mae=1171.7489 (trainable=15169)
+  AUS n_seasons=5 from_scratch_lstm: test_mae=8.5077
+  AUS n_seasons=5 from_scratch_gru: test_mae=7.7437
+  AUS n_seasons=5 from_scratch_tcn: test_mae=9.7834
+  AUS n_seasons=5 from_scratch_transformer: test_mae=9.4700
+  AUS n_seasons=10 frozen: test_mae=694.5765 (trainable=0)
+  AUS n_seasons=10 naive_full_finetune: test_mae=341.6962 (trainable=15169)
+  AUS n_seasons=10 lora_no_physics: test_mae=377.6873 (trainable=920)
+  AUS n_seasons=10 lora_adjoint_matched: test_mae=143.0489 (trainable=920)
+  AUS n_seasons=10 from_scratch: test_mae=264.2117 (trainable=15169)
+  AUS n_seasons=10 from_scratch_lstm: test_mae=10.1360
+  AUS n_seasons=10 from_scratch_gru: test_mae=9.7173
+  AUS n_seasons=10 from_scratch_tcn: test_mae=7.8297
+  AUS n_seasons=10 from_scratch_transformer: test_mae=9.0016
+  ZAF SIR fit: beta=0.0010 gamma=0.0639
+  ZAF n_seasons=1 frozen: test_mae=580.4007 (trainable=0)
+  ZAF n_seasons=1 naive_full_finetune: test_mae=11.7919 (trainable=15169)
+  ZAF n_seasons=1 lora_no_physics: test_mae=380.3103 (trainable=920)
+  ZAF n_seasons=1 lora_adjoint_matched: test_mae=636.9117 (trainable=920)
+  ZAF n_seasons=1 from_scratch: test_mae=1672.9512 (trainable=15169)
+  ZAF n_seasons=1 from_scratch_lstm: test_mae=7.9004
+  ZAF n_seasons=1 from_scratch_gru: test_mae=7.7785
+  ZAF n_seasons=1 from_scratch_tcn: test_mae=7.6819
+  ZAF n_seasons=1 from_scratch_transformer: test_mae=7.7999
+  ZAF n_seasons=2 frozen: test_mae=599.4496 (trainable=0)
+  ZAF n_seasons=2 naive_full_finetune: test_mae=337.5645 (trainable=15169)
+  ZAF n_seasons=2 lora_no_physics: test_mae=609.8879 (trainable=920)
+  ZAF n_seasons=2 lora_adjoint_matched: test_mae=397.8232 (trainable=920)
+  ZAF n_seasons=2 from_scratch: test_mae=274.7319 (trainable=15169)
+  ZAF n_seasons=2 from_scratch_lstm: test_mae=7.8696
+  ZAF n_seasons=2 from_scratch_gru: test_mae=7.9338
+  ZAF n_seasons=2 from_scratch_tcn: test_mae=7.9877
+  ZAF n_seasons=2 from_scratch_transformer: test_mae=8.0142
+  ZAF n_seasons=3 frozen: test_mae=626.7079 (trainable=0)
+  ZAF n_seasons=3 naive_full_finetune: test_mae=740.6894 (trainable=15169)
+  ZAF n_seasons=3 lora_no_physics: test_mae=932.2615 (trainable=920)
+  ZAF n_seasons=3 lora_adjoint_matched: test_mae=542.4764 (trainable=920)
+  ZAF n_seasons=3 from_scratch: test_mae=698.1295 (trainable=15169)
+  ZAF n_seasons=3 from_scratch_lstm: test_mae=8.0979
+  ZAF n_seasons=3 from_scratch_gru: test_mae=8.2292
+  ZAF n_seasons=3 from_scratch_tcn: test_mae=7.9120
+  ZAF n_seasons=3 from_scratch_transformer: test_mae=8.0732
+  ZAF n_seasons=5 frozen: test_mae=498.8544 (trainable=0)
+  ZAF n_seasons=5 naive_full_finetune: test_mae=215.9253 (trainable=15169)
+  ZAF n_seasons=5 lora_no_physics: test_mae=481.3617 (trainable=920)
+  ZAF n_seasons=5 lora_adjoint_matched: test_mae=281.4405 (trainable=920)
+  ZAF n_seasons=5 from_scratch: test_mae=1001.1780 (trainable=15169)
+  ZAF n_seasons=5 from_scratch_lstm: test_mae=8.8684
+  ZAF n_seasons=5 from_scratch_gru: test_mae=8.5466
+  ZAF n_seasons=5 from_scratch_tcn: test_mae=8.7128
+  ZAF n_seasons=5 from_scratch_transformer: test_mae=8.9267
+  ZAF n_seasons=10 frozen: test_mae=805.8875 (trainable=0)
+  ZAF n_seasons=10 naive_full_finetune: test_mae=451.6455 (trainable=15169)
+  ZAF n_seasons=10 lora_no_physics: test_mae=489.4363 (trainable=920)
+  ZAF n_seasons=10 lora_adjoint_matched: test_mae=224.4844 (trainable=920)
+  ZAF n_seasons=10 from_scratch: test_mae=3549.7463 (trainable=15169)
+  ZAF n_seasons=10 from_scratch_lstm: test_mae=8.5039
+  ZAF n_seasons=10 from_scratch_gru: test_mae=8.3640
+  ZAF n_seasons=10 from_scratch_tcn: test_mae=8.7985
+  ZAF n_seasons=10 from_scratch_transformer: test_mae=9.2823
+=== Step 4: writing comparison CSV ===
+  wrote /mnt/castaneda_lab/GitHub/MLSS26_HACKATHON/experiments/flu_comparison.csv
+=== Step 5: plotting comparison ===
+  wrote /mnt/castaneda_lab/GitHub/MLSS26_HACKATHON/experiments/flu_comparison_plot.png
+Test MAE: 303.3534
