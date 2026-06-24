@@ -77,26 +77,33 @@ If Pretrained=no, skip directly to Establish Baseline.
 
 For each iteration (1 to max_iterations):
 
-### Phase 1: Research (Tavily + paper-navigator + research-ideation)
+### HARD RULES (every iteration, no exceptions)
 
-**Goal**: Understand the problem, find relevant methods from literature.
+1. **Phase 1 Research is MANDATORY every iteration** — you must run RAG and/or arxiv search to ground the change. No blind guesses.
+2. **Phase 8 JSON log must have ALL fields filled** — `jury_reasoning` with hypothesis, mechanism, expected_delta, risk. Never write `N/A`. If you don't know, research more.
+3. **Phase 4b Code Jury is MANDATORY** — syntax + forward + loss + backward. No skips.
+4. **One change per iteration** — never batch multiple changes.
+
+### Phase 1: Research (MANDATORY every iteration — RAG + arxiv)
+
+**Goal**: Understand the problem, find relevant methods from literature. **Do not skip this phase on any iteration. Every change must be grounded in literature.**
 
 **Step 1 — Problem Analysis**: Before searching literature, identify what makes this problem hard:
 - **medmnist**: domain shift between PneumoniaMNIST (training) and ChestMNIST (test). The model trains on one chest X-ray dataset and must detect unseen classes in another. Pneumonia vs consolidation look nearly identical on 28×28 grayscale.
 - **flu**: domain shift between US CDC ILINet (training) and WHO FluID (test on France, Mexico, Australia, South Africa). Different countries have different flu seasons, reporting standards, and healthcare systems. Australia is in the southern hemisphere — opposite flu season. A model that memorizes US patterns will fail globally.
 - Use this analysis to guide what kind of solution is needed (regularization? domain adaptation? seasonal features? calibration?).
 
-**Search strategy** (use in order):
+**Search strategy** (run ALL of these every iteration, in order):
 
-1. **Local RAG** (if enabled):
+1. **Local RAG** (if enabled): ALWAYS run first.
    - For medmnist: run `search_medical_literature(query, k=5, task="medmnist")`. Uses `index_output/`.
    - For flu: run `search_flu_context_rag(query, k=5)`. Uses FAISS vector search (`index_output_flu/`) + FalkorDB knowledge graph for relational queries. Fastest — check here first.
 
-2. **Tavily web search** (tavily-search skill): for queries that need broader coverage or recent (post-index) methods. Run `tvly search <query> --depth=basic --max-results=5 --include-answer` to get LLM-optimized results with relevance scores. Use task-specific keywords for medmnist (OOD detection, chest X-ray, domain shift) or flu (ILI forecasting, cross-country generalization, time series domain adaptation).
+2. **Tavily web search** (tavily-search skill): ALWAYS run. Use query specific to the current iteration's hypothesis (not a generic repeat from iter 1). `tvly search <query> --depth=basic --max-results=5 --include-answer`. Use task-specific keywords for medmnist (OOD detection, chest X-ray, domain shift) or flu (ILI forecasting, cross-country generalization, time series domain adaptation).
 
-3. **paper-navigator** (EvoSkill): for rigorous academic paper discovery with rubric-based relevance scoring. Use `python3 skills/paper-navigator/scripts/scholar_search.py` for keyword search, `citation_traverse.py` for following citation chains, or `snippet_search.py` for specific technique lookups. Requires Semantic Scholar API (S2_API_KEY). Prefer this over generic web search for academic methods.
+3. **paper-navigator** (EvoSkill): ALWAYS run for at least one source. Use `python3 skills/paper-navigator/scripts/scholar_search.py <technique>` to find papers with rubric-based relevance scores. If S2_API_KEY is available, also use `citation_traverse.py` for citation chains.
 
-4. **research-ideation** (EvoSkill): for generating grounded research ideas when literature search alone isn't yielding clear directions. Loads prior ideation memory (evo-memory) to avoid repeating dead ends. Run the multi-track ideation pipeline: generate ideas across 3 personas (Innovator/Pragmatist/Critic), refine with 5 evolution strategies, rank via ELO tournament.
+4. **research-ideation** (EvoSkill): run if literature search alone didn't yield a clear direction. Loads prior ideation memory (evo-memory) to avoid repeating dead ends. Run the multi-track ideation pipeline: generate ideas across 3 personas (Innovator/Pragmatist/Critic), refine with 5 evolution strategies, rank via ELO tournament.
 
 **Expert synthesis**:
 - Load `experiment-craft` skill for diagnosing what technique families have been tried and what's left unexplored
@@ -198,7 +205,7 @@ Append to results.tsv (tab-separated):
   iteration, commit, test_acc/mae, ood_f1/val_mae, val_acc, test_acc_id, memory_gb, status, description
 DO NOT commit results.tsv.
 
-**Additionally, generate a per-experiment JSON log** in `experiments/loop-{task}-{YYMMDD}-{HHMM}/iterations/` named `iter-{N}.json` with the full experiment record:
+**MANDATORY: Generate a per-experiment JSON log** in `experiments/loop-{task}-{YYMMDD}-{HHMM}/iterations/` named `iter-{N}.json` with the full experiment record. ALL fields must be filled — never write `N/A` or empty strings in `jury_reasoning`, `change`, or `metric`. If you lack the information to fill a field, you did not do enough research in Phase 1 — go back and research.
 
 ```json
 {
