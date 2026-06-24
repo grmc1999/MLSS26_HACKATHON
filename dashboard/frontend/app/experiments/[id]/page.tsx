@@ -118,8 +118,8 @@ export default function ExperimentDetailPage({ params }: { params: Promise<{ id:
               <Legend />
               <Line type="monotone" dataKey="test_mae" stroke="#f59e0b" strokeWidth={2.5}
                     dot={(props: any) => {
-                      const { cx, cy, payload } = props;
-                      return <circle cx={cx} cy={cy} r={6} fill={STATUS_COLORS[payload.status] || '#6b7280'} stroke="white" strokeWidth={1.5} />;
+                      const { cx, cy, payload, key } = props;
+                      return <circle key={key} cx={cx} cy={cy} r={6} fill={STATUS_COLORS[payload.status] || '#6b7280'} stroke="white" strokeWidth={1.5} />;
                     }}
                     name="Test MAE" connectNulls />
             </LineChart>

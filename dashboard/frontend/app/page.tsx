@@ -107,9 +107,9 @@ export default function Home() {
                            formatter={(value: number) => [value.toFixed(2), 'Test MAE']} />
                   <Line type="monotone" dataKey="test_mae" stroke="#f59e0b" strokeWidth={2.5}
                         dot={(props: any) => {
-                          const { cx, cy, payload } = props;
+                          const { cx, cy, payload, key } = props;
                           const color = statusColors[payload.status] || '#6b7280';
-                          return <circle cx={cx} cy={cy} r={6} fill={color} stroke="white" strokeWidth={1.5} />;
+                          return <circle key={key} cx={cx} cy={cy} r={6} fill={color} stroke="white" strokeWidth={1.5} />;
                         }}
                         name="Test MAE" connectNulls />
                 </LineChart>
