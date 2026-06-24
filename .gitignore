@@ -266,3 +266,6 @@ dashboard/frontend/node_modules/
 data_cache/
 index_output/tiles/
 index_output/embeddings/
+.agents/
+tavily_api
+_patch_memory.py
