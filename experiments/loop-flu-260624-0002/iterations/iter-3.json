@@ -1,0 +1,34 @@
+{
+  "iteration": 3,
+  "task": "flu",
+  "commit": "fbf2e7aafec892d7684e3c1cfe116b27f4402bbd",
+  "timestamp": "2026-06-24T04:13:43Z",
+  "status": "keep",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.7865,
+    "baseline": 18.8732
+  },
+  "change": {
+    "type": "hyperparameter",
+    "file": "env/train.py",
+    "diff_summary": "Increased num_diffusion_steps from 30 to 50"
+  },
+  "jury_reasoning": {
+    "hypothesis": "More diffusion steps provide finer-grained noise schedule, reducing discretization error and improving denoiser training.",
+    "mechanism": "Changed default num_diffusion_steps from 30 to 50 in DiffusionForecaster.__init__. Affects all model creation paths (pretrain, from_scratch, and deep-copied variants).",
+    "expected_delta": "expect Test MAE decrease by 0.3-0.6",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 105.8,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "fbf2e7aafec892d7684e3c1cfe116b27f4402bbd",
+    "commit_message": "pipeline: time_series_expert \u2014 Increase diffusion steps 30\u219250"
+  }
+}

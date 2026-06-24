@@ -1,0 +1,34 @@
+{
+  "iteration": 7,
+  "task": "flu",
+  "commit": "52375f4274b8c1a07056adc06f921eb0ad6aade7",
+  "timestamp": "2026-06-24T04:24:14Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.9055,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "loss",
+    "file": "env/train.py",
+    "diff_summary": "Increased SIR physics loss weight 0.1\u21920.5"
+  },
+  "jury_reasoning": {
+    "hypothesis": "SIR dynamics are universal across countries; stronger physics constraint improves cross-country generalization.",
+    "mechanism": "Changed lam_phys default from 0.1 to 0.5 in total_finetune_loss.",
+    "expected_delta": "expect Test MAE decrease by 0.3-0.7",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 103.1,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "52375f4274b8c1a07056adc06f921eb0ad6aade7",
+    "commit_message": "pipeline: time_series_expert \u2014 Increase SIR physics loss weight 0.1\u21920.5"
+  }
+}

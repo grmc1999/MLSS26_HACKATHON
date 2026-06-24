@@ -1,0 +1,34 @@
+{
+  "iteration": 10,
+  "task": "flu",
+  "commit": "e7eca05a8e15dfa2dcb73ee445a2322d53b14dde",
+  "timestamp": "2026-06-24T04:32:05Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 18.3591,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Extra conv layer in denoiser (15K\u219227K params)"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Deeper denoiser captures more complex temporal patterns.",
+    "mechanism": "Added conv_mid2 (Conv1d 64\u219264, k=3) in ConditionalDenoiser.",
+    "expected_delta": "expect Test MAE decrease by 0.3-0.8",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 107.9,
+    "memory_gb": 0.88,
+    "params": 27521
+  },
+  "git": {
+    "commit_hash": "e7eca05a8e15dfa2dcb73ee445a2322d53b14dde",
+    "commit_message": "pipeline: time_series_expert \u2014 Extra conv layer in denoiser"
+  }
+}

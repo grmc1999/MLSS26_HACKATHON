@@ -1,0 +1,34 @@
+{
+  "iteration": 11,
+  "task": "flu",
+  "commit": "7cfddca13b40984966dc72607cfab8fbda398d38",
+  "timestamp": "2026-06-24T04:34:28Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 18.441,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "hyperparameter",
+    "file": "env/train.py",
+    "diff_summary": "Increased LoRA rank r=4\u21928, alpha=8\u219216"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Higher LoRA rank provides more adapter capacity for country-specific adaptation.",
+    "mechanism": "Changed apply_lora defaults from r=4, alpha=8 to r=8, alpha=16.",
+    "expected_delta": "expect Test MAE decrease by 0.2-0.4",
+    "risk": "medium",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 103.8,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "7cfddca13b40984966dc72607cfab8fbda398d38",
+    "commit_message": "pipeline: time_series_expert \u2014 Increase LoRA rank r=4\u21928"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "iteration": 3,
+  "task": "flu",
+  "query": "number of diffusion steps impact forecast quality DDPM sampling time series",
+  "k": 5,
+  "timestamp": "2026-06-24T04:11:08Z",
+  "results": [
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.47449791431427,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.4479627013206482,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4429599940776825,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4306759834289551,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.4209913909435272,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) seasonality forecast -[USES_METHOD]-> (Model) FC network\n(Model) seasonality forecast -[USES_METHOD]-> (Model) Fourier series\n(Method) Forecast Branch -[USES_METHOD]-> (Model) Doubly Residual Stacking\n(Model) Interpretable DL for Time Series -[CITES]-> (Paper) arXiv:1905.10437v4 [cs.LG]\n(Model) Interpretable DL for Time Series -[COMPARED_TO]-> (Method) seasonality-trend-level approach\n(Model) Time-series Latent ODE -[ACHIEVES]-> (Metric) predictive root-mean-squared error (RMSE)\n(Model) ",
+      "metadata": {}
+    }
+  ]
+}

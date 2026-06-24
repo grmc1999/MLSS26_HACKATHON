@@ -1,0 +1,51 @@
+{
+  "iteration": 2,
+  "task": "flu",
+  "query": "SiLU Swish activation function denoising diffusion probabilistic model time series forecasting",
+  "k": 5,
+  "timestamp": "2026-06-24T04:08:31Z",
+  "results": [
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.5124695897102356,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2107.03502",
+      "source": "local_rag_vector",
+      "score": 0.49128320813179016,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.4776768684387207,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "1905.10437",
+      "source": "local_rag_vector",
+      "score": 0.46482419967651367,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "2101.12072",
+      "source": "local_rag_vector",
+      "score": 0.4591779410839081,
+      "snippet": "",
+      "metadata": {}
+    },
+    {
+      "title": "knowledge_graph_context",
+      "source": "falkordb",
+      "score": 1.0,
+      "snippet": "(Model) seasonality forecast -[USES_METHOD]-> (Model) FC network\n(Model) seasonality forecast -[USES_METHOD]-> (Model) Fourier series\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Adjoint sensitivity method\n(Model) Continuous-time series models -[USES_METHOD]-> (Method) Reverse-mode automatic differentiation\n(Model) Continuous-time series models -[COMPARED_TO]-> (Model) Recurrent neural networks\n(Method) Gaussian process regression -[CITES]-> (Paper) Raissi et. al.\n(Method) Gau",
+      "metadata": {}
+    }
+  ]
+}

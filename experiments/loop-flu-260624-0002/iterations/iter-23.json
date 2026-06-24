@@ -1,0 +1,34 @@
+{
+  "iteration": 23,
+  "task": "flu",
+  "commit": "2e17c5547e7e15b33c16b01e9e8e2235e758f6f6",
+  "timestamp": "2026-06-24T05:05:46Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 16.693,
+    "baseline": 16.5714
+  },
+  "change": {
+    "type": "hyperparameter",
+    "file": "env/train.py",
+    "diff_summary": "Reduced LoRA rank r=4\u21922"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Lower LoRA rank reduces overfitting during finetuning on small datasets.",
+    "mechanism": "Changed apply_lora defaults from r=4, alpha=8 to r=2, alpha=4.",
+    "expected_delta": "expect Test MAE decrease by 0.1-0.3",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 105.0,
+    "memory_gb": 0.88,
+    "params": 17217
+  },
+  "git": {
+    "commit_hash": "2e17c5547e7e15b33c16b01e9e8e2235e758f6f6",
+    "commit_message": "pipeline: time_series_expert \u2014 Reduce LoRA rank r=4\u21922"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "iteration": 1,
+  "task": "flu",
+  "commit": "166eff5194c236b7493938822d697280cbbc5222",
+  "timestamp": "2026-06-24T04:08:11Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 20.9875,
+    "baseline": 18.8732
+  },
+  "change": {
+    "type": "architecture",
+    "file": "env/train.py",
+    "diff_summary": "Cosine beta schedule instead of linear (Improved DDPM)"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Cosine noise schedule distributes noise more evenly across timesteps, improving diffusion training signal quality.",
+    "mechanism": "Replaced linear_beta_schedule with cosine_beta_schedule (s=0.008). Cosine schedule has higher signal-to-noise ratio at early timesteps, allowing finer-grained denoising.",
+    "expected_delta": "expect Test MAE to decrease by 0.5-1.0",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 99.9,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "166eff5194c236b7493938822d697280cbbc5222",
+    "commit_message": "pipeline: time_series_expert \u2014 Cosine beta schedule (Improved DDPM)"
+  }
+}

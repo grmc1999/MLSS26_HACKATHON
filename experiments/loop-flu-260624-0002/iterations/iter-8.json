@@ -1,0 +1,34 @@
+{
+  "iteration": 8,
+  "task": "flu",
+  "commit": "f2f06c0f87a1c7473525bd7a2b54ddd008c13534",
+  "timestamp": "2026-06-24T04:26:45Z",
+  "status": "discard",
+  "metric": {
+    "name": "Test MAE",
+    "direction": "lower_is_better",
+    "value": 17.9296,
+    "baseline": 17.7865
+  },
+  "change": {
+    "type": "augmentation",
+    "file": "env/train.py",
+    "diff_summary": "Added amplitude scaling augmentation during pretraining"
+  },
+  "jury_reasoning": {
+    "hypothesis": "Amplitude scaling makes model robust to cross-country amplitude variations.",
+    "mechanism": "Random scale [0.8,1.2] applied to c and x0 in diffusion_loss.",
+    "expected_delta": "expect Test MAE decrease by 0.2-0.5",
+    "risk": "low",
+    "baseline_compared_to": "env.baseline/"
+  },
+  "resources": {
+    "elapsed_s": 107.1,
+    "memory_gb": 0.88,
+    "params": 15169
+  },
+  "git": {
+    "commit_hash": "f2f06c0f87a1c7473525bd7a2b54ddd008c13534",
+    "commit_message": "pipeline: time_series_expert \u2014 Amplitude scaling augmentation during pretrain"
+  }
+}
