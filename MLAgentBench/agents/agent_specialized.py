@@ -142,40 +142,66 @@ def search_medical_literature(query: str, k: int = 5, task: str = "medmnist") ->
 # and answers relational questions (model x country x method x metric) that
 # the vector index alone can't.
 #
-# Uses the official `falkordb` client directly with keyword-matched Cypher --
-# no LLM needed for retrieval. See AGENTS.md for the full pipeline.
+# Uses the official `falkordb` client directly. Matching is semantic
+# (embeddings, same all-MiniLM-L6-v2 model used to embed nodes in
+# scripts/build_flu_graph.py), not literal substring -- a query and a paper
+# rarely use the same exact wording for the same concept ("GRU" vs "Gated
+# Recurrent Unit"). Falls back to substring matching against a graph built
+# before this change (no `embedding` property on its nodes yet).
+#
+# graph_summary calls Ollama directly (NOT via MLAgentBench.LLM, which is a
+# stub that always raises -- this project routes LLM-dependent agent
+# reasoning through opencode, not direct Python API calls). Ollama is a free
+# local service, not a paid external API, so this doesn't reintroduce what
+# the OpenRouter cleanup removed; it's purely additive and degrades to "" if
+# Ollama is unreachable. See AGENTS.md for the full pipeline.
 # ---------------------------------------------------------------------------
 
 _flu_graph = None
 _flu_graph_unavailable = False
+_flu_embed_model = None
 
 _FLU_GRAPH_STOPWORDS = {
     "the", "a", "an", "of", "to", "for", "and", "or", "in", "on", "with", "is", "are",
     "was", "were", "how", "what", "did", "do", "does", "improve", "forecasting", "results",
     "this", "that", "from", "by", "as", "at", "be", "it", "its",
 }
+# Euclidean, not cosine -- mathematically equivalent ranking for L2-normalized
+# vectors (euclidean^2 = 2 - 2*cosine; see scripts/build_flu_graph.py for the
+# same equivalence used in dedup). 1.183 is the Euclidean distance equivalent
+# of cosine similarity >= 0.3. Holds only as long as embeddings stay
+# normalized (normalize_embeddings=True everywhere they're computed).
+_FLU_GRAPH_MATCH_MAX_DIST = 1.183
+_FLU_GRAPH_MATCH_TOP_K = 5
 
 
 def _ensure_flu_graph_loaded():
-    global _flu_graph, _flu_graph_unavailable
+    """Lazily connect to the FalkorDB graph and load the embedding model used
+    for semantic matching. Sets _flu_graph_unavailable instead of raising if
+    either isn't available, so callers degrade to vector-only."""
+    global _flu_graph, _flu_graph_unavailable, _flu_embed_model
     if _flu_graph is not None or _flu_graph_unavailable:
         return
     try:
         from falkordb import FalkorDB
+        from sentence_transformers import SentenceTransformer
 
         db = FalkorDB(
             host=os.getenv("FALKORDB_HOST", "localhost"),
             port=int(os.getenv("FALKORDB_PORT", "6379")),
         )
         graph = db.select_graph(os.getenv("FALKORDB_GRAPH_NAME", "flu_literature"))
-        graph.query("RETURN 1")
+        graph.query("RETURN 1")  # connectivity check
+        _flu_embed_model = SentenceTransformer("all-MiniLM-L6-v2")
         _flu_graph = graph
     except Exception as e:
         print(f"[WARN] Flu literature graph unavailable, falling back to vector-only search: {e}")
         _flu_graph_unavailable = True
 
 
-def _query_flu_graph(query: str, limit: int = 10) -> str:
+def _query_flu_graph_substring(query: str, limit: int) -> str:
+    """Fallback for a graph built before semantic matching was added (no
+    `embedding` property on its nodes yet)."""
     tokens = [
         t for t in re.findall(r"[a-zA-Z0-9\-]+", query.lower())
         if len(t) > 2 and t not in _FLU_GRAPH_STOPWORDS
@@ -189,8 +215,12 @@ def _query_flu_graph(query: str, limit: int = 10) -> str:
         "type(r) AS rel, m.name AS related, labels(m)[0] AS related_type LIMIT $limit",
         {"tokens": tokens, "limit": limit},
     )
+    return _format_flu_graph_rows(result.result_set)
+
+
+def _format_flu_graph_rows(rows) -> str:
     lines = []
-    for entity, etype, rel, related, rtype in result.result_set:
+    for entity, etype, rel, related, rtype in rows:
         if rel and related:
             lines.append(f"({etype}) {entity} -[{rel}]-> ({rtype}) {related}")
         else:
@@ -198,7 +228,86 @@ def _query_flu_graph(query: str, limit: int = 10) -> str:
     return "\n".join(lines)
 
 
+def _query_flu_graph(query: str, limit: int = 10) -> str:
+    all_nodes = _flu_graph.query("MATCH (n) WHERE n.embedding IS NOT NULL RETURN n.name, n.embedding").result_set
+    if not all_nodes:
+        # Graph predates embeddings (built before this change) -- degrade to
+        # the old literal matching instead of returning nothing.
+        return _query_flu_graph_substring(query, limit)
+
+    query_embedding = _flu_embed_model.encode(query, normalize_embeddings=True)
+    scored = [
+        (name, float(np.linalg.norm(query_embedding - np.array(emb))))
+        for name, emb in all_nodes
+    ]
+    scored.sort(key=lambda x: x[1])  # ascending -- smaller distance = more similar
+    matches = [name for name, dist in scored[:_FLU_GRAPH_MATCH_TOP_K] if dist < _FLU_GRAPH_MATCH_MAX_DIST]
+    if not matches:
+        return ""
+
+    result = _flu_graph.query(
+        "MATCH (n) WHERE n.name IN $names "
+        "OPTIONAL MATCH (n)-[r]-(m) "
+        "RETURN DISTINCT n.name AS entity, labels(n)[0] AS entity_type, "
+        "type(r) AS rel, m.name AS related, labels(m)[0] AS related_type LIMIT $limit",
+        {"names": matches, "limit": limit},
+    )
+    return _format_flu_graph_rows(result.result_set)
+
+
+def _call_ollama(prompt: str, max_tokens: int = 150) -> str:
+    """Talk to a local Ollama instance directly, bypassing MLAgentBench.LLM
+    (which is a stub -- all LLM-dependent agent reasoning in this project
+    runs through opencode, not direct Python API calls). Ollama is a free
+    local service, not a paid external API."""
+    import openai as openai_module
+
+    client = openai_module.OpenAI(
+        base_url=os.getenv("OLLAMA_HOST", "http://localhost:11434") + "/v1",
+        api_key="ollama",  # ignored by Ollama, the SDK just requires a non-empty string
+        timeout=120,
+    )
+    response = client.chat.completions.create(
+        model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+    )
+    return response.choices[0].message.content or ""
+
+
+_FLU_GRAPH_SUMMARY_PROMPT = """Summarize the following knowledge graph relationships in 1-2 \
+concise sentences, focused on what's relevant to the question below. Only state what's in the \
+relationships -- do not add facts that aren't there.
+
+Question: {query}
+
+Relationships:
+{graph_context}
+
+Summary:"""
+
+
+def _synthesize_graph_context(query: str, graph_context: str) -> str:
+    """Narrate the raw graph_context triples into a short, readable summary
+    via a free local Ollama model. Returns "" if graph_context is empty (no
+    LLM call) or if Ollama is unreachable -- never raises. Purely additive:
+    the raw `graph_context` triples are unaffected if synthesis isn't
+    available."""
+    if not graph_context:
+        return ""
+    try:
+        prompt = _FLU_GRAPH_SUMMARY_PROMPT.format(query=query, graph_context=graph_context)
+        return _call_ollama(prompt, max_tokens=150).strip()
+    except Exception as e:
+        print(f"[WARN] Flu graph context synthesis unavailable: {e}")
+        return ""
+
+
 def search_flu_context_rag(query: str, k: int = 5) -> dict:
+    """Hybrid retrieval for the flu literature: vector hits (FAISS, same as
+    search_medical_literature) plus relational context from the FalkorDB
+    knowledge graph. Degrades to vector-only if FalkorDB is unreachable --
+    never raises, so it's safe to call from an unattended research loop."""
     vector_hits = search_medical_literature(query, k=k, task="flu")
     _ensure_flu_graph_loaded()
     graph_context = ""
@@ -207,6 +316,9 @@ def search_flu_context_rag(query: str, k: int = 5) -> dict:
             graph_context = _query_flu_graph(query)
         except Exception as e:
             graph_context = f"(graph query failed: {e})"
+
+    graph_summary = _synthesize_graph_context(query, graph_context)
+
     vector_block = "\n".join(
         f"- {r.get('title', r.get('file', '?'))} (score: {r.get('score', 0):.3f})"
         for r in vector_hits if "error" not in r
@@ -216,6 +328,7 @@ def search_flu_context_rag(query: str, k: int = 5) -> dict:
     return {
         "vector_hits": vector_hits,
         "graph_context": graph_context,
+        "graph_summary": graph_summary,
         "combined_context": combined_context,
     }
 
