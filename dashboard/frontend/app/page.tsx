@@ -90,22 +90,27 @@ export default function Home() {
   }, [loopExps]);
 
   const bestValAcc = useMemo(() =>
-    Math.max(...allIterations.map(d => d.val_acc), 0),
-    [allIterations]
+    task === 'flu'
+      ? Math.min(...allIterations.map(d => d.ood_f1 || 999), 999)
+      : Math.max(...allIterations.map(d => d.val_acc), 0),
+    [allIterations, task]
   );
 
   const bestTestAcc = useMemo(() =>
-    Math.max(...allIterations.map(d => d.test_acc_id), 0),
-    [allIterations]
+    task === 'flu'
+      ? Math.min(...allIterations.map(d => d.test_acc_id || 999), 999)
+      : Math.max(...allIterations.map(d => d.test_acc_id), 0),
+    [allIterations, task]
   );
 
   const bestOODF1 = useMemo(() =>
-    Math.max(...allIterations.map(d => d.ood_f1), 0),
-    [allIterations]
+    task === 'flu'
+      ? Math.min(...allIterations.map(d => d.ood_f1 || 999), 999)
+      : Math.max(...allIterations.map(d => d.ood_f1), 0),
+    [allIterations, task]
   );
 
   const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc_id : 0;
-  const latestOODF1 = allIterations.length > 0 ? allIterations[allIterations.length - 1].ood_f1 : 0;
   const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc_id : 0;
 
   const recentRuns = useMemo(() =>
@@ -133,15 +138,32 @@ export default function Home() {
         <StatCard label="Total Experiments" value={status?.total_experiments ?? 0}
                   sub={`${loopExps.length} auto loops`} />
         <StatCard label="Agents" value={status?.total_agents ?? 0} />
-        <StatCard label={`Best ${tc.secondary}`} value={bestTestAcc.toFixed(4)}
-                  color="#10b981" sub={task === "medmnist" ? "ChestMNIST Normal+Pneumonia" : "In-distribution"} />
-        <StatCard label={`Best ${tc.primary}`} value={bestOODF1.toFixed(4)}
-                  color={tc.color} sub={task === "medmnist" ? "Consolidation detection" : "Forecast error"} />
-        <StatCard label={`Best ${tc.tertiary}`} value={bestValAcc > 0 ? bestValAcc.toFixed(4) : 'N/A'}
-                  color="#06b6d4" sub={task === "medmnist" ? "PneumoniaMNIST validation" : "Validation set"} />
+        {task === 'flu' ? (
+          <>
+            <StatCard label="Best Test MAE" value={bestTestAcc.toFixed(4)}
+                      color="#10b981" sub="Forecast error" />
+            <StatCard label="Best Val MAE" value={bestOODF1.toFixed(4)}
+                      color="#f59e0b" sub="Validation set" />
+            <StatCard label="Best Params" value={'N/A'}
+                      color="#06b6d4" sub="Model size" />
+          </>
+        ) : (
+          <>
+            <StatCard label={`Best ${tc.secondary}`} value={bestTestAcc.toFixed(4)}
+                      color="#10b981" sub="ChestMNIST Normal+Pneumonia" />
+            <StatCard label={`Best ${tc.primary}`} value={bestOODF1.toFixed(4)}
+                      color={tc.color} sub="Consolidation detection" />
+            <StatCard label={`Best ${tc.tertiary}`} value={bestValAcc > 0 ? bestValAcc.toFixed(4) : 'N/A'}
+                      color="#06b6d4" sub="PneumoniaMNIST validation" />
+          </>
+        )}
         <StatCard label="Improvement" value={
-          firstTestAcc > 0 ? `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%` : 'N/A'
-        } color="#f59e0b" sub="ID test acc: first → latest" />
+          firstTestAcc > 0
+            ? task === 'flu'
+              ? `${((-latestTestAcc + firstTestAcc) / firstTestAcc * 100).toFixed(0)}%`
+              : `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%`
+            : 'N/A'
+        } color="#f59e0b" sub={task === 'flu' ? 'Test MAE: first → latest' : 'ID test acc: first → latest'} />
       </div>
 
       {allIterations.length > 1 && (
@@ -151,15 +173,26 @@ export default function Home() {
             <LineChart data={allIterations} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
-              <YAxis stroke="#94a3b8" domain={[0, 1]} />
+              <YAxis stroke="#94a3b8" domain={task === 'flu' ? undefined : [0, 1]} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }} />
               <Legend />
-              <Line type="monotone" dataKey="val_acc" stroke="#06b6d4" strokeWidth={2}
-                    dot={{ r: 5 }} name="Val Acc" connectNulls />
-              <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
-                    dot={{ r: 5 }} name="ID Test Acc" connectNulls />
-              <Line type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
-                    dot={{ r: 5 }} name="OOD F1" connectNulls />
+              {task === 'flu' ? (
+                <>
+                  <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
+                        dot={{ r: 5 }} name="Test MAE" connectNulls />
+                  <Line type="monotone" dataKey="ood_f1" stroke="#f59e0b" strokeWidth={2}
+                        dot={{ r: 5 }} name="Val MAE" connectNulls />
+                </>
+              ) : (
+                <>
+                  <Line type="monotone" dataKey="val_acc" stroke="#06b6d4" strokeWidth={2}
+                        dot={{ r: 5 }} name="Val Acc" connectNulls />
+                  <Line type="monotone" dataKey="test_acc_id" stroke="#10b981" strokeWidth={2.5}
+                        dot={{ r: 5 }} name="ID Test Acc" connectNulls />
+                  <Line type="monotone" dataKey="ood_f1" stroke="#8b5cf6" strokeWidth={2.5}
+                        dot={{ r: 5 }} name="OOD F1" connectNulls />
+                </>
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
