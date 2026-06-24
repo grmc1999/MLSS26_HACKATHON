@@ -1,7 +1,7 @@
 ---
 name: autoresearch_final
 description: "Multi-expert pipeline: deterministic scripts for RAG / code jury / logging — research → plan → code → jury → commit → run → decide → log"
-argument-hint: "[Goal: <text>] [Task: medmnist|flu] [Metric: ...] [Iterations: N] [RAG: yes|no] [Pretrained: yes|no] [--evals]"
+argument-hint: "[Goal: <text>] [Iterations: N] [RAG: yes|no] [--evals]"
 ---
 
 EXECUTE IMMEDIATELY.
@@ -10,70 +10,56 @@ EXECUTE IMMEDIATELY.
 
 Extract from $ARGUMENTS:
 - `Goal:` — what to improve
-- `Task:` — `medmnist` (default) or `flu`
-- `Metric:` — task-dependent (see below)
 - `Iterations:` or `--iterations` — default 5. "unlimited" for unbounded.
 - `RAG:` — "yes" or "no" (default: yes)
-- `Pretrained:` — "yes" to search and finetune pretrained models, "no" to train from scratch (default: no)
-- `--evals` — enable mid-loop checkpoints
-- `--evals-interval N` — checkpoint frequency override
 
-### Task Configurations
+### Task Configuration
 
-| Setting | medmnist | flu |
-|---------|----------|-----|
-| `ENV_DIR` | `MLAgentBench/benchmarks/medmnist/env/` | `env/` |
-| `TRAIN_PY` | `{ENV_DIR}/train.py` | `{ENV_DIR}/train.py` |
-| `RUNNER` | `scripts/run_medmnist.py` | `scripts/run_flu_pipeline.py` |
-| `METRIC` | ID Test Acc (default) or OOD F1 | Test MAE (default) |
-| `METRIC_CMD` | `grep "Test ID Acc" run.log \| awk '{print $NF}'` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
-| `DIRECTION` | higher_is_better | lower_is_better |
-| `VERIFY_CMD` | `python scripts/run_medmnist.py` | `python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10` |
-| `EXPERT` | medical_expert (chest X-ray) | time_series_expert (flu/ILI) |
-| `INPUT_SHAPE` | `(4, 1, 28, 28)` → `(4, 3)` | `(4, 5, 1)` → `(4, 10, 1)` |
-| `LOG_COLS` | test_acc, ood_f1, val_acc, test_acc_id | test_mae, val_mae, params |
-| `RAG_INDEX` | `index_output/` (28 papers, Qwen VL, from `literature/` PDFs) | `index_output_flu/` (22 papers, MiniLM, from `literature_flu_md/` markdown files) |
+| Setting | Value |
+|---------|-------|
+| `ENV_DIR` | `env/` |
+| `TRAIN_PY` | `env/train.py` |
+| `RUNNER` | `scripts/run_flu_pipeline.py` |
+| `METRIC` | Test MAE |
+| `METRIC_CMD` | `grep "Test MAE" run.log \| awk '{print $NF}'` |
+| `DIRECTION` | lower_is_better |
+| `VERIFY_CMD` | `python scripts/run_flu_pipeline.py --pretrain-epochs 30 --finetune-epochs 10` |
+| `EXPERT` | time_series_expert (flu/ILI) |
+| `INPUT_SHAPE` | `(4, 5, 1)` → `(4, 10, 1)` |
+| `LOG_COLS` | test_mae, val_mae, params |
+| `RAG_INDEX` | `index_output_flu/` (22 papers, MiniLM, from `literature_flu_md/` markdown files) |
 
 ## Setup (if required context missing)
 
-If Goal or Metric missing → use question (single batched call):
-  Q1 (Task): "Which task?" — medmnist (chest X-ray OOD) or flu (ILI forecasting)
-  Q2 (Goal): "What do you want to improve?" — depends on task
-  Q3 (Iterations): "Iterations?" — default 5
-  Q4 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
-  Q5 (Pretrained): "Start from scratch or finetune a pretrained model?" — Scratch (default) or Pretrained
+If Goal or Metric missing → use question tool:
+  Q1 (Goal): "What do you want to improve?" — depends on task
+  Q2 (Iterations): "Iterations?" — default 5
+  Q3 (RAG): "Use RAG literature search to guide experiments?" — Yes or No
 
 ## Precondition Checks
 
 1. Verify git repo exists
 2. Check clean working tree — warn if dirty
-3. Verify `{ENV_DIR}/train.py` exists
-4. Verify `{RUNNER}` exists
-
-## Pretrained Model Search (Phase 0) — only if `Pretrained: yes`
-
-For **medmnist**: search HuggingFace / torchvision for DenseNet, ResNet, EfficientNet adapted for 28×28 grayscale.
-For **flu**: no standard pretrained models — skip to baseline.
-
-If Pretrained=no, skip directly to Establish Baseline.
+3. Verify `env/train.py` exists
+4. Verify `scripts/run_flu_pipeline.py` exists
 
 ## Establish Baseline (Iteration 0)
 
 1. **Backup the entire env directory** before any modification:
    ```bash
-   BASELINE_DIR="experiments/loop-{task}-{YYMMDD}-{HHMM}/env.baseline"
+   BASELINE_DIR="experiments/loop-flu-{YYMMDD}-{HHMM}/env.baseline"
    mkdir -p "$BASELINE_DIR"
-   cp -r {ENV_DIR}/* "$BASELINE_DIR/"
-   git add -f "$BASELINE_DIR" && git commit -m "baseline: {task} env backup (iteration 0)"
+   cp -r env/* "$BASELINE_DIR/"
+   git add -f "$BASELINE_DIR" && git commit -m "baseline: flu env backup (iteration 0)"
    ```
-   The `env.baseline/` directory is **read-only for the entire pipeline** — it is never modified, and all experiment results are compared against it. It serves as the ground truth reference.
+   The `env.baseline/` directory is **read-only for the entire pipeline** — it is never modified, and all experiment results are compared against it.
 
 2. Run: `{VERIFY_CMD} > run.log 2>&1`
 3. Extract: `{METRIC_CMD}`
-4. Record as iteration 0 in `experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv`
+4. Record as iteration 0 in `experiments/loop-flu-{YYMMDD}-{HHMM}/results.tsv`
 5. Base metric from chosen Metric
 
-## Iteration Loop (Multi-Expert Pipeline)
+## Iteration Loop
 
 For each iteration (1 to max_iterations):
 
@@ -89,7 +75,6 @@ For each iteration (1 to max_iterations):
 **Goal**: Understand the problem, find relevant methods from literature. **Do not skip this phase on any iteration. Every change must be grounded in literature.**
 
 **Step 1 — Problem Analysis**: Before searching literature, identify what makes this problem hard:
-- **medmnist**: domain shift between PneumoniaMNIST (training) and ChestMNIST (test). The model trains on one chest X-ray dataset and must detect unseen classes in another. Pneumonia vs consolidation look nearly identical on 28×28 grayscale.
 - **flu**: domain shift between US CDC ILINet (training) and WHO FluID (test on France, Mexico, Australia, South Africa). Different countries have different flu seasons, reporting standards, and healthcare systems. Australia is in the southern hemisphere — opposite flu season. A model that memorizes US patterns will fail globally.
 - Use this analysis to guide what kind of solution is needed (regularization? domain adaptation? seasonal features? calibration?).
 
@@ -98,13 +83,13 @@ For each iteration (1 to max_iterations):
 1. **Local RAG** (if enabled): ALWAYS run first.
    ```bash
    python scripts/run_rag_search.py \
-     --task {task} --iteration N \
+     --task flu --iteration N \
      --query "<hypothesis-specific query>" \
      --k 5 \
-     --out experiments/loop-{task}-{YYMMDD}-{HHMM}/iterations/iter-N-rag.json
+     --out experiments/loop-flu-{YYMMDD}-{HHMM}/iterations/iter-N-rag.json
    ```
 
-2. **Tavily web search** (tavily-search skill): ALWAYS run. Use query specific to the current iteration's hypothesis (not a generic repeat from iter 1). `tvly search <query> --depth=basic --max-results=5 --include-answer`. Use task-specific keywords for medmnist (OOD detection, chest X-ray, domain shift) or flu (ILI forecasting, cross-country generalization, time series domain adaptation).
+2. **Tavily web search** (tavily-search skill): ALWAYS run. Use query specific to the current iteration's hypothesis (not a generic repeat from iter 1). `tvly search <query> --depth=basic --max-results=5 --include-answer`. Use task-specific keywords: ILI forecasting, cross-country generalization, time series domain adaptation.
 
 3. **paper-navigator** (EvoSkill): ALWAYS run for at least one source. Use `python3 skills/paper-navigator/scripts/scholar_search.py <technique>` to find papers with rubric-based relevance scores. If S2_API_KEY is available, also use `citation_traverse.py` for citation chains.
 
@@ -120,7 +105,7 @@ For each iteration (1 to max_iterations):
 **Goal**: Convert research into a concrete experiment plan.
 
 - **research-ideation** (EvoSkill): synthesize research brief into a clear hypothesis using the idea refinement pipeline. Generate counter-arguments via the Critic persona to stress-test the hypothesis.
-- **experiment-pipeline** (EvoSkill): define the experiment — what ONE change to {TRAIN_PY}, which stage it belongs to (1: baseline reproduction, 2: hyperparameter tuning, 3: proposed method, 4: ablation), attempt budget, expected outcome, fallback plan.
+- **experiment-pipeline** (EvoSkill): define the experiment — what ONE change to `env/train.py`, which stage it belongs to (1: baseline reproduction, 2: hyperparameter tuning, 3: proposed method, 4: ablation), attempt budget, expected outcome, fallback plan.
 - Check `evo-memory` history — is this truly untried? Load prior ideation memory (M_I) and experimentation memory (M_E) to verify.
 - If internet research needed: use `tvly search` (tavily-search) to check for recent work on the proposed approach.
 - Output: experiment plan with hypothesis + expected delta + stage assignment
@@ -134,7 +119,7 @@ For each iteration (1 to max_iterations):
   - Loss/optimizer/scheduler/regularization → use `tvly search` with `--include-answer` to find best practices and code patterns.
   - Statistical/mathematical reasoning → consult training code and paper implementations via `paper-navigator`.
 - **experiment-craft** (EvoSkill): follow the 5-step diagnostic for implementation. If unsure, test the change in isolation (Step 2: Find a Working Version) before integrating.
-- Make ONE focused change to `{TRAIN_PY}`
+- Make ONE focused change to `env/train.py`
 - Allowed: model architecture, optimizer, hyperparams, loss, augmentation, calibration
 - NOT allowed: modify eval code, data loading code, install packages
 - Output: modified train.py
@@ -154,24 +139,24 @@ For each iteration (1 to max_iterations):
 
 ```bash
 python scripts/code_jury.py \
-  --task {task} \
-  --env-dir {ENV_DIR} \
-  --train-py {TRAIN_PY} \
-  --input-shape "{INPUT_SHAPE}" \
-  --expected-output-shape "<see task config>" \
-  --out experiments/loop-{task}-{YYMMDD}-{HHMM}/iterations/iter-N-jury.json
+  --task flu \
+  --env-dir env \
+  --train-py env/train.py \
+  --input-shape "(4, 5, 1)" \
+  --expected-output-shape "(4, 10, 1)" \
+  --out experiments/loop-flu-{YYMMDD}-{HHMM}/iterations/iter-N-jury.json
 ```
 
 If any check fails → **STOP**, diagnose the error, fix the code, re-run jury.
 If all pass → **PASS**, safe to commit.
 
-**Before passing, the Jury must log the following reasoning explicitly in the commit message** (this is a scientific record, not just a code change):
+**Before passing, the Jury must log the following reasoning explicitly in the commit message**:
 
 ```
 JURY REASONING:
 - Hypothesis: [What did you expect this change to do, and why? Reference the research or theory that motivated it.]
 - Mechanism: [How does the change affect the model's behavior? E.g., "adds a regularization term that penalizes extreme weights, reducing overfitting to US-specific patterns."]
-- Expected delta: [Quantitative prediction: "expect OOD F1 to improve by 0.02–0.05" or "expect Test MAE to decrease by 0.01"]
+- Expected delta: [Quantitative prediction: "expect Test MAE to decrease by 0.01"]
 - Risk assessment: [low / medium / high] — what could go wrong and why?
 - Baseline comparison: [Which baseline config from env.baseline/ is this compared against?]
 ```
@@ -188,11 +173,9 @@ JURY REASONING:
 - Baseline comparison: ...
 ```
 
-This ensures every experiment has a documented scientific rationale that can be reviewed, challenged, and learned from in future iterations.
-
 ### Phase 5: Commit
 
-- `git add -f {TRAIN_PY} && git commit -m "pipeline: {agent} — {description}"`
+- `git add -f env/train.py && git commit -m "pipeline: {agent} — {description}"`
 
 ### Phase 6: Run
 
@@ -203,7 +186,7 @@ This ensures every experiment has a documented scientific rationale that can be 
 ### Phase 7: Decide
 
 - **keep** — metric improved → commit stays
-- **discard** — metric worsened → `git revert HEAD --no-edit`; restore {TRAIN_PY} from HEAD
+- **discard** — metric worsened → `git revert HEAD --no-edit`; restore env/train.py from HEAD
 - **crash** — run failed/crashed → revert; read tail -50 run.log for stack trace; attempt fix or skip
 
 ### Phase 8: Log
@@ -212,22 +195,22 @@ Use the deterministic logging scripts:
 
 ```bash
 python scripts/make_iter_log.py \
-  --task {task} --iteration N --status {keep|discard|crash} \
-  --metric-name "<name>" --metric-direction {DIRECTION} \
+  --task flu --iteration N --status {keep|discard|crash} \
+  --metric-name "Test MAE" --metric-direction lower_is_better \
   --metric-value $METRIC --baseline <prev_best> \
   --change-type "<architecture|loss|optimizer|hyperparameter|augmentation>" \
-  --change-file "{TRAIN_PY}" \
+  --change-file "env/train.py" \
   --diff-summary "<one-line description of what changed>" \
   --hypothesis "..." --mechanism "..." --expected-delta "..." \
   --risk "low|medium|high" --baseline-compared-to "env.baseline/" \
   --elapsed-s <seconds> --memory-gb <nvidia-smi> --params <count> \
   --commit-hash $(git rev-parse HEAD) \
   --commit-message "<full commit message>" \
-  --out experiments/loop-{task}-{YYMMDD}-{HHMM}/iterations/iter-N.json
+  --out experiments/loop-flu-{YYMMDD}-{HHMM}/iterations/iter-N.json
 
 python scripts/append_results_tsv.py \
-  --task {task} \
-  --results experiments/loop-{task}-{YYMMDD}-{HHMM}/results.tsv \
+  --task flu \
+  --results experiments/loop-flu-{YYMMDD}-{HHMM}/results.tsv \
   --iteration N --commit $(git rev-parse HEAD) \
   --test-mae $METRIC --params <count> --memory-gb <nvidia-smi> \
   --status {keep|discard|crash} --description "<one-line>"
@@ -248,8 +231,8 @@ When iteration % 10 == 0:
    - Run `tvly research <query>` (tavily-research) with keywords from successful iterations to get a multi-source cited report on recent work
    - Run `tvly search <query> --depth=advanced --include-domains=arxiv.org,github.com,paperswithcode.com --max-results=10` (tavily-search) for specific papers and code repos
    - Use `python3 paper-navigator/scripts/arxiv_monitor.py` and `paper-navigator/scripts/trending.py` for academic paper discovery by subcategory
-   - Download new PDFs to `literature/` or `literature_flu/`
-4. **Ingest**: convert new PDFs to markdown (`literature_md/` or `literature_flu_md/`), rebuild FAISS index (`index_output/` or `index_output_flu/`).
+   - Download new PDFs to `literature_flu/`
+4. **Ingest**: convert new PDFs to markdown (`literature_flu_md/`), rebuild FAISS index (`index_output_flu/`).
 5. Replace old index with refreshed one.
 
 ### Phase 10: Research Reset (every 20 iterations)
@@ -268,8 +251,7 @@ If --evals: check if current_iteration % interval == 0 → run checkpoint analys
 If bounded: current_iteration >= max_iterations → exit loop, print summary.
 
 ## Time Constraints
-- medmnist: ~5 min per experiment (25 epochs). Kill at 10 min.
-- flu: ~5 min per experiment (30 pretrain + 10 finetune epochs). Kill at 10 min.
+- ~5 min per experiment (30 pretrain + 10 finetune epochs). Kill at 10 min.
 - Treat timeout as crash.
 
 ## Summary
