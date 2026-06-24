@@ -143,7 +143,9 @@ class ConditionalDenoiser(nn.Module):
         temb = self.time_proj(sinusoidal_embedding(tau, self.time_dim)).unsqueeze(-1)
         h = F.relu(h + cond + temb)
         h = self.dropout(h)
-        h = F.relu(self.conv_mid(h))
+        skip = h
+        h = self.conv_mid(h)
+        h = F.relu(h + skip)
         return self.out_proj(h.transpose(1, 2))
 
 
