@@ -59,20 +59,10 @@ def get_agents_config():
 EXPERIMENTS_RUNS = PROJECT_ROOT / "experiments" / "runs.jsonl"
 
 def infer_task(exp: dict) -> str:
-    details = exp.get("details", {})
-    model = str(details.get("model", "")).lower()
-    if any(k in model for k in ["lstm", "gru", "tcn", "transformer", "diffusion"]):
-        return "flu"
-    if "val_mae" in details or "test_mae" in details:
-        return "flu"
-    return "medmnist"
+    return "flu"
 
 
 TASK_METRICS = {
-    "medmnist": {
-        "primary": "OOD F1", "secondary": "ID Test Acc",
-        "tertiary": "Val Acc", "color": "#8b5cf6",
-    },
     "flu": {
         "primary": "Test MAE", "secondary": "Val MAE",
         "tertiary": "Params", "color": "#f59e0b",
@@ -135,15 +125,36 @@ def split_tsv(line: str) -> list[str]:
     return [line]
 
 
+def load_reasoning(loop_dir: Path, iteration: int) -> dict:
+    """Load hypothesis/mechanism/risk from iteration JSONs."""
+    iter_file = loop_dir / "iterations" / f"iter-{iteration}.json"
+    if not iter_file.exists():
+        return {}
+    try:
+        data = json.loads(iter_file.read_text())
+        jr = data.get("jury_reasoning", {})
+        ch = data.get("change", {})
+        return {
+            "hypothesis": jr.get("hypothesis", ""),
+            "mechanism": jr.get("mechanism", ""),
+            "expected_delta": jr.get("expected_delta", ""),
+            "risk": jr.get("risk", ""),
+            "change_type": ch.get("type", ""),
+            "diff_summary": ch.get("diff_summary", ""),
+        }
+    except (json.JSONDecodeError, FileNotFoundError):
+        return {}
+
+
 def parse_loop_results() -> list[dict]:
     experiments = []
-    loop_dirs = sorted(PROJECT_ROOT.glob("experiments/loop-*/results.tsv"), reverse=True)
+    loop_dirs = sorted(PROJECT_ROOT.glob("experiments/loop-flu-*/results.tsv"), reverse=True)
     for tsv_path in loop_dirs:
         lines = tsv_path.read_text().strip().split("\n")
         if len(lines) < 2:
             continue
-        loop_id = tsv_path.parent.name
-        is_flu = "flu" in loop_id.lower()
+        loop_dir = tsv_path.parent
+        loop_id = loop_dir.name
 
         headers = None
         data_start = 0
@@ -160,34 +171,17 @@ def parse_loop_results() -> list[dict]:
         if headers:
             h = {name: idx for idx, name in enumerate(headers)}
             idx_iter = h.get("iteration", 0)
-            idx_commit = h.get("commit", h.get("timestamp", 1))
-            idx_metric = h.get("test_mae", h.get("test_acc", h.get("metric", 2)))
-            idx_metric2 = h.get("val_mae", h.get("ood_f1", h.get("secondary", 3)))
-            idx_metric3 = h.get("val_acc", 4)
-            idx_metric4 = h.get("test_acc_id", h.get("test_id_acc", 5))
-            idx_status = h.get("status", 7)
-            idx_desc = h.get("description", 8)
-            # For flu: map test_mae → test_acc_id (frontend needs it for allIterations filter)
-            if "test_mae" in h and "test_acc_id" not in h and idx_metric is not None:
-                idx_metric4 = idx_metric
-            # If idx_metric4 still points to params/timestamp, null it out
-            if idx_metric4 is not None and idx_metric4 < len(headers):
-                col_name = headers[idx_metric4]
-                if col_name in ("params", "memory_gb", "timestamp", "status", "commit", "iteration"):
-                    idx_metric4 = None
-            # Ensure val_acc doesn't overlap with non-metric columns
-            if idx_metric3 is not None and idx_metric3 < len(headers):
-                col_name3 = headers[idx_metric3]
-                if col_name3 in ("params", "memory_gb", "timestamp", "status", "commit", "iteration"):
-                    idx_metric3 = None
+            idx_commit = h.get("commit", 1)
+            idx_mae = h.get("test_mae", h.get("test_acc", 2))
+            idx_val_mae = h.get("val_mae", 3)
+            idx_status = h.get("status", 6)
+            idx_desc = h.get("description", 7)
         else:
             idx_iter, idx_commit = 0, 1
-            idx_metric, idx_metric2, idx_metric3, idx_metric4 = 2, 3, 4, 5
-            idx_status, idx_desc = 7, 8
+            idx_mae, idx_val_mae = 2, 3
+            idx_status, idx_desc = 6, 7
 
-        scores = []
         iterations_data = []
-        final_score = None
         for line in lines[data_start:]:
             if not line or line.startswith("#"):
                 continue
@@ -206,50 +200,49 @@ def parse_loop_results() -> list[dict]:
                             return None
                     return None
 
-                iteration = parts[idx_iter].strip() if idx_iter is not None and idx_iter < len(parts) else ""
+                iteration = int(parts[idx_iter].strip()) if idx_iter is not None and idx_iter < len(parts) else 0
                 commit = parts[idx_commit].strip() if idx_commit is not None and idx_commit < len(parts) else ""
-                m1 = pval(idx_metric)
-                m2 = pval(idx_metric2)
-                m3 = pval(idx_metric3)
-                m4 = pval(idx_metric4)
-                memory_gb = parts[6].strip() if len(parts) > 6 else ""
+                test_mae = pval(idx_mae)
+                val_mae = pval(idx_val_mae)
                 status = parts[idx_status].strip() if idx_status < len(parts) else ""
                 description = parts[idx_desc].strip() if idx_desc < len(parts) else ""
 
-                metric = m1 if m1 is not None else (m2 if m2 is not None else (m4 if m4 is not None else 0.0))
-                if metric is not None and not is_flu:
-                    scores.append({"step": int(iteration) if iteration else 0, "score": metric})
-                    final_score = metric
+                reason = load_reasoning(loop_dir, iteration)
 
                 iterations_data.append({
-                    "iteration": int(iteration) if iteration else 0,
+                    "iteration": iteration,
                     "commit": commit,
-                    "test_acc": m1,
-                    "ood_f1": m2,
-                    "val_acc": m3,
-                    "test_acc_id": m4,
-                    "memory_gb": memory_gb,
+                    "test_mae": test_mae,
+                    "val_mae": val_mae,
                     "status": status,
                     "description": description,
+                    "hypothesis": reason.get("hypothesis", ""),
+                    "mechanism": reason.get("mechanism", ""),
+                    "expected_delta": reason.get("expected_delta", ""),
+                    "risk": reason.get("risk", ""),
+                    "change_type": reason.get("change_type", ""),
+                    "diff_summary": reason.get("diff_summary", ""),
                 })
             except (ValueError, IndexError):
                 continue
 
+        best_mae = min((i["test_mae"] for i in iterations_data if i["status"] == "keep" and i["test_mae"] is not None), default=None)
+        first_mae = iterations_data[0]["test_mae"] if iterations_data else None
+
         experiments.append({
             "id": loop_id,
-            "path": str(tsv_path.parent),
+            "path": str(loop_dir),
             "timestamp": loop_id.replace("loop-", ""),
-            "steps": [{"step": i, "action": {}, "observation": ""} for i in range(len(scores))],
-            "scores": scores,
-            "final_score": final_score,
-            "status": "completed" if scores else "unknown",
+            "final_score": iterations_data[-1]["test_mae"] if iterations_data else None,
+            "status": "completed",
             "source": "auto_loop",
-            "task": "flu" if is_flu else "medmnist",
+            "task": "flu",
             "details": {
-                "iterations": iterations_data,
                 "total_iterations": len(iterations_data),
                 "kept": sum(1 for d in iterations_data if d["status"] == "keep"),
                 "discarded": sum(1 for d in iterations_data if d["status"] == "discard"),
+                "best_mae": best_mae,
+                "first_mae": first_mae,
             },
             "iterations": iterations_data,
         })
@@ -308,20 +301,20 @@ def parse_experiment(log_dir: Path) -> dict:
     return experiment
 
 
-def get_all_experiments(task: str = None):
+def get_all_experiments(task: str = "flu"):
     experiments = []
+    for exp in parse_loop_results():
+        if task is None or exp.get("task") == task:
+            experiments.append(exp)
+    for exp in parse_runs_jsonl():
+        if task is None or exp.get("task") == task:
+            experiments.append(exp)
     if LOGS_DIR.exists():
         for log_dir in sorted(LOGS_DIR.iterdir(), reverse=True):
             if log_dir.is_dir():
                 exp = parse_experiment(log_dir)
                 if task is None or exp.get("task") == task:
                     experiments.append(exp)
-    for exp in parse_runs_jsonl():
-        if task is None or exp.get("task") == task:
-            experiments.append(exp)
-    for exp in parse_loop_results():
-        if task is None or exp.get("task") == task:
-            experiments.append(exp)
     experiments.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
     return experiments
 
@@ -378,7 +371,7 @@ async def list_experiments(task: Optional[str] = None):
 
 @app.get("/tasks")
 async def list_tasks():
-    return {"tasks": TASK_METRICS}
+    return {"tasks": TASK_METRICS, "default": "flu"}
 
 
 @app.get("/experiments/{experiment_id}")
@@ -396,6 +389,30 @@ async def get_experiment_iterations(experiment_id: str):
         raise HTTPException(status_code=404, detail="Experiment not found")
     iterations = exp.get("iterations", [])
     return {"experiment_id": experiment_id, "iterations": iterations}
+
+
+@app.get("/experiments/{experiment_id}/reasoning")
+async def get_experiment_reasoning(experiment_id: str):
+    exp = find_experiment_by_id(experiment_id)
+    if exp is None:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    iterations = exp.get("iterations", [])
+    reasoning = []
+    for it in iterations:
+        it_num = it.get("iteration", 0)
+        reasoning.append({
+            "iteration": it_num,
+            "status": it.get("status", ""),
+            "test_mae": it.get("test_mae"),
+            "description": it.get("description", ""),
+            "hypothesis": it.get("hypothesis", ""),
+            "mechanism": it.get("mechanism", ""),
+            "expected_delta": it.get("expected_delta", ""),
+            "risk": it.get("risk", ""),
+            "change_type": it.get("change_type", ""),
+            "diff_summary": it.get("diff_summary", ""),
+        })
+    return {"experiment_id": experiment_id, "reasoning": reasoning}
 
 
 @app.get("/scores")

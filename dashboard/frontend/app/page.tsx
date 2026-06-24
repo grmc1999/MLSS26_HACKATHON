@@ -2,329 +2,190 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { StatCard, SourceBadge, StatusBadge, getExpColor, ScoreChart } from '../src/components/StatCard';
+import { StatCard, ScoreChart } from '../src/components/StatCard';
+
+interface Iteration {
+  iteration: number;
+  commit: string;
+  test_mae: number | null;
+  val_mae: number | null;
+  status: string;
+  description: string;
+  hypothesis: string;
+  mechanism: string;
+  expected_delta: string;
+  risk: string;
+  change_type: string;
+  diff_summary: string;
+}
 
 interface Experiment {
   id: string;
-  status: string;
   final_score: number | null;
-  total_steps?: number;
-  timestamp: string | null;
   source?: string;
-  scores?: { step: number; score: number }[];
-  steps?: { step: number }[];
-  details?: Record<string, unknown>;
-  iterations?: { iteration: number; val_acc?: number | null; test_acc_id?: number | null; test_acc: number | null; ood_f1: number | null; status: string }[];
-}
-
-interface ScoreData { step: number; score: number; }
-interface StatusData {
-  total_experiments: number;
-  total_agents: number;
-  logs_exist: boolean;
-  timestamp: string;
+  iterations?: Iteration[];
+  details?: { best_mae?: number; first_mae?: number; kept?: number; discarded?: number };
 }
 
 export default function Home() {
-  const [status, setStatus] = useState<StatusData | null>(null);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [task, setTask] = useState<string>("medmnist");
-
-  const taskConfig: Record<string, {primary: string; secondary: string; tertiary: string; color: string}> = {
-    medmnist: {primary: "OOD F1", secondary: "ID Test Acc", tertiary: "Val Acc", color: "#8b5cf6"},
-    flu: {primary: "Test MAE", secondary: "Val MAE", tertiary: "Params", color: "#f59e0b"},
-  };
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statusRes, expRes] = await Promise.all([
-          fetch('/api/status'),
-          fetch(`/api/experiments?task=${task}`),
-        ]);
-        setStatus(await statusRes.json());
-        const expData = await expRes.json();
-        setExperiments(expData.experiments || []);
+        const res = await fetch('/api/experiments?task=flu');
+        const data = await res.json();
+        setExperiments(data.experiments || []);
       } catch (e) {
-        console.error('Failed to fetch data:', e);
+        console.error('Failed to fetch:', e);
       }
     }
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [task]);
-
-  const tc = taskConfig[task];
+  }, []);
 
   const loopExps = useMemo(() =>
     experiments.filter(e => e.source === 'auto_loop'),
     [experiments]
   );
 
-  const recentExps = useMemo(() =>
-    experiments.filter(e => e.source === 'run_exp' && e.task === task).slice(0, 12),
-    [experiments]
-  );
+  const activeExp = loopExps[0];
+  const iterations = activeExp?.iterations || [];
+  const details = activeExp?.details || {};
 
-  const allIterations = useMemo(() => {
-    const data: { iteration: number; val_acc: number; test_acc_id: number; ood_f1: number; loop: string }[] = [];
-    loopExps.forEach(exp => {
-      if (exp.iterations) {
-        exp.iterations.forEach(it => {
-          if (it.test_acc_id !== null && it.ood_f1 !== null) {
-            data.push({
-              iteration: it.iteration,
-              val_acc: it.val_acc ?? 0,
-              test_acc_id: it.test_acc_id ?? 0,
-              ood_f1: it.ood_f1 ?? 0,
-              loop: exp.id,
-            });
-          }
-        });
-      }
-    });
-    return data.sort((a, b) => a.iteration - b.iteration);
-  }, [loopExps]);
+  const statusColors: Record<string, string> = {
+    keep: '#22c55e', discard: '#ef4444', baseline: '#6b7280', crash: '#eab308',
+  };
 
-  const bestValAcc = useMemo(() =>
-    task === 'flu'
-      ? Math.min(...allIterations.map(d => d.ood_f1 || 999), 999)
-      : Math.max(...allIterations.map(d => d.val_acc), 0),
-    [allIterations, task]
-  );
+  const chartData = iterations.map(i => ({
+    iteration: i.iteration,
+    test_mae: i.test_mae,
+    status: i.status,
+  }));
 
-  const bestTestAcc = useMemo(() =>
-    task === 'flu'
-      ? Math.min(...allIterations.map(d => d.test_acc_id || 999), 999)
-      : Math.max(...allIterations.map(d => d.test_acc_id), 0),
-    [allIterations, task]
-  );
+  const bestMae = Math.min(...iterations.filter(i => i.test_mae != null).map(i => i.test_mae!), Infinity);
+  const firstMae = iterations.length > 0 ? iterations[0].test_mae : null;
+  const impr = firstMae && bestMae < Infinity ? ((firstMae - bestMae) / firstMae * 100).toFixed(1) : null;
 
-  const bestOODF1 = useMemo(() =>
-    task === 'flu'
-      ? Math.min(...allIterations.map(d => d.ood_f1 || 999), 999)
-      : Math.max(...allIterations.map(d => d.ood_f1), 0),
-    [allIterations, task]
-  );
-
-  const latestTestAcc = allIterations.length > 0 ? allIterations[allIterations.length - 1].test_acc_id : 0;
-  const firstTestAcc = allIterations.length > 0 ? allIterations[0].test_acc_id : 0;
-
-  const recentRuns = useMemo(() =>
-    experiments.filter(e => e.source === 'run_exp').slice(0, 8),
-    [experiments]
-  );
-
-  useEffect(() => {
-    if (experiments.length > 0) {
-      const loops = experiments.filter(e => e.source === 'auto_loop');
-      console.log('[DBG] experiments', experiments.length, 'auto-loops', loops.length);
-      loops.forEach((e, i) => {
-        const its = e.iterations || [];
-        const valid = its.filter((it: any) => it.test_acc_id !== null && it.ood_f1 !== null);
-        console.log(`[DBG] loop ${i}: ${its.length} iters, ${valid.length} valid`);
-        if (its.length > 0) {
-          console.log(`[DBG]   first iter: test_acc_id=${its[0].test_acc_id} (${typeof its[0].test_acc_id}), ood_f1=${its[0].ood_f1} (${typeof its[0].ood_f1})`);
-        }
-      });
-      console.log('[DBG] allIterations', allIterations.length);
-    } else {
-      console.log('[DBG] no experiments yet');
-    }
-  }, [experiments, allIterations, loopExps]);
+  const kept = iterations.filter(i => i.status === 'keep').length;
+  const discarded = iterations.filter(i => i.status === 'discard').length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-        <div className="flex gap-2">
-          {["medmnist", "flu"].map(t => (
-            <button key={t} onClick={() => setTask(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                task === t ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}>
-              {t === "medmnist" ? "🫁 MedMNIST" : "🤒 Flu"}
-            </button>
-          ))}
+        <h1 className="text-3xl font-bold">🤒 Flu Forecasting Dashboard</h1>
+        <span className="text-sm text-slate-400">{loopExps.length} experiment(s)</span>
+      </div>
+
+      {!activeExp ? (
+        <div className="bg-slate-800 rounded-lg p-8 text-center">
+          <p className="text-slate-400">No auto-loop experiments found. Run the pipeline first.</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <StatCard label="Total Experiments" value={status?.total_experiments ?? 0}
-                  sub={`${loopExps.length} auto loops`} />
-        <StatCard label="Agents" value={status?.total_agents ?? 0} />
-        {task === 'flu' ? (
-          <>
-            <StatCard label="Best Test MAE" value={bestTestAcc.toFixed(4)}
-                      color="#10b981" sub="Forecast error" />
-            <StatCard label="Best Val MAE" value={bestOODF1.toFixed(4)}
-                      color="#f59e0b" sub="Validation set" />
-            <StatCard label="Best Params" value={'N/A'}
-                      color="#06b6d4" sub="Model size" />
-          </>
-        ) : (
-          <>
-            <StatCard label={`Best ${tc.secondary}`} value={bestTestAcc.toFixed(4)}
-                      color="#10b981" sub="ChestMNIST Normal+Pneumonia" />
-            <StatCard label={`Best ${tc.primary}`} value={bestOODF1.toFixed(4)}
-                      color={tc.color} sub="Consolidation detection" />
-            <StatCard label={`Best ${tc.tertiary}`} value={bestValAcc > 0 ? bestValAcc.toFixed(4) : 'N/A'}
-                      color="#06b6d4" sub="PneumoniaMNIST validation" />
-          </>
-        )}
-        <StatCard label="Improvement" value={
-          firstTestAcc > 0
-            ? task === 'flu'
-              ? `${((-latestTestAcc + firstTestAcc) / firstTestAcc * 100).toFixed(0)}%`
-              : `${((latestTestAcc - firstTestAcc) / firstTestAcc * 100).toFixed(0)}%`
-            : 'N/A'
-        } color="#f59e0b" sub={task === 'flu' ? 'Test MAE: first → latest' : 'ID test acc: first → latest'} />
-      </div>
-
-      <div className="bg-slate-800 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Metrics Over All Iterations</h2>
-        {allIterations.length > 0 ? (
-          <div className="overflow-x-auto">
-            <p className="text-xs text-slate-500 mb-2">{allIterations.length} data points across {loopExps.length} loops</p>
-            <table className="w-full text-xs font-mono">
-              <thead>
-                <tr className="border-b border-slate-700 text-slate-400">
-                  <th className="text-left py-1 pr-2">Iter</th>
-                  <th className="text-right py-1 pr-2" style={{color: '#06b6d4'}}>Val Acc</th>
-                  <th className="text-right py-1 pr-2" style={{color: '#10b981'}}>ID Test Acc</th>
-                  <th className="text-right py-1 pr-2" style={{color: '#8b5cf6'}}>OOD F1</th>
-                  <th className="text-left py-1 pl-2 text-slate-500">Loop</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allIterations.map(d => (
-                  <tr key={`${d.loop}-${d.iteration}`} className="border-b border-slate-800 hover:bg-slate-700/50">
-                    <td className="py-1 pr-2 text-slate-400">{d.iteration}</td>
-                    <td className="py-1 pr-2 text-right" style={{color: '#06b6d4'}}>{d.val_acc.toFixed(4)}</td>
-                    <td className="py-1 pr-2 text-right" style={{color: '#10b981'}}>{d.test_acc_id.toFixed(4)}</td>
-                    <td className="py-1 pr-2 text-right" style={{color: '#8b5cf6'}}>{d.ood_f1.toFixed(4)}</td>
-                    <td className="py-1 pl-2 text-slate-500 truncate max-w-[120px]">{d.loop}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <StatCard label="Baseline MAE" value={firstMae?.toFixed(2) ?? '—'} color="#6b7280" />
+            <StatCard label="Best MAE" value={bestMae < Infinity ? bestMae.toFixed(2) : '—'} color="#22c55e" sub="lower is better" />
+            <StatCard label="Improvement" value={impr ? `-${impr}%` : '—'} color="#22c55e" />
+            <StatCard label="Iterations" value={iterations.length} />
+            <StatCard label="Kept" value={kept} color="#22c55e" />
+            <StatCard label="Discarded" value={discarded} color="#ef4444" />
           </div>
-        ) : (
-          <p className="text-slate-400">No iteration data ({loopExps.length} loops, {experiments.length} exps). Check browser console for [DBG] messages.</p>
-        )}
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Runs</h2>
-          {recentRuns.length > 0 ? (
+          {chartData.length > 1 && (
+            <div className="bg-slate-800 rounded-lg p-6">
+              <h2 className="text-lg font-semibold mb-4">Test MAE Over Iterations (log scale)</h2>
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="iteration" stroke="#94a3b8" label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#94a3b8' }} />
+                  <YAxis stroke="#94a3b8" scale="log" domain={['auto', 'auto']} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                           formatter={(value: number) => [value.toFixed(2), 'Test MAE']} />
+                  <Line type="monotone" dataKey="test_mae" stroke="#f59e0b" strokeWidth={2.5}
+                        dot={(props: any) => {
+                          const { cx, cy, payload } = props;
+                          const color = statusColors[payload.status] || '#6b7280';
+                          return <circle cx={cx} cy={cy} r={6} fill={color} stroke="white" strokeWidth={1.5} />;
+                        }}
+                        name="Test MAE" connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Iteration Details with Research Reasoning</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-2">ID</th>
-                    <th className="text-right py-2">Val Acc</th>
-                    <th className="text-right py-2">ID Test Acc</th>
-                    <th className="text-right py-2">OOD F1</th>
-                    <th className="text-right py-2">Time</th>
+                  <tr className="border-b border-slate-700 bg-slate-900/50">
+                    <th className="text-left py-2 px-2">#</th>
+                    <th className="text-left py-2 px-2">Status</th>
+                    <th className="text-right py-2 px-2">Test MAE</th>
+                    <th className="text-left py-2 px-2" style={{minWidth:160}}>Change</th>
+                    <th className="text-left py-2 px-2" style={{minWidth:220}}>Hypothesis</th>
+                    <th className="text-left py-2 px-2" style={{minWidth:200}}>Mechanism</th>
+                    <th className="text-center py-2 px-2">Risk</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentRuns.map((exp) => {
-                    const details = exp.details || {};
-                    return (
-                      <tr key={exp.id} className="border-b border-slate-800 hover:bg-slate-700/50">
-                        <td className="py-2 max-w-[150px] truncate">
-                          <a href={`/experiments/${exp.id}`} className="text-blue-400 hover:underline font-mono text-xs">
-                            {exp.id.slice(0, 12)}
-                          </a>
-                        </td>
-                        <td className="py-2 text-right font-mono text-xs text-cyan-400">
-                          {(details.val_acc as number)?.toFixed(4) ?? '—'}
-                        </td>
-                        <td className="py-2 text-right font-mono text-xs text-emerald-400">
-                          {(details.test_acc_id as number)?.toFixed(4) ?? '—'}
-                        </td>
-                        <td className="py-2 text-right font-mono text-sm">
-                          {(details.ood_f1 as number)?.toFixed(4) ?? '—'}
-                        </td>
-                        <td className="py-2 text-right text-xs text-slate-400">
-                          {details.elapsed_s ? `${details.elapsed_s}s` : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {iterations.map((it) => (
+                    <tr key={it.iteration} className="border-b border-slate-800 hover:bg-slate-700/30">
+                      <td className="py-2 px-2 font-mono text-slate-400">{it.iteration}</td>
+                      <td className="py-2 px-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          it.status === 'keep' ? 'bg-emerald-900/50 text-emerald-300' :
+                          it.status === 'discard' ? 'bg-red-900/50 text-red-300' :
+                          'bg-blue-900/50 text-blue-300'
+                        }`}>{it.status}</span>
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono font-bold"
+                          style={{color: statusColors[it.status] || '#e2e8f0'}}>
+                        {it.test_mae?.toFixed(2) ?? '—'}
+                      </td>
+                      <td className="py-2 px-2 text-slate-300 text-xs max-w-[180px]">{it.description}</td>
+                      <td className="py-2 px-2 text-slate-400 text-xs max-w-[240px] leading-relaxed">
+                        {(it.hypothesis || '').slice(0, 200)}
+                      </td>
+                      <td className="py-2 px-2 text-slate-500 text-xs max-w-[220px] leading-relaxed">
+                        {(it.mechanism || '').slice(0, 180)}
+                      </td>
+                      <td className="py-2 px-2 text-center text-xs">
+                        <span className={`${
+                          it.risk === 'low' ? 'text-emerald-400' :
+                          it.risk === 'medium' ? 'text-yellow-400' :
+                          it.risk === 'high' ? 'text-red-400' : 'text-slate-400'
+                        }`}>{it.risk || '—'}</span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          ) : (
-            <p className="text-slate-400">No runs yet.</p>
-          )}
-        </div>
+          </div>
 
-        <div className="bg-slate-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Auto-Loop Experiments</h2>
-          {loopExps.length > 0 ? (
-            <div className="space-y-4">
-              {loopExps.slice(0, 3).map((loop) => {
-                const iterCount = loop.iterations?.length ?? 0;
-                const keptCount = loop.iterations?.filter(i => i.status === 'keep').length ?? 0;
-                const bestAcc = loop.iterations
-                  ? Math.max(...loop.iterations.map(i => i.test_acc_id ?? 0))
-                  : 0;
-                return (
-                  <div key={loop.id} className="bg-slate-900 rounded p-4 border border-slate-700">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <a href={`/experiments/${loop.id}`} className="text-purple-400 hover:underline font-mono text-sm">
-                          {loop.id}
-                        </a>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {iterCount} iterations ({keptCount} kept)
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold text-emerald-400">
-                        {bestAcc.toFixed(4)}
-                      </span>
-                    </div>
-                    <ScoreChart scores={loop.scores || []} color="#8b5cf6" height={100} />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-slate-400">No auto-loop experiments yet.</p>
-          )}
-        </div>
-      </div>
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-3">Experiment Summary</h2>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              This experiment used a conditional diffusion model (DiffusionForecaster + ConditionalDenoiser)
+              for cross-country ILI forecasting, trained on US CDC data and tested on WHO FluID data
+              (France, Mexico, Australia, South Africa). The pipeline ran <strong>{iterations.length - 1}</strong> iterations
+              with RAG-guided modifications to <code className="text-blue-400">env/train.py</code>.
+            </p>
+            <p className="text-sm text-slate-300 mt-2">
+              <strong className="text-emerald-400">Best result:</strong> Test MAE <strong>{bestMae < Infinity ? bestMae.toFixed(2) : '—'}</strong>
+              {impr ? ` (${impr}% improvement from baseline ${firstMae?.toFixed(2)})` : ''}.
+            </p>
+          </div>
+        </>
+      )}
 
-      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-        <h2 className="text-xl font-semibold mb-3">About This Project</h2>
-        <div className="text-sm text-slate-300 space-y-2 leading-relaxed">
-          <p>
-            <strong className="text-slate-100">Task:</strong> Train a classifier on <strong className="text-cyan-400">PneumoniaMNIST</strong> (2 classes: normal, pneumonia),
-            then detect whether a chest X-ray from <strong className="text-emerald-400">ChestMNIST</strong> is normal, pneumonia, or an <strong className="text-purple-400">unseen OOD class</strong> (consolidation).
-            This simulates a real-world medical scenario where a model must flag novel diseases it was never trained on.
-          </p>
-          <p>
-            <strong className="text-slate-100">Metrics:</strong>
-          </p>
-          <ul className="list-disc list-inside space-y-1 pl-2">
-            <li><span className="text-cyan-400 font-mono">Val Acc</span> — accuracy on PneumoniaMNIST validation (same distribution as training). Shows how well the model learns the training classes.</li>
-            <li><span className="text-emerald-400 font-mono">ID Test Acc</span> — accuracy on ChestMNIST normal + pneumonia only (domain-shifted but same classes). Reveals generalization gap across datasets.</li>
-            <li><span className="text-purple-400 font-mono">OOD F1</span> — F1 score for detecting consolidation as out-of-distribution. Measures how well the model flags unseen classes.</li>
-          </ul>
-          <p>
-            <strong className="text-slate-100">Architecture:</strong> SimpleCNN (2 conv layers + 2 fc layers) with 3-class output, LeakyReLU, and dropout.
-            The OOD detection uses a softmax confidence threshold (default 0.7): if max probability is below threshold, the sample is labeled as OOD.
-          </p>
-          <p className="text-slate-500 text-xs pt-1">
-            MLSS26_HACKATHON — Scientific AutoResearch loop for chest X-ray OOD detection.
-          </p>
-        </div>
+      <div className="text-center text-xs text-slate-500">
+        <code>dashboard/backend/main.py</code> + <code>dashboard/frontend/</code>
       </div>
     </div>
   );

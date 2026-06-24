@@ -1,0 +1,113 @@
+{
+  "experiments": [
+    {
+      "id": "loop-flu-260623-2230",
+      "label": "Flu 260623-2230",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "baseline",
+          "test_mae": 238.7726,
+          "val_mae": null,
+          "params": null,
+          "description": "Initial baseline run (30 pretrain + 10 finetune epochs)",
+          "hypothesis": "Establish baseline metric",
+          "mechanism": "Measure initial model performance on flu forecasting",
+          "expected_delta": "Baseline measurement",
+          "risk": "low",
+          "change_type": "baseline",
+          "diff_summary": "Initial baseline run",
+          "elapsed_s": 0.0,
+          "baseline": 238.7726
+        },
+        {
+          "iteration": 1,
+          "status": "discard",
+          "test_mae": 330.4117,
+          "val_mae": null,
+          "params": 15169,
+          "description": "Gradient clipping max_norm=1.0 (worsened)",
+          "hypothesis": "Gradient clipping stabilizes training by capping gradient magnitudes, preventing the diffusion model from overfitting to US-specific noise patterns and improving generalization to unseen country domains.",
+          "mechanism": "torch.nn.utils.clip_grad_norm_ after loss.backward() limits L2 norm of gradients, preventing exploding gradients from outlier ILI data points.",
+          "expected_delta": "expect Test MAE to decrease by 5-10 points",
+          "risk": "low",
+          "change_type": "regularization",
+          "diff_summary": "Added gradient clipping (max_norm=1.0) to train_epoch",
+          "elapsed_s": 25.0,
+          "baseline": 238.7726
+        },
+        {
+          "iteration": 2,
+          "status": "keep",
+          "test_mae": 22.3607,
+          "val_mae": null,
+          "params": 15169,
+          "description": "Auxiliary x0 prediction loss (self-consistency) in diffusion pretrain",
+          "hypothesis": "Adding an auxiliary x0-prediction loss to diffusion pretraining encourages the denoiser to produce accurate reconstructions, leading to better forecasting features and improved cross-country generalization.",
+          "mechanism": "The x0-prediction term MSE(x0_hat, x0) with weight 0.05 aligns the denoising direction with the true data manifold, regularizing the noise-prediction objective (self-consistency training).",
+          "expected_delta": "expect Test MAE to decrease by 10-20 points",
+          "risk": "medium",
+          "change_type": "loss",
+          "diff_summary": "Added auxiliary x0-prediction loss (self-consistency, weight=0.05) to diffusion_loss",
+          "elapsed_s": 25.0,
+          "baseline": 238.7726
+        },
+        {
+          "iteration": 3,
+          "status": "keep",
+          "test_mae": 20.9385,
+          "val_mae": null,
+          "params": 15169,
+          "description": "Increase x0 self-consistency loss weight 0.05->0.15",
+          "hypothesis": "Increasing the x0 prediction loss weight strengthens the self-consistency training signal, further improving the denoiser's reconstruction quality.",
+          "mechanism": "Higher weight (0.15) on MSE(x0_hat, x0) places more emphasis on accurate x0 reconstruction, aligning gradient signals with the true data manifold.",
+          "expected_delta": "expect Test MAE to decrease further by 2-4 points",
+          "risk": "low",
+          "change_type": "hyperparameter",
+          "diff_summary": "Increased x0 self-consistency loss weight 0.05->0.15 in diffusion_loss",
+          "elapsed_s": 25.0,
+          "baseline": 22.3607
+        },
+        {
+          "iteration": 4,
+          "status": "discard",
+          "test_mae": 21.828,
+          "val_mae": null,
+          "params": 15169,
+          "description": "Dropout 0.15->0.05 (slightly worsened)",
+          "hypothesis": "",
+          "mechanism": "",
+          "expected_delta": "",
+          "risk": "",
+          "change_type": "",
+          "diff_summary": "",
+          "elapsed_s": 0,
+          "baseline": null
+        },
+        {
+          "iteration": 5,
+          "status": "keep",
+          "test_mae": 19.0133,
+          "val_mae": null,
+          "params": 15169,
+          "description": "Linear beta schedule (1e-4 to 0.02)",
+          "hypothesis": "A linear beta schedule is better suited for smooth time series data like ILI than the cosine schedule designed for natural images.",
+          "mechanism": "Linear schedule provides a more uniform noise distribution across 30 diffusion steps, allowing the denoiser to learn more consistent denoising patterns for smooth ILI signals.",
+          "expected_delta": "expect Test MAE to decrease from 20.94 to ~18-20",
+          "risk": "medium",
+          "change_type": "hyperparameter",
+          "diff_summary": "Switched diffusion noise schedule from cosine to linear (1e-4 to 0.02)",
+          "elapsed_s": 25.0,
+          "baseline": 20.9385
+        }
+      ],
+      "summary": {
+        "baseline": 238.7726,
+        "best": 19.0133,
+        "improvement_pct": 92.0,
+        "kept": 3,
+        "total": 6
+      }
+    }
+  ]
+}
