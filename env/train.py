@@ -161,7 +161,6 @@ class DiffusionForecaster(nn.Module):
         betas = linear_beta_schedule(num_diffusion_steps)
         self.register_buffer("betas", betas)
         self.register_buffer("alphas_cumprod", torch.cumprod(1.0 - betas, dim=0))
-        self.sample_temp = nn.Parameter(torch.ones(1) * 0.9)
 
     def q_sample(self, x0, tau, noise):
         a_bar = self.alphas_cumprod[tau].view(-1, 1, 1)
@@ -181,7 +180,7 @@ class DiffusionForecaster(nn.Module):
             eps_hat = self.denoiser(x, c, tau)
             beta_t, a_bar_t = self.betas[t], self.alphas_cumprod[t]
             a_t = 1 - beta_t
-            x = (x - beta_t / torch.sqrt(1 - a_bar_t) * eps_hat * self.sample_temp) / torch.sqrt(a_t)
+            x = (x - beta_t / torch.sqrt(1 - a_bar_t) * eps_hat) / torch.sqrt(a_t)
         return x
 
 
