@@ -265,7 +265,7 @@ FINETUNE_VARIANTS = ["frozen", "naive_full_finetune", "lora_no_physics", "lora_a
 
 def prepare_finetune_variant(pretrained_model, variant, hidden_dim=64, forecast_steps=FORECAST_STEPS, input_steps=INPUT_STEPS):
     if variant == "from_scratch":
-        return DiffusionForecaster(hidden_dim=hidden_dim, forecast_steps=forecast_steps, input_steps=input_steps)
+        return DiffusionForecaster(hidden_dim=int(hidden_dim * 1.5), forecast_steps=forecast_steps, input_steps=input_steps)
     if variant not in FINETUNE_VARIANTS:
         raise ValueError(f"Unknown fine-tune variant: {variant}")
     model = copy.deepcopy(pretrained_model)
@@ -302,7 +302,7 @@ def create_model(model_type, input_dim=1, hidden_dim=128, num_layers=2, forecast
     if model_type == "transformer":
         return TinyTransformer(input_dim, hidden_dim, num_layers, forecast_steps)
     if model_type == "diffusion":
-        return DiffusionForecaster(input_dim, hidden_dim, forecast_steps=forecast_steps)
+        return DiffusionForecaster(input_dim, int(hidden_dim * 1.5), forecast_steps=forecast_steps)
     raise ValueError(f"Unknown model_type: {model_type}")
 
 
